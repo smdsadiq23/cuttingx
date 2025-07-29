@@ -1,0 +1,79 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-29 21:13:20.179862",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "cut_docket_id",
+  "sales_order",
+  "work_order",
+  "style_no",
+  "fg_item",
+  "section_break_bofp",
+  "table_dpnh"
+ ],
+ "fields": [
+  {
+   "fieldname": "cut_docket_id",
+   "fieldtype": "Link",
+   "label": "Cut Docket Id",
+   "options": "Cut Docket"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Data",
+   "label": "Sales Order"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Data",
+   "label": "Work Order"
+  },
+  {
+   "fieldname": "style_no",
+   "fieldtype": "Data",
+   "label": "Style No"
+  },
+  {
+   "fieldname": "fg_item",
+   "fieldtype": "Data",
+   "label": "FG Item"
+  },
+  {
+   "fieldname": "section_break_bofp",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_dpnh",
+   "fieldtype": "Table",
+   "options": "Bundle Creation Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-29 21:33:53.639280",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Bundle Creation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

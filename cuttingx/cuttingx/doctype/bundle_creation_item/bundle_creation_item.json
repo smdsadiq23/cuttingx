@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-29 21:30:15.891667",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "size",
+  "color",
+  "planned_quantity",
+  "unitsbundle",
+  "no_of_bundles"
+ ],
+ "fields": [
+  {
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Size"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Color"
+  },
+  {
+   "fieldname": "planned_quantity",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Planned Quantity"
+  },
+  {
+   "fieldname": "unitsbundle",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Units/Bundle"
+  },
+  {
+   "fieldname": "no_of_bundles",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "No of Bundles"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-29 21:32:39.433182",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Bundle Creation Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
