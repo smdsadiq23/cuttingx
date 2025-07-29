@@ -1,0 +1,190 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-07-29 12:09:49.617037",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "cut_po_number",
+  "bom",
+  "panel_code",
+  "panel_description",
+  "panel_type",
+  "customer_style",
+  "fg_code",
+  "sales_order",
+  "order_quantity",
+  "cpompo",
+  "work_order",
+  "customer",
+  "column_break_vksb",
+  "season",
+  "garment_way",
+  "plant_code",
+  "work_center",
+  "production_section",
+  "start_date",
+  "table_lriu",
+  "fabricmaterial_details",
+  "fabric_requirement",
+  "raw_material_composition"
+ ],
+ "fields": [
+  {
+   "default": ".YYYY.MM.DD.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": ".YYYY.MM.DD.-.#####"
+  },
+  {
+   "fieldname": "cut_po_number",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "FG Material",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fieldname": "bom",
+   "fieldtype": "Link",
+   "label": "BOM",
+   "options": "BOM"
+  },
+  {
+   "fieldname": "panel_code",
+   "fieldtype": "Data",
+   "label": "Panel Code"
+  },
+  {
+   "fieldname": "panel_description",
+   "fieldtype": "Data",
+   "label": "Panel Description"
+  },
+  {
+   "fieldname": "panel_type",
+   "fieldtype": "Data",
+   "label": "Panel Type"
+  },
+  {
+   "fieldname": "customer_style",
+   "fieldtype": "Data",
+   "label": "Customer Style"
+  },
+  {
+   "fieldname": "fg_code",
+   "fieldtype": "Data",
+   "label": "FG Code"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "order_quantity",
+   "fieldtype": "Data",
+   "label": "Order Quantity"
+  },
+  {
+   "fieldname": "cpompo",
+   "fieldtype": "Data",
+   "label": " CPO/MPO"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Data",
+   "label": "Customer"
+  },
+  {
+   "fieldname": "column_break_vksb",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "season",
+   "fieldtype": "Data",
+   "label": "Season"
+  },
+  {
+   "fieldname": "garment_way",
+   "fieldtype": "Data",
+   "label": "Garment Way"
+  },
+  {
+   "fieldname": "plant_code",
+   "fieldtype": "Data",
+   "label": "Plant Code"
+  },
+  {
+   "fieldname": "work_center",
+   "fieldtype": "Data",
+   "label": "Work Center"
+  },
+  {
+   "fieldname": "production_section",
+   "fieldtype": "Data",
+   "label": "Production Section"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date"
+  },
+  {
+   "fieldname": "table_lriu",
+   "fieldtype": "Table",
+   "options": "Cut Docket Item"
+  },
+  {
+   "fieldname": "fabricmaterial_details",
+   "fieldtype": "Data",
+   "label": "Fabric/Material Details"
+  },
+  {
+   "fieldname": "fabric_requirement",
+   "fieldtype": "Data",
+   "label": "Fabric Requirement"
+  },
+  {
+   "fieldname": "raw_material_composition",
+   "fieldtype": "Data",
+   "label": "Raw Material Composition"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-29 15:16:41.401245",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Cut Docket",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

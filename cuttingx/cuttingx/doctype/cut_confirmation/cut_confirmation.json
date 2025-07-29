@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-29 13:12:45.220674",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "posted_date_and_time",
+  "shift",
+  "cut_po_number",
+  "work_center",
+  "column_break_hveh",
+  "panel_code",
+  "panel_description",
+  "panel_type",
+  "table_no",
+  "section_break_dwom",
+  "table_urpz"
+ ],
+ "fields": [
+  {
+   "default": "now",
+   "fieldname": "posted_date_and_time",
+   "fieldtype": "Datetime",
+   "label": "Posted Date and Time"
+  },
+  {
+   "fieldname": "shift",
+   "fieldtype": "Select",
+   "label": "Shift",
+   "options": "Shift 1\nShift 2\nShift `3"
+  },
+  {
+   "fieldname": "cut_po_number",
+   "fieldtype": "Link",
+   "label": "Cut PO Number",
+   "options": "Cut Docket"
+  },
+  {
+   "fetch_from": "cut_po_number.work_center",
+   "fieldname": "work_center",
+   "fieldtype": "Data",
+   "label": "Work Center"
+  },
+  {
+   "fieldname": "column_break_hveh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "cut_po_number.panel_code",
+   "fieldname": "panel_code",
+   "fieldtype": "Data",
+   "label": "Panel Code"
+  },
+  {
+   "fetch_from": "cut_po_number.panel_description",
+   "fieldname": "panel_description",
+   "fieldtype": "Data",
+   "label": "Panel Description"
+  },
+  {
+   "fetch_from": "cut_po_number.panel_type",
+   "fieldname": "panel_type",
+   "fieldtype": "Data",
+   "label": "Panel Type"
+  },
+  {
+   "fieldname": "table_no",
+   "fieldtype": "Data",
+   "label": "Table No"
+  },
+  {
+   "fieldname": "section_break_dwom",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_urpz",
+   "fieldtype": "Table",
+   "options": "Cut Confirmation Item"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-07-29 20:16:54.584469",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Cut Confirmation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

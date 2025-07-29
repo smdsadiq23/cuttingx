@@ -145,6 +145,13 @@ app_license = "mit"
 # 	}
 # }
 
+doc_events = {
+    "Cut Confirmation": {
+        "validate": "cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.validate"
+    }
+}
+
+
 # Scheduled Tasks
 # ---------------
 

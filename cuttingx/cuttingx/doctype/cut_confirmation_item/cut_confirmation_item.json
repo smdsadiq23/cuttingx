@@ -1,0 +1,104 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-29 20:07:17.845699",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "cut_po_number",
+  "sales_order_number",
+  "work_order_number",
+  "size",
+  "planned_quantity",
+  "confirmed_quantity",
+  "balance_to_confirm",
+  "full_panel_reject",
+  "other_reject",
+  "total_reject"
+ ],
+ "fields": [
+  {
+   "columns": 1,
+   "fieldname": "cut_po_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Cut PO Number"
+  },
+  {
+   "columns": 1,
+   "fieldname": "sales_order_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Sales Order Number"
+  },
+  {
+   "columns": 1,
+   "fieldname": "work_order_number",
+   "fieldtype": "Data",
+   "label": "Work Order Number"
+  },
+  {
+   "columns": 1,
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Size"
+  },
+  {
+   "columns": 1,
+   "fieldname": "planned_quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Planned Quantity"
+  },
+  {
+   "columns": 1,
+   "fieldname": "confirmed_quantity",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Confirmed Quantity"
+  },
+  {
+   "fieldname": "balance_to_confirm",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Balance to Confirm"
+  },
+  {
+   "columns": 1,
+   "fieldname": "full_panel_reject",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Full Panel Reject"
+  },
+  {
+   "columns": 1,
+   "fieldname": "other_reject",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Other Reject"
+  },
+  {
+   "columns": 1,
+   "fieldname": "total_reject",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Total Reject"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-29 20:20:27.033396",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Cut Confirmation Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
