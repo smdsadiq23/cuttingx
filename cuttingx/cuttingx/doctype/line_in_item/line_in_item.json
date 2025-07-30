@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-07-30 10:17:59.137798",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "date_and_time",
+  "work_order",
+  "size",
+  "bundle_number",
+  "line_in_quantity"
+ ],
+ "fields": [
+  {
+   "fieldname": "date_and_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Date and Time"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Work Order"
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Size"
+  },
+  {
+   "fieldname": "bundle_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Bundle Number"
+  },
+  {
+   "fieldname": "line_in_quantity",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Line In Quantity"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-30 10:22:50.809036",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Line in Item",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
