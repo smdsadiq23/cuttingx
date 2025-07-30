@@ -40,7 +40,8 @@
    "fetch_from": "cut_po_number.work_center",
    "fieldname": "work_center",
    "fieldtype": "Data",
-   "label": "Work Center"
+   "label": "Work Center",
+   "options": "Cut Docket"
   },
   {
    "fieldname": "column_break_hveh",
@@ -82,7 +83,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-29 20:16:54.584469",
+ "modified": "2025-07-30 10:42:58.345419",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

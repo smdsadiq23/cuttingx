@@ -21,14 +21,18 @@
    "options": "Cut Docket"
   },
   {
+   "fetch_from": "cut_docket_id.sales_order",
    "fieldname": "sales_order",
-   "fieldtype": "Data",
-   "label": "Sales Order"
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
   },
   {
+   "fetch_from": "cut_docket_id.work_order",
    "fieldname": "work_order",
-   "fieldtype": "Data",
-   "label": "Work Order"
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order"
   },
   {
    "fieldname": "style_no",
@@ -36,9 +40,11 @@
    "label": "Style No"
   },
   {
+   "fetch_from": "cut_docket_id.cut_po_number",
    "fieldname": "fg_item",
-   "fieldtype": "Data",
-   "label": "FG Item"
+   "fieldtype": "Link",
+   "label": "FG Item",
+   "options": "Item"
   },
   {
    "fieldname": "section_break_bofp",
@@ -53,7 +59,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-29 21:33:53.639280",
+ "modified": "2025-07-30 10:30:57.555859",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",
