@@ -7,29 +7,33 @@
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
-  "cut_po_number",
-  "bom",
-  "panel_code",
-  "panel_description",
-  "panel_type",
-  "customer_style",
-  "fg_code",
-  "sales_order",
+  "style",
+  "brand",
+  "bom_no",
   "order_quantity",
-  "cpompo",
-  "work_order",
-  "customer",
-  "column_break_vksb",
+  "panel_code",
+  "panel_type",
   "season",
   "garment_way",
   "plant_code",
+  "column_break_vksb",
   "work_center",
-  "production_section",
-  "start_date",
-  "table_lriu",
+  "section",
+  "cut_start_date",
+  "marker_length_meters",
+  "marker_width_meters",
+  "no_of_plies",
+  "marker_efficiency",
+  "marker_image",
   "fabricmaterial_details",
-  "fabric_requirement",
-  "raw_material_composition"
+  "raw_material_composition",
+  "fabric_requirement_against_bom",
+  "fabric_requirement_against_marker",
+  "section_break_akmr",
+  "work_order_details",
+  "table_size_ratio_qty",
+  "section_break_vifx",
+  "table_vgif"
  ],
  "fields": [
   {
@@ -40,28 +44,9 @@
    "options": ".YYYY.MM.DD.-.#####"
   },
   {
-   "fieldname": "cut_po_number",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "FG Material",
-   "options": "Item",
-   "reqd": 1
-  },
-  {
-   "fieldname": "bom",
-   "fieldtype": "Link",
-   "label": "BOM",
-   "options": "BOM"
-  },
-  {
    "fieldname": "panel_code",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "label": "Panel Code"
-  },
-  {
-   "fieldname": "panel_description",
-   "fieldtype": "Data",
-   "label": "Panel Description"
   },
   {
    "fieldname": "panel_type",
@@ -69,41 +54,11 @@
    "label": "Panel Type"
   },
   {
-   "fieldname": "customer_style",
-   "fieldtype": "Data",
-   "label": "Customer Style"
-  },
-  {
-   "fieldname": "fg_code",
-   "fieldtype": "Data",
-   "label": "FG Code"
-  },
-  {
-   "fieldname": "sales_order",
-   "fieldtype": "Link",
-   "label": "Sales Order",
-   "options": "Sales Order"
-  },
-  {
+   "fetch_from": "sales_order.total_qty",
    "fieldname": "order_quantity",
-   "fieldtype": "Data",
-   "label": "Order Quantity"
-  },
-  {
-   "fieldname": "cpompo",
-   "fieldtype": "Data",
-   "label": " CPO/MPO"
-  },
-  {
-   "fieldname": "work_order",
-   "fieldtype": "Link",
-   "label": "Work Order",
-   "options": "Work Order"
-  },
-  {
-   "fieldname": "customer",
-   "fieldtype": "Data",
-   "label": "Customer"
+   "fieldtype": "Float",
+   "label": "Order Quantity",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_vksb",
@@ -121,8 +76,9 @@
   },
   {
    "fieldname": "plant_code",
-   "fieldtype": "Data",
-   "label": "Plant Code"
+   "fieldtype": "Link",
+   "label": "Plant Code",
+   "options": "Company"
   },
   {
    "fieldname": "work_center",
@@ -130,40 +86,120 @@
    "label": "Work Center"
   },
   {
-   "fieldname": "production_section",
-   "fieldtype": "Data",
-   "label": "Production Section"
-  },
-  {
-   "fieldname": "start_date",
-   "fieldtype": "Date",
-   "label": "Start Date"
-  },
-  {
-   "fieldname": "table_lriu",
-   "fieldtype": "Table",
-   "options": "Cut Docket Item"
-  },
-  {
    "fieldname": "fabricmaterial_details",
    "fieldtype": "Data",
    "label": "Fabric/Material Details"
   },
   {
-   "fieldname": "fabric_requirement",
-   "fieldtype": "Data",
-   "label": "Fabric Requirement"
-  },
-  {
    "fieldname": "raw_material_composition",
    "fieldtype": "Data",
    "label": "Raw Material Composition"
+  },
+  {
+   "fieldname": "section",
+   "fieldtype": "Data",
+   "label": "Section"
+  },
+  {
+   "fieldname": "cut_start_date",
+   "fieldtype": "Date",
+   "label": "Cut Start Date"
+  },
+  {
+   "fieldname": "table_size_ratio_qty",
+   "fieldtype": "Table",
+   "label": "Size Ratio Quantity",
+   "options": "Cut Docket Item"
+  },
+  {
+   "fieldname": "fabric_requirement_against_bom",
+   "fieldtype": "Data",
+   "label": "Fabric Requirement against BOM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fabric_requirement_against_marker",
+   "fieldtype": "Data",
+   "label": "Fabric Requirement against Marker",
+   "read_only": 1
+  },
+  {
+   "fieldname": "marker_length_meters",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Marker Length (meters)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "marker_width_meters",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Marker Width (meters)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "no_of_plies",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "No of Plies",
+   "reqd": 1
+  },
+  {
+   "fieldname": "marker_efficiency",
+   "fieldtype": "Percent",
+   "label": "Marker Efficiency",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "marker_image",
+   "fieldtype": "Attach Image",
+   "label": "Marker image"
+  },
+  {
+   "fieldname": "section_break_akmr",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "work_order_details",
+   "fieldtype": "Table",
+   "label": "Work Order Details",
+   "options": "Cut Docket WO Details"
+  },
+  {
+   "fieldname": "section_break_vifx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_vgif",
+   "fieldtype": "Table",
+   "options": "Cut Docket Roll Allocation"
+  },
+  {
+   "fieldname": "bom_no",
+   "fieldtype": "Data",
+   "label": "BOM",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "style.brand",
+   "fieldname": "brand",
+   "fieldtype": "Data",
+   "label": "Brand",
+   "read_only": 1
+  },
+  {
+   "fieldname": "style",
+   "fieldtype": "Link",
+   "label": "Style",
+   "options": "Item",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-29 15:16:41.401245",
+ "modified": "2025-07-31 17:49:06.027372",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
