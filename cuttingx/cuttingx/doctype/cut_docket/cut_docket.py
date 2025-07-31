@@ -181,3 +181,37 @@ def get_sales_orders_by_item(doctype, txt, searchfield, start, page_len, filters
         LIMIT %s OFFSET %s
     """, (style, f"%{txt}%", page_len, start))
 
+
+@frappe.whitelist()
+def get_work_orders_by_so_and_lineitem(doctype, txt, searchfield, start, page_len, filters):
+    sales_order = filters.get("sales_order")
+    line_item = filters.get("line_item")
+
+    return frappe.db.sql("""
+        SELECT DISTINCT wo.name
+        FROM `tabWork Order` wo
+        JOIN `tabWork Order Line Item` woli ON woli.parent = wo.name
+        WHERE wo.docstatus < 2
+        AND wo.sales_order = %s
+        AND woli.line_item_no = %s
+        AND wo.name LIKE %s
+        ORDER BY wo.name DESC
+        LIMIT %s OFFSET %s
+    """, (sales_order, line_item, f"%{txt}%", page_len, start))
+
+
+@frappe.whitelist()
+def get_already_cut_quantity(work_order):
+    if not work_order:
+        return 0
+
+    total = frappe.db.sql("""
+        SELECT SUM(already_cut)
+        FROM `tabCut Docket Item`
+        WHERE ref_work_order = %s
+    """, (work_order,), as_dict=True)
+
+    return total[0]["SUM(already_cut)"] or 0
+
+
+

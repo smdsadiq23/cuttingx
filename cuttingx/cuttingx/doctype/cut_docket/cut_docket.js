@@ -20,21 +20,28 @@ frappe.ui.form.on('Cut Docket', {
             };
         };
 
-        // Set query for Work Order in child table based on selected Sales Order
-        // frm.fields_dict.work_order_details.grid.get_field('work_order').get_query = function(doc, cdt, cdn) {
-        //     const d = locals[cdt][cdn];
+        frm.fields_dict.work_order_details.grid.get_field('work_order').get_query = function(doc, cdt, cdn) {
+            const row = locals[cdt][cdn];
 
-        //     if (!d.sales_order) {
-        //         frappe.msgprint(__('Please select a Sales Order first.'));
-        //         return {};
-        //     }
+            // Find the corresponding SO + Line Item row from so_details
+            // Assuming the first row, or match by some shared field/index
+            const so_row = (doc.sale_order_details || []).find(so =>
+                so.sales_order && so.line_item
+            );
 
-        //     return {
-        //         filters: {
-        //             sales_order: d.sales_order
-        //         }
-        //     };
-        // };
+            if (!so_row) {
+                frappe.msgprint(__('Please fill Sales Order and Line Item in SO Details.'));
+                return {};
+            }
+
+            return {
+                query: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_work_orders_by_so_and_lineitem",
+                filters: {
+                    sales_order: so_row.sales_order,
+                    line_item: so_row.line_item
+                }
+            };
+        };
     },   
     style: function(frm) {
         if (!frm.doc.style) return;
@@ -216,6 +223,32 @@ frappe.ui.form.on('Cut Docket SO Details', {
                 }
 
                 frm.fields_dict.sale_order_details.grid.refresh();
+            }
+        });
+    }
+});
+
+frappe.ui.form.on('Cut Docket WO Details', {
+    work_order: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+
+        if (!row.work_order) return;
+
+        frappe.call({
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_already_cut_quantity",
+            args: {
+                work_order: row.work_order
+            },
+            callback: function(r) {
+                const already_cut = flt(r.message || 0);
+                frappe.model.set_value(cdt, cdn, 'already_cut_quantity', already_cut);
+
+                // Fetch work_order_quantity from Work Order doctype
+                frappe.db.get_value('Work Order', row.work_order, 'qty', (value) => {
+                    const wo_qty = flt(value.qty || 0);
+                    const balance = wo_qty - already_cut;
+                    frappe.model.set_value(cdt, cdn, 'balance_quantity', balance);
+                });
             }
         });
     }
