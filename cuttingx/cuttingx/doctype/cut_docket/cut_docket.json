@@ -30,10 +30,11 @@
   "fabric_requirement_against_bom",
   "fabric_requirement_against_marker",
   "section_break_akmr",
+  "sale_order_details",
   "work_order_details",
   "table_size_ratio_qty",
   "section_break_vifx",
-  "table_vgif"
+  "roll_details"
  ],
  "fields": [
   {
@@ -168,12 +169,8 @@
   },
   {
    "fieldname": "section_break_vifx",
-   "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "table_vgif",
-   "fieldtype": "Table",
-   "options": "Cut Docket Roll Allocation"
+   "fieldtype": "Section Break",
+   "label": "Roll Details"
   },
   {
    "fieldname": "bom_no",
@@ -192,14 +189,26 @@
    "fieldname": "style",
    "fieldtype": "Link",
    "label": "Style",
+   "link_filters": "[[\"Item\",\"custom_select_master\",\"=\",\"Style\"]]",
    "options": "Item",
    "reqd": 1
+  },
+  {
+   "fieldname": "roll_details",
+   "fieldtype": "Table",
+   "options": "Cut Docket Roll Allocation"
+  },
+  {
+   "fieldname": "sale_order_details",
+   "fieldtype": "Table",
+   "label": "Sales Order Details",
+   "options": "Cut Docket SO Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-31 17:49:06.027372",
+ "modified": "2025-07-31 20:33:30.081406",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

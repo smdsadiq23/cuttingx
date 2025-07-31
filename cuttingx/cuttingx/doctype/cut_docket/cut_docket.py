@@ -162,3 +162,22 @@ def get_fabric_requirement(bom_no, panel_code, size_table):
 
     return total_qty
 
+
+@frappe.whitelist()
+def get_sales_orders_by_item(doctype, txt, searchfield, start, page_len, filters):
+    style = filters.get("style")
+    if not style:
+        return []
+
+    return frappe.db.sql("""
+        SELECT DISTINCT so.name
+        FROM `tabSales Order` so
+        JOIN `tabSales Order Item` soi ON soi.parent = so.name
+        WHERE soi.item_code = %s
+        AND so.docstatus = 1
+        AND so.status != 'Closed'
+        AND so.name LIKE %s
+        ORDER BY so.name ASC
+        LIMIT %s OFFSET %s
+    """, (style, f"%{txt}%", page_len, start))
+

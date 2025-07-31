@@ -1,7 +1,41 @@
 // Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on('Cut Docket', {
+frappe.ui.form.on('Cut Docket', {  
+   onload: function(frm) {
+        // Set query for Sales Order in child table based on Style
+        frm.fields_dict.sale_order_details.grid.get_field('sales_order').get_query = function(doc, cdt, cdn) {
+            const d = locals[cdt][cdn];
+
+            if (!doc.style) {
+                frappe.msgprint(__('Please select a Style before selecting a Sales Order.'));
+                return {};
+            }
+
+            return {
+                query: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_sales_orders_by_item",
+                filters: {
+                    style: doc.style
+                }
+            };
+        };
+
+        // Set query for Work Order in child table based on selected Sales Order
+        // frm.fields_dict.work_order_details.grid.get_field('work_order').get_query = function(doc, cdt, cdn) {
+        //     const d = locals[cdt][cdn];
+
+        //     if (!d.sales_order) {
+        //         frappe.msgprint(__('Please select a Sales Order first.'));
+        //         return {};
+        //     }
+
+        //     return {
+        //         filters: {
+        //             sales_order: d.sales_order
+        //         }
+        //     };
+        // };
+    },   
     style: function(frm) {
         if (!frm.doc.style) return;
 
@@ -136,3 +170,53 @@ function calculate_marker_efficiency(frm) {
         frm.set_value("marker_efficiency", 0);
     }
 }
+
+frappe.ui.form.on('Cut Docket SO Details', {
+    sales_order: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+
+        if (!row.sales_order) {
+            frappe.msgprint(__('Please select a Sales Order.'));
+            return;
+        }
+
+        frappe.call({
+            method: "frappe.client.get",
+            args: {
+                doctype: "Sales Order",
+                name: row.sales_order
+            },
+            callback: function(r) {
+                const so = r.message;
+                if (!so || !so.items || so.items.length === 0) {
+                    frappe.msgprint(__('No Items found in selected Sales Order.'));
+                    return;
+                }
+
+                // Extract custom_lineitem values from Sales Order Items
+                const line_items = so.items
+                    .map(item => item.custom_lineitem)
+                    .filter(v => !!v); // remove falsy/null/undefined
+
+                const unique_line_items = [...new Set(line_items)];
+
+                // Set the options for the `line_item` select field
+                frm.fields_dict.sale_order_details.grid.update_docfield_property(
+                    'line_item',
+                    'options',
+                    unique_line_items.join('\n')
+                );
+
+                // Clear existing value
+                frappe.model.set_value(cdt, cdn, 'line_item', '');
+
+                // Auto-select if only one option
+                if (unique_line_items.length === 1) {
+                    frappe.model.set_value(cdt, cdn, 'line_item', unique_line_items[0]);
+                }
+
+                frm.fields_dict.sale_order_details.grid.refresh();
+            }
+        });
+    }
+});
