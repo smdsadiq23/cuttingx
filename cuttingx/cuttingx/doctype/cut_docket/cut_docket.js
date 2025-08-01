@@ -42,6 +42,31 @@ frappe.ui.form.on('Cut Docket', {
                 }
             };
         };
+    },
+    refresh: function(frm) {
+        frm.add_custom_button(__('Fetch Size Details'), function() {
+            const work_orders = frm.doc.work_order_details.map(row => row.work_order).filter(Boolean);
+
+            if (!work_orders.length) {
+                frappe.msgprint("No Work Orders selected in WO Details.");
+                return;
+            }
+
+            frappe.call({
+                method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_cut_docket_items_from_work_orders',
+                args: {
+                    work_orders: JSON.stringify(work_orders)
+                },
+                callback: function(r) {
+                    frm.clear_table('table_size_ratio_qty');
+                    (r.message || []).forEach(item => {
+                        const row = frm.add_child('table_size_ratio_qty');
+                        Object.assign(row, item);
+                    });
+                    frm.refresh_field('table_size_ratio_qty');
+                }
+            });
+        });
     },   
     style: function(frm) {
         if (!frm.doc.style) return;
@@ -122,15 +147,21 @@ frappe.ui.form.on('Cut Docket', {
     no_of_plies: function(frm) {
         calculate_fabric_requirement_against_marker(frm);
         calculate_marker_efficiency(frm);
-    }
+    }  
 });
 
 
 frappe.ui.form.on('Cut Docket Item', {
-    // size: function(frm, cdt, cdn) {
-    //     recalculate_fabric_requirement(frm);
-    // },
     planned_cut_quantity: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+
+        const quantity = flt(row.quantity || 0);
+        const already_cut = flt(row.already_cut || 0);
+        const planned = flt(row.planned_cut_quantity || 0);
+
+        row.balance = quantity - already_cut - planned;
+
+        frm.refresh_field('cut_docket_item');
         recalculate_fabric_requirement(frm);
     }
 });

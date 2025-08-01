@@ -34,7 +34,8 @@
   "work_order_details",
   "table_size_ratio_qty",
   "section_break_vifx",
-  "roll_details"
+  "roll_details",
+  "amended_from"
  ],
  "fields": [
   {
@@ -169,8 +170,7 @@
   },
   {
    "fieldname": "section_break_vifx",
-   "fieldtype": "Section Break",
-   "label": "Roll Details"
+   "fieldtype": "Section Break"
   },
   {
    "fieldname": "bom_no",
@@ -196,6 +196,7 @@
   {
    "fieldname": "roll_details",
    "fieldtype": "Table",
+   "label": "Roll Details",
    "options": "Cut Docket Roll Allocation"
   },
   {
@@ -203,12 +204,23 @@
    "fieldtype": "Table",
    "label": "Sales Order Details",
    "options": "Cut Docket SO Details"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Cut Docket",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-07-31 20:33:30.081406",
+ "modified": "2025-08-01 09:47:52.518273",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

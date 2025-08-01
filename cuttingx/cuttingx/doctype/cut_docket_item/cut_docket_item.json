@@ -8,7 +8,7 @@
  "field_order": [
   "ref_work_order",
   "size",
-  "consolidate_quantity",
+  "quantity",
   "already_cut",
   "planned_cut_quantity",
   "balance"
@@ -19,21 +19,16 @@
    "fieldname": "size",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Size"
-  },
-  {
-   "columns": 2,
-   "fieldname": "consolidate_quantity",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Consolidate Quantity"
+   "label": "Size",
+   "read_only": 1
   },
   {
    "columns": 1,
    "fieldname": "already_cut",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Already Cut"
+   "label": "Already Cut",
+   "read_only": 1
   },
   {
    "columns": 2,
@@ -48,21 +43,31 @@
    "fieldname": "balance",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Balance"
+   "label": "Balance",
+   "read_only": 1
   },
   {
    "columns": 2,
    "fieldname": "ref_work_order",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Ref Work Order"
+   "label": "Ref Work Order",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "quantity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Quantity",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-31 21:40:07.654751",
+ "modified": "2025-08-01 09:21:44.823154",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket Item",

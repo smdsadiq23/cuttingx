@@ -4,7 +4,8 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-
+import json
+from frappe.utils import flt
 
 class CutDocket(Document):
     def validate(self):
@@ -129,9 +130,6 @@ class CutDocket(Document):
             
 @frappe.whitelist()
 def get_fabric_requirement(bom_no, panel_code, size_table):
-    import json
-    from frappe.utils import flt
-
     if not bom_no or not panel_code or not size_table:
         return 0
 
@@ -206,12 +204,56 @@ def get_already_cut_quantity(work_order):
         return 0
 
     total = frappe.db.sql("""
-        SELECT SUM(already_cut)
+        SELECT SUM(planned_cut_quantity)
         FROM `tabCut Docket Item`
         WHERE ref_work_order = %s
     """, (work_order,), as_dict=True)
 
-    return total[0]["SUM(already_cut)"] or 0
+    return total[0]["SUM(planned_cut_quantity)"] or 0
+
+
+@frappe.whitelist()
+def get_cut_docket_items_from_work_orders(work_orders):
+    """
+    Given a list of work orders, return size-wise rows with:
+    - size
+    - quantity (work_order_allocated_qty)
+    - already_cut (sum of planned_cut_quantity from Cut Docket Item)
+    - balance = quantity - already_cut
+    """
+    work_orders = json.loads(work_orders)
+    result = []
+
+    for wo in work_orders:
+        wo_line_items = frappe.get_all(
+            'Work Order Line Item',
+            filters={'parent': wo},
+            fields=['size', 'work_order_allocated_qty']
+        )
+
+        for line in wo_line_items:
+            size = line.size
+            allocated_qty = float(line.work_order_allocated_qty or 0)
+
+            already_cut_result = frappe.db.sql("""
+                SELECT SUM(planned_cut_quantity) as total_cut
+                FROM `tabCut Docket Item`
+                WHERE ref_work_order = %s AND size = %s
+            """, (wo, size), as_dict=True)
+
+            already_cut = float(already_cut_result[0].total_cut or 0)
+
+            result.append({
+                'ref_work_order': wo,
+                'size': size,
+                'quantity': allocated_qty,
+                'already_cut': already_cut,
+                'planned_cut_quantity': 0,
+                'balance': allocated_qty - already_cut
+            })
+
+    return result
+
 
 
 
