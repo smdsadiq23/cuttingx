@@ -10,12 +10,11 @@
   "cut_po_number",
   "work_center",
   "column_break_hveh",
-  "panel_code",
-  "panel_description",
   "panel_type",
+  "panel_code",
   "table_no",
   "section_break_dwom",
-  "table_urpz"
+  "table_cut_confirmation_item"
  ],
  "fields": [
   {
@@ -28,7 +27,7 @@
    "fieldname": "shift",
    "fieldtype": "Select",
    "label": "Shift",
-   "options": "Shift 1\nShift 2\nShift `3"
+   "options": "Shift 1\nShift 2\nShift 3"
   },
   {
    "fieldname": "cut_po_number",
@@ -41,7 +40,8 @@
    "fieldname": "work_center",
    "fieldtype": "Data",
    "label": "Work Center",
-   "options": "Cut Docket"
+   "options": "Cut Docket",
+   "read_only": 1
   },
   {
    "fieldname": "column_break_hveh",
@@ -51,19 +51,15 @@
    "fetch_from": "cut_po_number.panel_code",
    "fieldname": "panel_code",
    "fieldtype": "Data",
-   "label": "Panel Code"
-  },
-  {
-   "fetch_from": "cut_po_number.panel_description",
-   "fieldname": "panel_description",
-   "fieldtype": "Data",
-   "label": "Panel Description"
+   "label": "Panel Code",
+   "read_only": 1
   },
   {
    "fetch_from": "cut_po_number.panel_type",
    "fieldname": "panel_type",
    "fieldtype": "Data",
-   "label": "Panel Type"
+   "label": "Panel Type",
+   "read_only": 1
   },
   {
    "fieldname": "table_no",
@@ -75,7 +71,7 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "table_urpz",
+   "fieldname": "table_cut_confirmation_item",
    "fieldtype": "Table",
    "options": "Cut Confirmation Item"
   }
@@ -83,7 +79,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-30 10:42:58.345419",
+ "modified": "2025-08-01 14:46:33.731918",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

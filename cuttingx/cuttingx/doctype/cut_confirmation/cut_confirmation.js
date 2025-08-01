@@ -7,8 +7,6 @@
 //  },
 // });
 
-console.log("📄 Cut Confirmation: JS loaded");
-
 frappe.ui.form.on('Cut Confirmation Item', {
     planned_quantity: function(frm, cdt, cdn) {
         console.log("🔢 planned_quantity changed", locals[cdt][cdn]);

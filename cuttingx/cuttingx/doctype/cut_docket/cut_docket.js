@@ -145,7 +145,7 @@ frappe.ui.form.on('Cut Docket', {
         if (!frm.doc.bom_no || !frm.doc.panel_type) return;
 
         frappe.call({
-            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_panel_code_from_bom",
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_panel_code_and_garment_way_from_bom",
             args: {
                 bom_no: frm.doc.bom_no,
                 panel_type: frm.doc.panel_type
