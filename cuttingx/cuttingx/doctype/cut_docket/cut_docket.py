@@ -11,10 +11,11 @@ class CutDocket(Document):
     def validate(self):
         if self.style:
             self.set_bom_no_from_style()
-            self.set_panel_code_from_bom()
+            self.set_panel_type_from_bom()
         self.calculate_fabric_requirement()
         self.calculate_fabric_requirement_against_marker()
         self.calculate_marker_efficiency()
+        self.validate_no_negative_balance()
         
 
     def set_bom_no_from_style(self):
@@ -30,8 +31,8 @@ class CutDocket(Document):
         self.bom_no = item.default_bom
         
 
-    def set_panel_code_from_bom(self):
-        """Set panel_code from first BOM Item's custom_fg_link filtered by Fabrics"""
+    def set_panel_type_from_bom(self):
+        """Set panel_type from first BOM Item's custom_fg_link filtered by Fabrics"""
         if not self.bom_no:
             return
 
@@ -47,20 +48,20 @@ class CutDocket(Document):
         })
 
         if fabric_links:
-            self.panel_code = fabric_links[0]  # optional: auto-pick first
+            self.panel_type = fabric_links[0]  # optional: auto-pick first
         else:
-            self.panel_code = None
+            self.panel_type = None
             
 
     def calculate_fabric_requirement(self):
         """
-        Calculates total fabric requirement against BOM for the selected panel_code.
-        Matches BOM Items with custom_panel_code == panel_code and custom_item_type == "Fabrics"
+        Calculates total fabric requirement against BOM for the selected panel_type.
+        Matches BOM Items with custom_fg_link == panel_type and custom_item_type == "Fabrics"
         Then multiplies matched BOM qty with planned_cut_quantity for size matches
         and stores the sum in fabric_requirement_against_bom
         """
 
-        if not self.bom_no or not self.panel_code or not self.table_size_ratio_qty:
+        if not self.bom_no or not self.panel_type or not self.table_size_ratio_qty:
             self.fabric_requirement_against_bom = 0
             return
 
@@ -69,14 +70,14 @@ class CutDocket(Document):
         except frappe.DoesNotExistError:
             frappe.throw(_("BOM {0} not found").format(self.bom_no))
 
-        # Step 1: Filter BOM items where custom_fg_link == panel_code and item type is Fabrics
+        # Step 1: Filter BOM items where custom_fg_link == panel_type and item type is Fabrics
         matching_bom_items = [
             item for item in bom.items
-            if item.custom_fg_link == self.panel_code and item.custom_item_type == "Fabrics"
+            if item.custom_fg_link == self.panel_type and item.custom_item_type == "Fabrics"
         ]
 
         if not matching_bom_items:
-            frappe.msgprint(_("No matching BOM items found for panel code '{0}'").format(self.panel_code))
+            frappe.msgprint(_("No matching BOM items found for panel code '{0}'").format(self.panel_type))
             self.fabric_requirement_against_bom = 0
             return
 
@@ -126,11 +127,46 @@ class CutDocket(Document):
                 self.marker_efficiency = 0
         except Exception:
             self.marker_efficiency = 0
+
+
+    def validate_no_negative_balance(self):
+        for row in self.table_size_ratio_qty:
+            if flt(row.balance) < 0:
+                frappe.throw(
+                    _("Negative balance found for Size '{0}' and Work Order '{1}'. Check planned quantity.").format(
+                        row.size, row.ref_work_order or "Unknown"
+                    )
+                )
             
-            
+
 @frappe.whitelist()
-def get_fabric_requirement(bom_no, panel_code, size_table):
-    if not bom_no or not panel_code or not size_table:
+def get_panel_code_from_bom(bom_no, panel_type):
+    """
+    Returns custom_panel_code and custom_garment_way from BOM Item where:
+    - custom_fg_link == panel_type
+    - custom_item_type == "Fabrics"
+    """
+    if not bom_no or not panel_type:
+        return {}
+
+    try:
+        bom = frappe.get_doc("BOM", bom_no)
+    except frappe.DoesNotExistError:
+        return {}
+
+    for item in bom.items:
+        if item.custom_item_type == "Fabrics" and item.custom_fg_link == panel_type:
+            return {
+                "panel_code": item.custom_panel_code or "",
+                "garment_way": item.custom_garment_way or ""
+            }
+
+    return {}
+
+
+@frappe.whitelist()
+def get_fabric_requirement(bom_no, panel_type, size_table):
+    if not bom_no or not panel_type or not size_table:
         return 0
 
     try:
@@ -142,7 +178,7 @@ def get_fabric_requirement(bom_no, panel_code, size_table):
 
     matching_bom_items = [
         item for item in bom.items
-        if item.custom_fg_link == panel_code and item.custom_item_type == "Fabrics"
+        if item.custom_fg_link == panel_type and item.custom_item_type == "Fabrics"
     ]
 
     total_qty = 0
@@ -216,7 +252,7 @@ def get_already_cut_quantity(work_order):
 def get_cut_docket_items_from_work_orders(work_orders):
     """
     Given a list of work orders, return size-wise rows with:
-    - size
+    - size (ordered as in Work Order Line Item table)
     - quantity (work_order_allocated_qty)
     - already_cut (sum of planned_cut_quantity from Cut Docket Item)
     - balance = quantity - already_cut
@@ -225,11 +261,8 @@ def get_cut_docket_items_from_work_orders(work_orders):
     result = []
 
     for wo in work_orders:
-        wo_line_items = frappe.get_all(
-            'Work Order Line Item',
-            filters={'parent': wo},
-            fields=['size', 'work_order_allocated_qty']
-        )
+        wo_doc = frappe.get_doc("Work Order", wo)
+        wo_line_items = wo_doc.get("custom_work_order_line_items") or []
 
         for line in wo_line_items:
             size = line.size
@@ -253,7 +286,3 @@ def get_cut_docket_items_from_work_orders(work_orders):
             })
 
     return result
-
-
-
-

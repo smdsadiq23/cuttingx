@@ -54,12 +54,15 @@ frappe.ui.form.on('Cut Docket', {
                     return;
                 }
 
+                //frappe.show_progress('Fetching Size Details', 30, 100, 'Please wait...');
+
                 frappe.call({
                     method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_cut_docket_items_from_work_orders',
                     args: {
                         work_orders: JSON.stringify(work_orders)
                     },
                     callback: function(r) {
+                        //frappe.hide_progress(); 
                         frm.clear_table('table_size_ratio_qty');
                         (r.message || []).forEach(item => {
                             const row = frm.add_child('table_size_ratio_qty');
@@ -117,18 +120,18 @@ frappe.ui.form.on('Cut Docket', {
                         const unique_fg_links = [...new Set(fabric_fg_links)];
 
                         if (unique_fg_links.length > 0) {
-                            frm.set_df_property('panel_code', 'options', unique_fg_links.join('\n'));
-                            frm.refresh_field('panel_code');
+                            frm.set_df_property('panel_type', 'options', unique_fg_links.join('\n'));
+                            frm.refresh_field('panel_type');
 
                             if (unique_fg_links.length === 1) {
-                                frm.set_value('panel_code', unique_fg_links[0]);
+                                frm.set_value('panel_type', unique_fg_links[0]);
                             } else {
-                                frm.set_value('panel_code', '');
+                                frm.set_value('panel_type', '');
                                 frappe.msgprint(__('Multiple Fabric FG Links found. Please select one.'));
                             }
                         } else {
-                            frm.set_df_property('panel_code', 'options', '');
-                            frm.refresh_field('panel_code');
+                            frm.set_df_property('panel_type', 'options', '');
+                            frm.refresh_field('panel_type');
                             frappe.msgprint(__('No Fabric FG Links found in the BOM.'));
                         }
                     }
@@ -136,8 +139,23 @@ frappe.ui.form.on('Cut Docket', {
             }
         });
     },
-    panel_code: function(frm) {
+    panel_type: function(frm) {
         recalculate_fabric_requirement(frm);
+
+        if (!frm.doc.bom_no || !frm.doc.panel_type) return;
+
+        frappe.call({
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_panel_code_from_bom",
+            args: {
+                bom_no: frm.doc.bom_no,
+                panel_type: frm.doc.panel_type
+            },
+            callback: function(r) {
+                const data = r.message || {};
+                frm.set_value('panel_code', data.panel_code || '');
+                frm.set_value('garment_way', data.garment_way || '');
+            }
+        });
     },
     fabric_requirement_against_bom: function(frm) {
         calculate_marker_efficiency(frm);
@@ -173,12 +191,12 @@ frappe.ui.form.on('Cut Docket Item', {
 
 
 function recalculate_fabric_requirement(frm) {
-    if (!frm.doc.bom_no || !frm.doc.panel_code || !frm.doc.table_size_ratio_qty) return;
+    if (!frm.doc.bom_no || !frm.doc.panel_type || !frm.doc.table_size_ratio_qty) return;
     frappe.call({
         method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_fabric_requirement",
         args: {
             bom_no: frm.doc.bom_no,
-            panel_code: frm.doc.panel_code,
+            panel_type: frm.doc.panel_type,
             size_table: JSON.stringify(frm.doc.table_size_ratio_qty)
         },
         callback: function(r) {

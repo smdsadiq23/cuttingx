@@ -11,14 +11,14 @@
   "brand",
   "bom_no",
   "order_quantity",
-  "panel_code",
   "panel_type",
+  "panel_code",
   "season",
   "garment_way",
   "plant_code",
-  "column_break_vksb",
   "work_center",
   "section",
+  "column_break_vksb",
   "cut_start_date",
   "marker_length_meters",
   "marker_width_meters",
@@ -42,18 +42,20 @@
    "default": ".YYYY.MM.DD.-.#####",
    "fieldname": "naming_series",
    "fieldtype": "Select",
+   "hidden": 1,
    "label": "Naming Series",
    "options": ".YYYY.MM.DD.-.#####"
   },
   {
    "fieldname": "panel_code",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "label": "Panel Code"
   },
   {
    "fieldname": "panel_type",
-   "fieldtype": "Data",
-   "label": "Panel Type"
+   "fieldtype": "Select",
+   "label": "Panel Type",
+   "options": "BOM Item"
   },
   {
    "fetch_from": "sales_order.total_qty",
@@ -67,14 +69,17 @@
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "style.custom_season",
    "fieldname": "season",
    "fieldtype": "Data",
-   "label": "Season"
+   "label": "Season",
+   "read_only": 1
   },
   {
    "fieldname": "garment_way",
    "fieldtype": "Data",
-   "label": "Garment Way"
+   "label": "Garment Way",
+   "read_only": 1
   },
   {
    "fieldname": "plant_code",
@@ -220,7 +225,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-01 09:47:52.518273",
+ "modified": "2025-08-01 12:32:09.011465",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
