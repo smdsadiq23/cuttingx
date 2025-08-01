@@ -127,12 +127,12 @@ frappe.ui.form.on('Cut Docket', {
                                 frm.set_value('panel_type', unique_fg_links[0]);
                             } else {
                                 frm.set_value('panel_type', '');
-                                frappe.msgprint(__('Multiple Fabric FG Links found. Please select one.'));
+                                frappe.msgprint(__('Multiple Panel Type found. Please select one.'));
                             }
                         } else {
                             frm.set_df_property('panel_type', 'options', '');
                             frm.refresh_field('panel_type');
-                            frappe.msgprint(__('No Fabric FG Links found in the BOM.'));
+                            frappe.msgprint(__('No Panel Type found in the BOM.'));
                         }
                     }
                 });
