@@ -44,29 +44,34 @@ frappe.ui.form.on('Cut Docket', {
         };
     },
     refresh: function(frm) {
-        frm.add_custom_button(__('Fetch Size Details'), function() {
-            const work_orders = frm.doc.work_order_details.map(row => row.work_order).filter(Boolean);
+        // Only inject once
+        if (!frm.custom_buttons_injected) {
+            frm.fields_dict.table_size_ratio_qty.grid.add_custom_button(__('Fetch Docket Items'), () => {
+                const work_orders = frm.doc.work_order_details.map(row => row.work_order).filter(Boolean);
 
-            if (!work_orders.length) {
-                frappe.msgprint("No Work Orders selected in WO Details.");
-                return;
-            }
-
-            frappe.call({
-                method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_cut_docket_items_from_work_orders',
-                args: {
-                    work_orders: JSON.stringify(work_orders)
-                },
-                callback: function(r) {
-                    frm.clear_table('table_size_ratio_qty');
-                    (r.message || []).forEach(item => {
-                        const row = frm.add_child('table_size_ratio_qty');
-                        Object.assign(row, item);
-                    });
-                    frm.refresh_field('table_size_ratio_qty');
+                if (!work_orders.length) {
+                    frappe.msgprint("No Work Orders selected in WO Details.");
+                    return;
                 }
-            });
-        });
+
+                frappe.call({
+                    method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_cut_docket_items_from_work_orders',
+                    args: {
+                        work_orders: JSON.stringify(work_orders)
+                    },
+                    callback: function(r) {
+                        frm.clear_table('table_size_ratio_qty');
+                        (r.message || []).forEach(item => {
+                            const row = frm.add_child('table_size_ratio_qty');
+                            Object.assign(row, item);
+                        });
+                        frm.refresh_field('table_size_ratio_qty');
+                    }
+                });
+            }, 'table_size_ratio_qty');
+
+            frm.custom_buttons_injected = true;
+        }
     },   
     style: function(frm) {
         if (!frm.doc.style) return;
