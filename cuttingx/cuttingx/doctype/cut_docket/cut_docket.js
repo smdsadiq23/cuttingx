@@ -46,7 +46,7 @@ frappe.ui.form.on('Cut Docket', {
     refresh: function(frm) {
         // Only inject once
         if (!frm.custom_buttons_injected) {
-            frm.fields_dict.table_size_ratio_qty.grid.add_custom_button(__('Fetch Docket Items'), () => {
+            frm.fields_dict.table_size_ratio_qty.grid.add_custom_button(__('Fetch Size Details'), () => {
                 const work_orders = frm.doc.work_order_details.map(row => row.work_order).filter(Boolean);
 
                 if (!work_orders.length) {
