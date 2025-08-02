@@ -139,58 +139,58 @@ class CutDocket(Document):
                 )
             
 
-# @frappe.whitelist()
-# def get_panel_code_and_garment_way_from_bom(bom_no, panel_type):
-#     """
-#     Returns custom_panel_code and custom_garment_way from BOM Item where:
-#     - custom_fg_link == panel_type
-#     - custom_item_type == "Fabrics"
-#     """
-#     if not bom_no or not panel_type:
-#         return {}
-
-#     try:
-#         bom = frappe.get_doc("BOM", bom_no)
-#     except frappe.DoesNotExistError:
-#         return {}
-
-#     for item in bom.custom_fabrics_items:
-#         if item.parentfield == "custom_fabrics_items" and item.custom_fg_link == panel_type:
-#             return {
-#                 "panel_code": item.custom_panel_code or "",
-#                 "garment_way": item.custom_garment_way or ""
-#             }
-
-#     return {}
-
-
 @frappe.whitelist()
 def get_panel_code_and_garment_way_from_bom(bom_no, panel_type):
     """
     Returns custom_panel_code and custom_garment_way from BOM Item where:
-    - parent = bom_no
-    - custom_fg_link = panel_type
-    - parentfield = 'custom_fabrics_items'
+    - custom_fg_link == panel_type
+    - custom_item_type == "Fabrics"
     """
     if not bom_no or not panel_type:
         return {}
 
-    result = frappe.db.sql("""
-        SELECT custom_panel_code, custom_garment_way
-        FROM `tabBOM Item`
-        WHERE parent = %s
-        AND parentfield = 'custom_fabrics_items'
-        AND custom_fg_link = %s
-        LIMIT 1
-    """, (bom_no, panel_type), as_dict=True)
+    try:
+        bom = frappe.get_doc("BOM", bom_no)
+    except frappe.DoesNotExistError:
+        return {}
 
-    if result:
-        return {
-            "panel_code": result[0].custom_panel_code or "",
-            "garment_way": result[0].custom_garment_way or ""
-        }
+    for item in bom.items:
+        if item.custom_item_type == "Fabrics" and item.custom_fg_link == panel_type:
+            return {
+                "panel_code": item.custom_panel_code or "",
+                "garment_way": item.custom_garment_way or ""
+            }
 
     return {}
+
+
+# @frappe.whitelist()
+# def get_panel_code_and_garment_way_from_bom(bom_no, panel_type):
+#     """
+#     Returns custom_panel_code and custom_garment_way from BOM Item where:
+#     - parent = bom_no
+#     - custom_fg_link = panel_type
+#     - parentfield = 'custom_fabrics_items'
+#     """
+#     if not bom_no or not panel_type:
+#         return {}
+
+#     result = frappe.db.sql("""
+#         SELECT custom_panel_code, custom_garment_way
+#         FROM `tabBOM Item`
+#         WHERE parent = %s
+#         AND parentfield = 'custom_fabrics_items'
+#         AND custom_fg_link = %s
+#         LIMIT 1
+#     """, (bom_no, panel_type), as_dict=True)
+
+#     if result:
+#         return {
+#             "panel_code": result[0].custom_panel_code or "",
+#             "garment_way": result[0].custom_garment_way or ""
+#         }
+
+#     return {}
 
 
 @frappe.whitelist()

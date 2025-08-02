@@ -226,7 +226,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-01 19:26:44.191394",
+ "modified": "2025-08-02 14:41:07.787506",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
@@ -249,5 +249,6 @@
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "track_changes": 1
 }
