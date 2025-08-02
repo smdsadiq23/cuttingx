@@ -154,8 +154,8 @@ def get_panel_code_and_garment_way_from_bom(bom_no, panel_type):
     except frappe.DoesNotExistError:
         return {}
 
-    for item in bom.items:
-        if item.custom_item_type == "Fabrics" and item.custom_fg_link == panel_type:
+    for item in bom.custom_fabrics_items:
+        if item.parentfield == "custom_fabrics_items" and item.custom_fg_link == panel_type:
             return {
                 "panel_code": item.custom_panel_code or "",
                 "garment_way": item.custom_garment_way or ""
