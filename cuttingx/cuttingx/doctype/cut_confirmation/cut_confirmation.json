@@ -14,7 +14,8 @@
   "panel_code",
   "table_no",
   "section_break_dwom",
-  "table_cut_confirmation_item"
+  "table_cut_confirmation_item",
+  "amended_from"
  ],
  "fields": [
   {
@@ -74,12 +75,23 @@
    "fieldname": "table_cut_confirmation_item",
    "fieldtype": "Table",
    "options": "Cut Confirmation Item"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Cut Confirmation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-08-01 14:46:33.731918",
+ "modified": "2025-08-02 18:29:27.653655",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

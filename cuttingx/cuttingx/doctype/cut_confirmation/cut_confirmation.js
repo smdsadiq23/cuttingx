@@ -1,13 +1,50 @@
 // Copyright (c) 2025, CognitionX Logic India Private limited and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("Cut Confirmation", {
-//  refresh(frm) {
+// On form load: recalculate all rows
+frappe.ui.form.on('Cut Confirmation', {
+    cut_po_number: function(frm) {
+        if (!frm.doc.cut_po_number) return;
 
-//  },
-// });
+        frappe.call({
+            method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_items_from_cut_docket',
+            args: {
+                cut_po_number: frm.doc.cut_po_number
+            },
+            callback: function(r) {
+                if (r.message) {
+                    frm.clear_table('table_cut_confirmation_item');
+
+                    (r.message || []).forEach(row => {
+                        let child = frm.add_child('table_cut_confirmation_item');
+                        child.work_order = row.work_order;
+                        child.size = row.size;
+                        child.planned_quantity = row.planned_quantity;
+
+                        // Optional: Trigger field calculations
+                        if (typeof calculate_all === "function") {
+                            calculate_all(frm, child.doctype, child.name);
+                        }
+                    });
+
+                    frm.refresh_field('table_cut_confirmation_item');
+                    // frappe.msgprint(__('Cut Confirmation Items fetched based on Cut PO.'));
+                }
+            }
+        });
+    }
+});
+
+
+
+frappe.ui.form.on('Cut Confirmation', {
+    refresh: function(frm) {
+
+    }
+});
 
 frappe.ui.form.on('Cut Confirmation Item', {
+    
     planned_quantity: function(frm, cdt, cdn) {
         console.log("🔢 planned_quantity changed", locals[cdt][cdn]);
         calculate_all(frm, cdt, cdn);
@@ -47,24 +84,5 @@ function calculate_all(frm, cdt, cdn) {
     frappe.model.set_value(cdt, cdn, 'total_reject', total_reject);
 }
 
-// On form load: recalculate all rows
-frappe.ui.form.on('Cut Confirmation', {
-    refresh: function(frm) {
-        console.log("🔄 Form refresh triggered");
 
-        // 🔁 REPLACE 'items' WITH YOUR ACTUAL CHILD TABLE FIELDNAME
-        const fieldname = 'cut_confirmation_items';  // ← CHANGE THIS!
-
-        if (!frm.doc[fieldname]) {
-            console.log("⚠️ No rows found in", fieldname);
-            return;
-        }
-
-        frm.doc[fieldname].forEach(function(row) {
-            calculate_all(frm, row.doctype, row.name);
-        });
-
-        console.log("✅ All rows recalculated");
-    }
-});
 
