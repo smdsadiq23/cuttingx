@@ -54,8 +54,7 @@
   {
    "fieldname": "panel_type",
    "fieldtype": "Select",
-   "label": "Panel Type",
-   "options": "BOM Item"
+   "label": "Panel Type"
   },
   {
    "fieldname": "column_break_vksb",
@@ -218,7 +217,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-02 15:36:33.168440",
+ "modified": "2025-08-02 17:43:02.727213",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
