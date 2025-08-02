@@ -10,7 +10,6 @@
   "style",
   "brand",
   "bom_no",
-  "order_quantity",
   "panel_type",
   "panel_code",
   "season",
@@ -57,13 +56,6 @@
    "fieldtype": "Select",
    "label": "Panel Type",
    "options": "BOM Item"
-  },
-  {
-   "fetch_from": "sales_order.total_qty",
-   "fieldname": "order_quantity",
-   "fieldtype": "Float",
-   "label": "Order Quantity",
-   "read_only": 1
   },
   {
    "fieldname": "column_break_vksb",
@@ -226,7 +218,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-02 14:41:07.787506",
+ "modified": "2025-08-02 15:36:33.168440",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

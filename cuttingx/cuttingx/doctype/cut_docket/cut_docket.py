@@ -140,9 +140,15 @@ class CutDocket(Document):
             
 
 @frappe.whitelist()
-def get_panel_code_and_garment_way_from_bom(bom_no, panel_type):
+def get_details_on_panel_type_change(bom_no, panel_type):
     """
-    Returns custom_panel_code and custom_garment_way from BOM Item where:
+    Returns:
+    - panel_code (from BOM Item)
+    - garment_way (from BOM Item)
+    - fabricmaterial_details (item_code from BOM Item)
+    - raw_material_composition (custom_material_composition from Item)
+    
+    Filters:
     - custom_fg_link == panel_type
     - custom_item_type == "Fabrics"
     """
@@ -154,11 +160,22 @@ def get_panel_code_and_garment_way_from_bom(bom_no, panel_type):
     except frappe.DoesNotExistError:
         return {}
 
+    # for item in bom.items:
+    #     if item.custom_item_type == "Fabrics" and item.custom_fg_link == panel_type:
     for item in bom.custom_fabrics_items:
         if item.parentfield == "custom_fabrics_items" and item.custom_fg_link == panel_type:
+            item_code = item.item_code
+
+            # Fetch custom_material_composition from Item
+            composition = ""
+            if item_code:
+                composition = frappe.db.get_value("Item", item_code, "custom_material_composition") or ""
+
             return {
                 "panel_code": item.custom_panel_code or "",
-                "garment_way": item.custom_garment_way or ""
+                "garment_way": item.custom_garment_way or "",
+                "fabricmaterial_details": item_code or "",
+                "raw_material_composition": composition
             }
 
     return {}

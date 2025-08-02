@@ -145,7 +145,7 @@ frappe.ui.form.on('Cut Docket', {
         if (!frm.doc.bom_no || !frm.doc.panel_type) return;
 
         frappe.call({
-            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_panel_code_and_garment_way_from_bom",
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_details_on_panel_type_change",
             args: {
                 bom_no: frm.doc.bom_no,
                 panel_type: frm.doc.panel_type
@@ -154,6 +154,8 @@ frappe.ui.form.on('Cut Docket', {
                 const data = r.message || {};
                 frm.set_value('panel_code', data.panel_code || '');
                 frm.set_value('garment_way', data.garment_way || '');
+                frm.set_value('fabricmaterial_details', data.item_code || '');
+                frm.set_value('raw_material_composition', data.composition || '');
             }
         });
     },
