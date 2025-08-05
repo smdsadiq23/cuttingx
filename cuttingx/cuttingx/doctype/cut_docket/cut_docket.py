@@ -163,7 +163,7 @@ def get_details_on_panel_type_change(bom_no, panel_type):
     # for item in bom.items:
     #     if item.custom_item_type == "Fabrics" and item.custom_fg_link == panel_type:
     for item in bom.custom_fabrics_items:
-        if item.parentfield == "custom_fabrics_items" and item.custom_fg_link == panel_type:
+        if item.custom_fg_link == panel_type:
             item_code = item.item_code
 
             # Fetch custom_material_composition from Item

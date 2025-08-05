@@ -46,3 +46,21 @@ def get_items_from_cut_docket(cut_po_number):
 
     return items
 
+
+@frappe.whitelist()
+def get_sales_orders_from_docket(docket_name):
+    """
+    Return list of unique sales orders from Cut Docket -> Cut Docket SO Details table
+    """
+    if not docket_name:
+        return []
+
+    docket = frappe.get_doc("Cut Docket", docket_name)
+    sales_orders = set()
+
+    for row in docket.sale_order_details:
+        if row.sales_order:
+            sales_orders.add(row.sales_order)
+
+    return list(sales_orders)
+

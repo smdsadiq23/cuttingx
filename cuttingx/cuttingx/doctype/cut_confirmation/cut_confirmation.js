@@ -35,11 +35,27 @@ frappe.ui.form.on('Cut Confirmation', {
     }
 });
 
-
-
 frappe.ui.form.on('Cut Confirmation', {
-    refresh: function(frm) {
+    cut_po_number: function(frm) {
+        if (!frm.doc.cut_po_number) return;
+        frappe.call({
+            method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_sales_orders_from_docket',
+            args: {
+                docket_name: frm.doc.cut_po_number
+            },
+            callback: function(r) {
+                if (r.message) {
+                    frm.clear_table('sales_orders');  // ← refers to the Table MultiSelect field
 
+                    r.message.forEach(so => {
+                        const row = frm.add_child('sales_orders'); // ← adds to Cut Confirmation SO
+                        row.sales_order = so;
+                    });
+
+                    frm.refresh_field('sales_orders');
+                }
+            }
+        });
     }
 });
 
