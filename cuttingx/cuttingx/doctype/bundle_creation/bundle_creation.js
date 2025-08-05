@@ -1,11 +1,73 @@
 // Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
 // For license information, please see license.txt
 
-// frappe.ui.form.on("Bundle Creation", {
-// 	refresh(frm) {
+frappe.ui.form.on('Bundle Creation', {
+    onload: function(frm) {
+        frm.set_query('cut_docket_id', () => {
+            return {
+                filters: [
+                    ['name', 'in', get_eligible_cut_dockets()]
+                ]
+            };
+        });
+    },
+    refresh: function(frm) {
+        const fieldname = 'items';  // Replace with your actual child table fieldname
+        (frm.doc[fieldname] || []).forEach(function(row) {
+            calculate_bundles(frm, row.doctype, row.name);
+        });
+    },
+    cut_docket_id: function(frm) {
+        if (!frm.doc.cut_docket_id) return;
 
-// 	},
-// });
+        frappe.call({
+            method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_sales_and_work_orders_from_docket',
+            args: {
+                cut_docket_id: frm.doc.cut_docket_id
+            },
+            callback: function(r) {
+                if (r.message) {
+                    // Clear and fill sales orders
+                    frm.clear_table('sales_orders');
+                    (r.message.sales_orders || []).forEach(so => {
+                        const row = frm.add_child('sales_orders');
+                        row.sales_order = so;
+                    });
+
+                    // Clear and fill work orders
+                    frm.clear_table('work_orders');
+                    (r.message.work_orders || []).forEach(wo => {
+                        const row = frm.add_child('work_orders');
+                        row.work_order = wo;
+                    });
+
+                    frm.refresh_fields(['sales_orders', 'work_orders']);
+                }
+            }
+        });
+        frappe.call({
+            method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_cut_confirmation_items_from_docket',
+            args: {
+                cut_docket_id: frm.doc.cut_docket_id
+            },
+            callback: function(r) {
+                if (r.message) {
+                    frm.clear_table('table_bundle_creation_item');
+
+                    (r.message || []).forEach(row => {
+                        const child = frm.add_child('table_bundle_creation_item');
+                        child.size = row.size;
+                        child.cut_quantity = row.cut_quantity;
+                    });
+
+                    frm.refresh_field('table_bundle_creation_item');
+                    //frappe.msgprint(__('Bundle items fetched from Cut Confirmation.'));
+                }
+            }
+        });
+    }
+
+});
 
 frappe.ui.form.on('Bundle Creation Item', {
     planned_quantity: function(frm, cdt, cdn) {
@@ -28,6 +90,23 @@ frappe.ui.form.on('Bundle Creation Item', {
     }
 });
 
+// 🔍 Utility to fetch eligible Cut Dockets
+function get_eligible_cut_dockets() {
+    let eligible = [];
+
+    frappe.call({
+        method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_eligible_cut_dockets',
+        async: false,
+        callback: function(r) {
+            if (r.message) {
+                eligible = r.message;
+            }
+        }
+    });
+
+    return eligible;
+}
+
 function calculate_bundles(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
 
@@ -39,13 +118,3 @@ function calculate_bundles(frm, cdt, cdn) {
 
     frappe.model.set_value(cdt, cdn, 'no_of_bundles', no_of_bundles);
 }
-
-// Optional: Recalculate on form load
-frappe.ui.form.on('Bundle Creation', {
-    refresh: function(frm) {
-        const fieldname = 'items';  // Replace with your actual child table fieldname
-        (frm.doc[fieldname] || []).forEach(function(row) {
-            calculate_bundles(frm, row.doctype, row.name);
-        });
-    }
-});

@@ -6,12 +6,13 @@
  "engine": "InnoDB",
  "field_order": [
   "cut_docket_id",
-  "sales_order",
-  "work_order",
-  "style_no",
+  "sales_orders",
+  "work_orders",
   "fg_item",
-  "section_break_bofp",
-  "table_dpnh"
+  "style_number",
+  "section_break_nmab",
+  "table_bundle_creation_item",
+  "amended_from"
  ],
  "fields": [
   {
@@ -21,45 +22,58 @@
    "options": "Cut Docket"
   },
   {
-   "fetch_from": "cut_docket_id.sales_order",
-   "fieldname": "sales_order",
-   "fieldtype": "Link",
-   "label": "Sales Order",
-   "options": "Sales Order"
-  },
-  {
-   "fetch_from": "cut_docket_id.work_order",
-   "fieldname": "work_order",
-   "fieldtype": "Link",
-   "label": "Work Order",
-   "options": "Work Order"
-  },
-  {
-   "fieldname": "style_no",
-   "fieldtype": "Data",
-   "label": "Style No"
-  },
-  {
-   "fetch_from": "cut_docket_id.cut_po_number",
+   "fetch_from": "cut_docket_id.style",
    "fieldname": "fg_item",
    "fieldtype": "Link",
    "label": "FG Item",
    "options": "Item"
   },
   {
-   "fieldname": "section_break_bofp",
+   "fieldname": "sales_orders",
+   "fieldtype": "Table MultiSelect",
+   "label": "Sales Orders",
+   "options": "Bundle Creation SO",
+   "read_only": 1
+  },
+  {
+   "fieldname": "work_orders",
+   "fieldtype": "Table MultiSelect",
+   "label": "Work Orders",
+   "options": "Bundle Creation WO",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_nmab",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "table_dpnh",
+   "fetch_from": "fg_item.custom_item_number",
+   "fieldname": "style_number",
+   "fieldtype": "Link",
+   "label": "Style Number",
+   "options": "Item"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Bundle Creation",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "table_bundle_creation_item",
    "fieldtype": "Table",
    "options": "Bundle Creation Item"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-07-30 10:30:57.555859",
+ "modified": "2025-08-05 14:04:54.704152",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

@@ -3,9 +3,21 @@
 
 // On form load: recalculate all rows
 frappe.ui.form.on('Cut Confirmation', {
+    onload: function(frm) {
+        // Set filter to exclude already used Cut Dockets
+        frm.set_query('cut_po_number', () => {
+            return {
+                filters: [
+                    ['docstatus', '=', 1],  // Only submitted
+                    ['name', 'not in', get_already_used_dockets()]
+                ]
+            };
+        });
+    },
     cut_po_number: function(frm) {
         if (!frm.doc.cut_po_number) return;
 
+        // Fetch Cut Confirmation Items
         frappe.call({
             method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_items_from_cut_docket',
             args: {
@@ -14,30 +26,22 @@ frappe.ui.form.on('Cut Confirmation', {
             callback: function(r) {
                 if (r.message) {
                     frm.clear_table('table_cut_confirmation_item');
-
                     (r.message || []).forEach(row => {
                         let child = frm.add_child('table_cut_confirmation_item');
                         child.work_order = row.work_order;
                         child.size = row.size;
                         child.planned_quantity = row.planned_quantity;
 
-                        // Optional: Trigger field calculations
                         if (typeof calculate_all === "function") {
                             calculate_all(frm, child.doctype, child.name);
                         }
                     });
-
                     frm.refresh_field('table_cut_confirmation_item');
-                    // frappe.msgprint(__('Cut Confirmation Items fetched based on Cut PO.'));
                 }
             }
         });
-    }
-});
 
-frappe.ui.form.on('Cut Confirmation', {
-    cut_po_number: function(frm) {
-        if (!frm.doc.cut_po_number) return;
+        // Fetch associated Sales Orders
         frappe.call({
             method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_sales_orders_from_docket',
             args: {
@@ -45,19 +49,39 @@ frappe.ui.form.on('Cut Confirmation', {
             },
             callback: function(r) {
                 if (r.message) {
-                    frm.clear_table('sales_orders');  // ← refers to the Table MultiSelect field
-
-                    r.message.forEach(so => {
-                        const row = frm.add_child('sales_orders'); // ← adds to Cut Confirmation SO
+                    frm.clear_table('sales_orders');
+                    (r.message || []).forEach(so => {
+                        const row = frm.add_child('sales_orders');
                         row.sales_order = so;
                     });
-
                     frm.refresh_field('sales_orders');
                 }
             }
         });
     }
 });
+
+// 🔍 Utility: Get already used Cut Dockets
+function get_already_used_dockets() {
+    let dockets = [];
+    frappe.call({
+        method: 'frappe.client.get_list',
+        async: false,
+        args: {
+            doctype: 'Cut Confirmation',
+            fields: ['cut_po_number'],
+            filters: {
+                docstatus: ['!=', 2],  // Exclude cancelled
+                cut_po_number: ['!=', null]
+            },
+            limit_page_length: 1000
+        },
+        callback: function(r) {
+            dockets = (r.message || []).map(row => row.cut_po_number);
+        }
+    });
+    return dockets;
+}
 
 frappe.ui.form.on('Cut Confirmation Item', {
     

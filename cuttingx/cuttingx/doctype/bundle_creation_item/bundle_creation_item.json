@@ -21,7 +21,8 @@
    "fieldname": "size",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Size"
+   "label": "Size",
+   "read_only": 1
   },
   {
    "columns": 1,
@@ -49,7 +50,8 @@
    "fieldname": "no_of_bundles",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "No of Bundles"
+   "label": "No of Bundles",
+   "read_only": 1
   },
   {
    "columns": 1,
@@ -70,14 +72,15 @@
    "fieldname": "cut_quantity",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Cut Quantity"
+   "label": "Cut Quantity",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-02 09:35:57.166667",
+ "modified": "2025-08-05 14:11:53.539228",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation Item",
