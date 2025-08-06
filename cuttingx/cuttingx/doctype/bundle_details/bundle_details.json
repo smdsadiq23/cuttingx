@@ -19,13 +19,15 @@
    "fieldname": "bundle_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Bundle Id"
+   "label": "Bundle Id",
+   "read_only": 1
   },
   {
    "fieldname": "unitsbundle",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Units/Bundle"
+   "label": "Units/Bundle",
+   "read_only": 1
   },
   {
    "default": "BNDL.#####",
@@ -62,7 +64,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-05 20:10:00.125329",
+ "modified": "2025-08-06 09:44:27.584027",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Details",

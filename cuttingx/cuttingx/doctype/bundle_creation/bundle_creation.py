@@ -138,7 +138,8 @@ def generate_bundle_details(docname):
                 "bundle_id": bundle_id,
                 "unitsbundle": bundle_qty,
                 "barcode_image": barcode_b64,
-                "qrcode_image": qrcode_b64
+                "qrcode_image": qrcode_b64,
+                "parent_item_id": item.name 
             })
 
     doc.save(ignore_permissions=True)
