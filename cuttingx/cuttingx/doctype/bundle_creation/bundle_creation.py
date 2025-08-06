@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from scanx.utils.generators import generate_barcode_base64, generate_qrcode_base64
+from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
 from frappe.model.naming import make_autoname
 
 
