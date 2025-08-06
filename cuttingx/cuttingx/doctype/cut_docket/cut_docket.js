@@ -2,46 +2,45 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Cut Docket', {  
-   onload: function(frm) {
-        // Set query for Sales Order in child table based on Style
-        frm.fields_dict.sale_order_details.grid.get_field('sales_order').get_query = function(doc, cdt, cdn) {
-            const d = locals[cdt][cdn];
+    onload: function(frm) {
+        // Existing query logic...
 
-            if (!doc.style) {
-                frappe.msgprint(__('Please select a Style before selecting a Sales Order.'));
-                return {};
-            }
+        // If Style is already selected, fetch BOM and set panel_type options
+        if (frm.doc.style) {
+            frappe.call({
+                method: "frappe.client.get",
+                args: {
+                    doctype: "Item",
+                    name: frm.doc.style
+                },
+                callback: function(r) {
+                    const item = r.message;
+                    if (!item || !item.default_bom) return;
 
-            return {
-                query: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_sales_orders_by_item",
-                filters: {
-                    style: doc.style
+                    frappe.call({
+                        method: "frappe.client.get",
+                        args: {
+                            doctype: "BOM",
+                            name: item.default_bom
+                        },
+                        callback: function(bom_r) {
+                            const bom = bom_r.message;
+                            if (!bom || !bom.items) return;
+
+                            const fabric_fg_links = bom.items
+                                .filter(row => row.custom_item_type === "Fabrics" && !!row.custom_fg_link)
+                                .map(row => row.custom_fg_link);
+
+                            const unique_fg_links = [...new Set(fabric_fg_links)];
+
+                            // Always set options, even if value is already present
+                            frm.set_df_property('panel_type', 'options', unique_fg_links.join('\n'));
+                            frm.refresh_field('panel_type');
+                        }
+                    });
                 }
-            };
-        };
-
-        frm.fields_dict.work_order_details.grid.get_field('work_order').get_query = function(doc, cdt, cdn) {
-            const row = locals[cdt][cdn];
-
-            // Find the corresponding SO + Line Item row from so_details
-            // Assuming the first row, or match by some shared field/index
-            const so_row = (doc.sale_order_details || []).find(so =>
-                so.sales_order && so.line_item
-            );
-
-            if (!so_row) {
-                frappe.msgprint(__('Please fill Sales Order and Line Item in SO Details.'));
-                return {};
-            }
-
-            return {
-                query: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_work_orders_by_so_and_lineitem",
-                filters: {
-                    sales_order: so_row.sales_order,
-                    line_item: so_row.line_item
-                }
-            };
-        };
+            });
+        }
     },
     refresh: function(frm) {
         // Only inject once
@@ -154,8 +153,8 @@ frappe.ui.form.on('Cut Docket', {
                 const data = r.message || {};
                 frm.set_value('panel_code', data.panel_code || '');
                 frm.set_value('garment_way', data.garment_way || '');
-                frm.set_value('fabricmaterial_details', data.item_code || '');
-                frm.set_value('raw_material_composition', data.composition || '');
+                frm.set_value('fabricmaterial_details', data.fabricmaterial_details || '');
+                frm.set_value('raw_material_composition', data.raw_material_composition || '');
             }
         });
     },
