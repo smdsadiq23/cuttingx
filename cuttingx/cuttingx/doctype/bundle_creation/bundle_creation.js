@@ -11,11 +11,30 @@ frappe.ui.form.on('Bundle Creation', {
             };
         });
     },
-    refresh: function(frm) {
-        const fieldname = 'items';  // Replace with your actual child table fieldname
-        (frm.doc[fieldname] || []).forEach(function(row) {
-            calculate_bundles(frm, row.doctype, row.name);
-        });
+    refresh(frm) {
+        if (!frm.custom_bundle_button_added) {
+            frm.fields_dict.table_bundle_details.grid.add_custom_button(__('Create Bundles'), function () {
+
+                // If the form is not yet saved (new), save it first
+                if (!frm.doc.__islocal && frm.doc.name) {
+                    // Already saved – proceed
+                    generate_bundles(frm);
+                } else {
+                    // Save first, then proceed
+                    frappe.confirm(
+                        'This document must be saved before generating bundles. Do you want to save and continue?',
+                        () => {
+                            frm.save().then(() => {
+                                generate_bundles(frm);
+                            });
+                        }
+                    );
+                }
+
+            }, __('Actions'));
+
+            frm.custom_bundle_button_added = true;
+        }
     },
     cut_docket_id: function(frm) {
         if (!frm.doc.cut_docket_id) return;
@@ -117,4 +136,23 @@ function calculate_bundles(frm, cdt, cdn) {
     const no_of_bundles = Math.ceil(qty / units);
 
     frappe.model.set_value(cdt, cdn, 'no_of_bundles', no_of_bundles);
+}
+
+function generate_bundles(frm) {
+    frappe.call({
+        method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.generate_bundle_details',
+        args: {
+            docname: frm.doc.name
+        },
+        freeze: true,
+        freeze_message: "Generating bundles...",
+        callback: function (r) {
+            if (!r.exc) {
+                frappe.msgprint(__('✅ Bundles generated successfully.'));
+                frm.reload_doc();
+            } else {
+                frappe.msgprint(__('❌ Failed to generate bundles. Check server logs.'));
+            }
+        }
+    });
 }

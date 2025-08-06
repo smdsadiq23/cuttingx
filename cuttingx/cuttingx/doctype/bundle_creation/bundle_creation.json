@@ -12,6 +12,7 @@
   "style_number",
   "section_break_nmab",
   "table_bundle_creation_item",
+  "table_bundle_details",
   "amended_from"
  ],
  "fields": [
@@ -49,7 +50,7 @@
   {
    "fetch_from": "fg_item.custom_item_number",
    "fieldname": "style_number",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Style Number",
    "options": "Item"
   },
@@ -66,14 +67,21 @@
   {
    "fieldname": "table_bundle_creation_item",
    "fieldtype": "Table",
+   "label": "Bundle Configuration",
    "options": "Bundle Creation Item"
+  },
+  {
+   "fieldname": "table_bundle_details",
+   "fieldtype": "Table",
+   "label": "Bundle Details",
+   "options": "Bundle Details"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-05 14:04:54.704152",
+ "modified": "2025-08-05 18:03:18.155497",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

@@ -3,6 +3,8 @@
 
 import frappe
 from frappe.model.document import Document
+from scanx.utils.generators import generate_barcode_base64, generate_qrcode_base64
+from frappe.model.naming import make_autoname
 
 
 class BundleCreation(Document):
@@ -59,8 +61,6 @@ def get_sales_and_work_orders_from_docket(cut_docket_id):
         "work_orders": list(work_orders)
     }
 
-import frappe
-
 
 @frappe.whitelist()
 def get_cut_confirmation_items_from_docket(cut_docket_id):
@@ -94,3 +94,52 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
         for item in items
     ]
 
+
+@frappe.whitelist()
+def generate_bundle_details(docname):
+    """
+    Generate bundle rows with barcode/QR for a given Bundle Creation document.
+    Avoid duplicates if already generated once.
+    """
+    doc = frappe.get_doc("Bundle Creation", docname)
+
+    # 🚫 Don't regenerate if bundles already exist
+    if doc.get("table_bundle_details"):
+        frappe.msgprint("⚠️ Bundles already created. Please remove existing bundles to regenerate.")
+        return
+
+    # 🔍 Get naming series from 'bundle_id' field in 'Bundle Details'
+    bundle_id_field = frappe.get_meta("Bundle Details").get_field("bundle_id")
+    default_series = bundle_id_field.options or "BNDL.#####"
+
+    for item in doc.table_bundle_creation_item:
+        total_qty = int(item.planned_quantity or 0)
+        units_per_bundle = int(item.unitsbundle or 1)
+
+        if units_per_bundle <= 0:
+            frappe.throw(f"Units per bundle must be greater than 0 for row {item.idx}")
+
+        total_bundles = -(-total_qty // units_per_bundle)  # Ceiling division
+
+        for i in range(total_bundles):
+            # For last bundle, calculate remaining units
+            if i == total_bundles - 1:
+                bundle_qty = total_qty - units_per_bundle * (total_bundles - 1)
+            else:
+                bundle_qty = units_per_bundle
+
+            # Create bundle_id using naming series
+            bundle_id = make_autoname(default_series)
+            barcode_b64 = generate_barcode_base64(bundle_id)
+            qrcode_b64 = generate_qrcode_base64(bundle_id)
+
+            # Append row to Bundle Details
+            doc.append("table_bundle_details", {
+                "bundle_id": bundle_id,
+                "unitsbundle": bundle_qty,
+                "barcode_image": barcode_b64,
+                "qrcode_image": qrcode_b64
+            })
+
+    doc.save(ignore_permissions=True)
+    frappe.msgprint(f"✅ Created {len(doc.table_bundle_details)} bundles with QR & Barcode.")
