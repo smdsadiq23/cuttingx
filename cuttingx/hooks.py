@@ -96,6 +96,8 @@ app_license = "mit"
 # To set up dependencies/integrations with other apps
 # Name of the app being installed is passed as an argument
 
+app_dependency = ["labelx"]
+
 # before_app_install = "cuttingx.utils.before_app_install"
 # after_app_install = "cuttingx.utils.after_app_install"
 
