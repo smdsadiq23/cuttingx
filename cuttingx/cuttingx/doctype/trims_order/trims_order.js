@@ -30,6 +30,8 @@ frappe.ui.form.on('Trims Order', {
       callback: function (r) {
         if (r.message && r.message.length > 0) {
           r.message.forEach(row => {
+            // ✅ Skip if already issued quantity is equal to or more than WO quantity
+            if (flt(row.already_issued_quantity) >= flt(row.wo_quantity)) return;
             frm.add_child("table_trims_order_details", {
               sales_order: row.sales_order,
               line_item_no: row.line_item_no,
@@ -62,7 +64,7 @@ frappe.ui.form.on('Trims Order', {
                     uom: row.uom,
                     per_unit_quantity: row.per_unit_quantity,
                     wo_quantity: row.wo_quantity,
-                    already_issued_qty: 0
+                    already_issued_quantity: 0
                   });
                 });
                 frm.refresh_field("table_trims_order_details");
@@ -72,14 +74,24 @@ frappe.ui.form.on('Trims Order', {
         }
       }
     });
-  },
+  }, 
+  before_save(frm) {
+    (frm.doc.table_trims_order_details || []).forEach((row, idx) => {
+      if (!row.trims_order_quantity || flt(row.trims_order_quantity) === 0) {
+        frappe.throw(
+          `Please enter a valid <b>Trims Order Quantity</b> for row <b>${idx + 1}</b> ` +
+          `(Sales Order: <b>${row.sales_order || "?"}</b>, Size: <b>${row.size || "?"}</b>, Item: <b>${row.item_code || "?"}</b>)`
+        );
+      }
+    });
+  }
 });
 
 frappe.ui.form.on('Trims Order Item', {
   trims_order_quantity(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
 
-    const max_allowed_qty = flt(row.wo_quantity) - flt(row.already_issued_qty);
+    const max_allowed_qty = flt(row.wo_quantity) - flt(row.already_issued_quantity);
 
     if (flt(row.trims_order_quantity) > max_allowed_qty) {
       frappe.msgprint(`Trims Order Quantity must be less than or equal to ${max_allowed_qty}`);
