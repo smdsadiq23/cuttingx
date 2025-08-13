@@ -13,6 +13,7 @@
   "work_center",
   "amended_from",
   "section_break_nnoe",
+  "table_trims_order_summary",
   "table_trims_order_details"
  ],
  "fields": [
@@ -70,13 +71,19 @@
    "fieldtype": "Table",
    "label": "Trims Order Details",
    "options": "Trims Order Item"
+  },
+  {
+   "fieldname": "table_trims_order_summary",
+   "fieldtype": "Table",
+   "label": "Tirms Order Summary",
+   "options": "Trims Order Summary"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-08 11:47:44.344163",
+ "modified": "2025-08-13 13:42:53.415585",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Trims Order",

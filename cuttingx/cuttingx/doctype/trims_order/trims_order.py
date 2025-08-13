@@ -7,7 +7,52 @@ from frappe import _
 
 
 class TrimsOrder(Document):
-	pass
+    pass
+
+@frappe.whitelist()
+def get_grouped_trims_summary_data(work_order):
+    if not work_order:
+        return []
+
+    query = """
+        SELECT
+            sales_order,
+            size,
+            MIN(wo_quantity) as wo_quantity,
+            SUM(trims_order_quantity) as already_issued_quantity
+        FROM
+            `tabTrims Order Summary`
+        WHERE
+            parent IN (
+                SELECT name FROM `tabTrims Order`
+                WHERE work_order = %(work_order)s
+            )
+        GROUP BY
+            sales_order, size
+    """
+    data = frappe.db.sql(query, {"work_order": work_order}, as_dict=True)
+    return data
+
+
+@frappe.whitelist()
+def get_fallback_summary_trims(work_order):
+    """Return summary rows grouped by (SALES ORDER, SIZE) with total WO quantity."""
+    if not work_order:
+        return []
+
+    wo = frappe.get_doc("Work Order", work_order)
+
+    from frappe.utils import flt
+    totals = {}
+
+    for line in (wo.custom_work_order_line_items or []):
+        key = ((line.sales_order or "").strip(), (line.size or "").strip())
+        totals[key] = totals.get(key, 0) + flt(line.work_order_allocated_qty)
+
+    summary = [{"sales_order": so, "size": size, "wo_quantity": qty}
+               for (so, size), qty in totals.items()]
+    summary.sort(key=lambda x: (x["sales_order"] or "", x["size"] or ""))
+    return summary
 
 
 @frappe.whitelist()
@@ -24,8 +69,7 @@ def get_grouped_trims_data(work_order):
             item_code,
             uom,
             MIN(per_unit_quantity) as per_unit_quantity,
-            MIN(wo_quantity) as wo_quantity,
-            SUM(trims_order_quantity) as already_issued_quantity
+            MIN(wo_quantity) as wo_quantity
         FROM
             `tabTrims Order Item`
         WHERE
@@ -51,9 +95,8 @@ def get_fallback_bom_trims(work_order):
 
     bom = frappe.get_doc("BOM", wo.bom_no)
     results = []
-
+    
     for line in wo.custom_work_order_line_items:
-   
         sales_order = line.sales_order
         line_item_no = line.line_item_no        
         size = line.size
@@ -73,4 +116,5 @@ def get_fallback_bom_trims(work_order):
                 })
 
     return results
+
 
