@@ -12,7 +12,7 @@ frappe.ui.form.on('Bundle Creation', {
         });
     },
     refresh(frm) {
-        hide_add_delete_buttons(frm);
+        protect_child_table(frm);
         if (!frm.custom_bundle_button_added) {
             frm.fields_dict.table_bundle_details.grid.add_custom_button(__('Create Bundles'), function () {
 
@@ -39,8 +39,8 @@ frappe.ui.form.on('Bundle Creation', {
     },
     cut_docket_id: function(frm) {
         frappe.after_ajax(() => {
-            hide_add_delete_buttons(frm);
-        });        
+            setTimeout(() => protect_child_table(frm), 100);
+        });     
         if (!frm.doc.cut_docket_id) return;
 
         frappe.call({
@@ -165,19 +165,101 @@ function generate_bundles(frm) {
 }
 
 // Reusable function to hide buttons
-function hide_add_delete_buttons(frm) {
+function protect_child_table(frm) {
     if (frm.fields_dict.table_bundle_creation_item) {
         const childtable1 = frm.fields_dict.table_bundle_creation_item.grid;
         const childtable2 = frm.fields_dict.table_bundle_details.grid;
 
-        // Use setTimeout to ensure DOM is ready (important after dynamic updates)
+        // 1. ✅ Hide the "Add Row" button
         setTimeout(() => {
             if (childtable1 && childtable1.grid_buttons) {
                 childtable1.grid_buttons.find('.grid-add-row').hide();
                 childtable1.grid_buttons.find('.grid-remove-rows').hide();
                 childtable2.grid_buttons.find('.grid-add-row').hide();
-                childtable2.grid_buttons.find('.grid-remove-rows').hide();                
+                childtable2.grid_buttons.find('.grid-remove-rows').hide();  
+                hide_add_row_button(childtable1);
+                hide_add_row_button(childtable2);
+                // N  O  T    W  O  R  K  I  N  G
+                // block_create_new_row(childtable1);    
+                // block_create_new_row(childtable2);
+                // block_tab_in_last_row(childtable1);
+                // block_tab_in_last_row(childtable2);
             }
         }, 100);
     }
 }
+
+function hide_add_row_button(grid) {
+    // Use patch to re-hide on every refresh
+    if (!grid.refresh_patched) {
+        const original_refresh = grid.refresh;
+        grid.refresh = function () {
+            original_refresh.apply(this, arguments);
+            // Re-hide after refresh
+            setTimeout(() => {
+                const $btn = this.grid_buttons?.find('.grid-add-row');
+                if ($btn) {
+                    $btn.hide();
+                    $btn.data('permanently-hidden', true);
+                }
+            }, 50);
+        };
+        grid.refresh_patched = true; // prevent double patching
+    } else {
+        // Just hide if already patched
+        const $btn = grid.grid_buttons?.find('.grid-add-row');
+        if ($btn) {
+            $btn.hide();
+            $btn.data('permanently-hidden', true);
+        }
+    }
+}
+
+// function block_create_new_row(grid) {
+//     // Replace create_new_row with no-op
+//     grid.create_new_row = function () {
+//         console.log('🛑 Blocked: create_new_row called');
+//         // Do nothing
+//     };
+// }
+
+// function block_tab_in_last_row(grid, frm) {
+//     const fieldname = 'table_bundle_creation_item';
+
+//     // Remove existing listeners to avoid duplicates
+//     grid.wrapper.off('keydown', 'input');
+
+//     grid.wrapper.on('keydown', 'input', function (e) {
+//         if (e.key !== 'Tab') return;
+
+//         const $input = $(e.target);
+//         const $row = $input.closest('.grid-row');
+//         const $body = $input.closest('.grid-body');
+//         const $rows = $body.find('.grid-row');
+
+//         // Check if current row is the last one
+//         if ($row.is($rows.last())) {
+//             e.preventDefault(); // Prevent default behavior
+//             e.stopPropagation(); // Stop event propagation
+
+//             // Immediately remove any auto-created row
+//             const doc_rows = frm.doc?.[fieldname] || [];
+//             const grid_rows = grid.grid_rows || [];
+
+//             if (grid_rows.length > doc_rows.length) {
+//                 const new_row = grid_rows[grid_rows.length - 1];
+//                 // Adjust fields: use meaningful ones from your doctype
+//                 const isEmptyRow = !new_row.doc.item_code && !new_row.doc.qty;
+
+//                 if (isEmptyRow) {
+//                     cur_frm.delete_doc(fieldname, new_row.doc.name);
+//                     grid.refresh();
+//                 }
+//             }
+
+//             // Optionally, focus back to the last input
+//             $input.focus();
+//         }
+//     });
+// }
+

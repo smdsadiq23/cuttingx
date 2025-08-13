@@ -248,3 +248,17 @@ doc_events = {
 # default_log_clearing_doctypes = {
 # 	"Logging DocType Name": 30  # days to retain logs
 # }
+
+
+fixtures = [
+    # …your other fixtures…,
+    {
+        "doctype": "Translation",
+        "filters": [
+            ["language", "=", "en"],
+            # optionally scope to your app text:
+            # ["source_text", "like", "%MaintainX%"]
+        ],
+    },
+]
+

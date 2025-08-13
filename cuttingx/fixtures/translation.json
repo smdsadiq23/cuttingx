@@ -1,0 +1,54 @@
+[
+ {
+  "context": null,
+  "contributed": 0,
+  "contribution_docname": null,
+  "contribution_status": "",
+  "docstatus": 0,
+  "doctype": "Translation",
+  "language": "en",
+  "modified": "2025-08-13 09:56:34.479899",
+  "name": "hu8o60mmh6",
+  "source_text": "Bundle Creation",
+  "translated_text": "Bundle Configuration"
+ },
+ {
+  "context": null,
+  "contributed": 0,
+  "contribution_docname": null,
+  "contribution_status": "",
+  "docstatus": 0,
+  "doctype": "Translation",
+  "language": "en",
+  "modified": "2025-08-13 09:57:23.315395",
+  "name": "idh6t9nl20",
+  "source_text": "Bundle Creation Item",
+  "translated_text": "Bundle Configuration Item"
+ },
+ {
+  "context": null,
+  "contributed": 0,
+  "contribution_docname": null,
+  "contribution_status": "",
+  "docstatus": 0,
+  "doctype": "Translation",
+  "language": "en",
+  "modified": "2025-08-13 09:57:34.452881",
+  "name": "ih0baeapd0",
+  "source_text": "Bundle Creation SO",
+  "translated_text": "Bundle Configuration SO"
+ },
+ {
+  "context": null,
+  "contributed": 0,
+  "contribution_docname": null,
+  "contribution_status": "",
+  "docstatus": 0,
+  "doctype": "Translation",
+  "language": "en",
+  "modified": "2025-08-13 09:57:44.757442",
+  "name": "ik7sn1tktp",
+  "source_text": "Bundle Creation WO",
+  "translated_text": "Bundle Configuration WO"
+ }
+]
