@@ -19,8 +19,8 @@ class BundleCreationItem(Document):
             frappe.throw(_("Planned Quantity cannot be negative"))
 
     def validate_unitsbundle(self):
-        if self.unitsbundle <= 0:
-            frappe.throw(_("Units per Bundle must be greater than 0"))
+        if self.unitsbundle < 0:
+            frappe.throw(_("Units per Bundle cannot be negative"))
 
     def calculate_no_of_bundles(self):
         qty = self.planned_quantity or 0

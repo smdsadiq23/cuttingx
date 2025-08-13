@@ -12,6 +12,7 @@ frappe.ui.form.on('Bundle Creation', {
         });
     },
     refresh(frm) {
+        hide_add_delete_buttons(frm);
         if (!frm.custom_bundle_button_added) {
             frm.fields_dict.table_bundle_details.grid.add_custom_button(__('Create Bundles'), function () {
 
@@ -37,6 +38,9 @@ frappe.ui.form.on('Bundle Creation', {
         }
     },
     cut_docket_id: function(frm) {
+        frappe.after_ajax(() => {
+            hide_add_delete_buttons(frm);
+        });        
         if (!frm.doc.cut_docket_id) return;
 
         frappe.call({
@@ -85,7 +89,6 @@ frappe.ui.form.on('Bundle Creation', {
             }
         });
     }
-
 });
 
 frappe.ui.form.on('Bundle Creation Item', {
@@ -100,12 +103,16 @@ frappe.ui.form.on('Bundle Creation Item', {
     },
     unitsbundle: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
-        if (row.unitsbundle <= 0) {
-            frappe.msgprint(__("Units per Bundle must be greater than 0"));
+        if (row.unitsbundle < 0) {
+            frappe.msgprint(__("Units per Bundle cannot be negative"));
             frappe.model.set_value(cdt, cdn, 'unitsbundle', 1);
         } else {
             calculate_bundles(frm, cdt, cdn);
         }
+    },
+    'Bundle Creation Item': function(frm, cdt, cdn) {
+        // This runs on any change in the child table
+        hide_add_delete_buttons(frm);
     }
 });
 
@@ -155,4 +162,22 @@ function generate_bundles(frm) {
             }
         }
     });
+}
+
+// Reusable function to hide buttons
+function hide_add_delete_buttons(frm) {
+    if (frm.fields_dict.table_bundle_creation_item) {
+        const childtable1 = frm.fields_dict.table_bundle_creation_item.grid;
+        const childtable2 = frm.fields_dict.table_bundle_details.grid;
+
+        // Use setTimeout to ensure DOM is ready (important after dynamic updates)
+        setTimeout(() => {
+            if (childtable1 && childtable1.grid_buttons) {
+                childtable1.grid_buttons.find('.grid-add-row').hide();
+                childtable1.grid_buttons.find('.grid-remove-rows').hide();
+                childtable2.grid_buttons.find('.grid-add-row').hide();
+                childtable2.grid_buttons.find('.grid-remove-rows').hide();                
+            }
+        }, 100);
+    }
 }
