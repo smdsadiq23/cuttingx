@@ -29,71 +29,106 @@ class CutDocket(Document):
             frappe.throw(_("Item '{0}' does not have a default BOM.").format(self.style))
 
         self.bom_no = item.default_bom
-        
+                
 
     def set_panel_type_from_bom(self):
-        """Set panel_type from first BOM Item's custom_fg_link filtered by Fabrics"""
-        if not self.bom_no:
-            return
-
-        bom = frappe.get_doc("BOM", self.bom_no)
-        if not bom.items:
-            frappe.msgprint(_("BOM {0} has no items").format(self.bom_no))
-            return
-
-        # Filter BOM Items by custom_item_type = "Fabrics"
-        fabric_links = list({
-            item.custom_fg_link for item in bom.items
-            if item.custom_item_type == "Fabrics" and item.custom_fg_link
-        })
-
-        if fabric_links:
-            self.panel_type = fabric_links[0]  # optional: auto-pick first
-        else:
-            self.panel_type = None
-            
-
-    def calculate_fabric_requirement(self):
         """
-        Calculates total fabric requirement against BOM for the selected panel_type.
-        Matches BOM Items with custom_fg_link == panel_type and custom_item_type == "Fabrics"
-        Then multiplies matched BOM qty with planned_cut_quantity for size matches
-        and stores the sum in fabric_requirement_against_bom
+        Auto-set panel_type from BOM only if not already selected by user.
+        Only sets if exactly one unique custom_fg_link exists for Fabric items.
         """
-
-        if not self.bom_no or not self.panel_type or not self.table_size_ratio_qty:
-            self.fabric_requirement_against_bom = 0
+        if not self.bom_no or self.panel_type:
             return
 
         try:
             bom = frappe.get_doc("BOM", self.bom_no)
         except frappe.DoesNotExistError:
-            frappe.throw(_("BOM {0} not found").format(self.bom_no))
-
-        # Step 1: Filter BOM items where custom_fg_link == panel_type and item type is Fabrics
-        matching_bom_items = [
-            item for item in bom.items
-            if item.custom_fg_link == self.panel_type and item.custom_item_type == "Fabrics"
-        ]
-
-        if not matching_bom_items:
-            frappe.msgprint(_("No matching BOM items found for panel code '{0}'").format(self.panel_type))
-            self.fabric_requirement_against_bom = 0
+            frappe.msgprint(_("BOM {0} not found").format(self.bom_no))
             return
 
-        total_qty = 0
+        fabric_links = {
+            item.custom_fg_link for item in bom.items
+            if item.custom_item_type == "Fabrics" and item.custom_fg_link
+        }
 
-        # Step 2: Match sizes and compute quantity
-        for size_row in self.table_size_ratio_qty:
-            matched_item = next((
+        if len(fabric_links) == 1:
+            self.panel_type = list(fabric_links)[0]
+        elif len(fabric_links) > 1:
+            # Multiple options exist — let user choose
+            pass
+        else:
+            self.panel_type = None
+            
+
+def calculate_fabric_requirement(self):
+    """
+    Calculates total fabric requirement against BOM for the selected panel_type.
+
+    Primary rule:
+      - Match BOM Items where custom_fg_link == panel_type and custom_item_type == "Fabrics"
+      - For each Cut Docket size row, find BOM row with same custom_size and add: (bom.qty * planned_cut_quantity)
+
+    Fallback rule (when no size matches):
+      - If among the matching BOM items there is exactly ONE row whose custom_size is blank/None,
+        then use that BOM row's qty multiplied by the TOTAL planned_cut_quantity across all sizes.
+    """
+    from frappe.utils import flt
+
+    if not self.bom_no or not self.panel_type or not self.table_size_ratio_qty:
+        self.fabric_requirement_against_bom = 0
+        return
+
+    try:
+        bom = frappe.get_doc("BOM", self.bom_no)
+    except frappe.DoesNotExistError:
+        frappe.throw(_("BOM {0} not found").format(self.bom_no))
+
+    # 1) Filter BOM items for the selected panel type and Fabrics
+    matching_bom_items = [
+        item for item in (bom.items or [])
+        if item.custom_fg_link == self.panel_type and item.custom_item_type == "Fabrics"
+    ]
+
+    if not matching_bom_items:
+        frappe.msgprint(_("No matching BOM items found for panel code '{0}'").format(self.panel_type))
+        self.fabric_requirement_against_bom = 0
+        return
+
+    # 2) Try size-by-size matching first
+    total_qty = 0.0
+    for size_row in self.table_size_ratio_qty:
+        size_key = (size_row.size or "").strip().lower()
+        if not size_key:
+            continue
+
+        matched_item = next(
+            (
                 item for item in matching_bom_items
-                if (item.custom_size or "").strip().lower() == (size_row.size or "").strip().lower()
-            ), None)
+                if (item.custom_size or "").strip().lower() == size_key
+            ),
+            None
+        )
 
-            if matched_item:
-                total_qty += matched_item.qty * size_row.planned_cut_quantity
+        if matched_item:
+            total_qty += flt(matched_item.qty) * flt(size_row.planned_cut_quantity)
 
+    if total_qty > 0:
         self.fabric_requirement_against_bom = total_qty
+        return
+
+    # 3) Fallback: no sizes matched. If exactly one BOM row has no custom_size, use it for ALL sizes.
+    bom_items_no_size = [
+        item for item in matching_bom_items
+        if not (item.custom_size or "").strip()
+    ]
+
+    if len(bom_items_no_size) == 1:
+        per_unit = flt(bom_items_no_size[0].qty)
+        total_planned = sum(flt(r.planned_cut_quantity) for r in self.table_size_ratio_qty)
+        self.fabric_requirement_against_bom = per_unit * total_planned
+        return
+
+    # 4) If we reach here, there were either multiple no-size rows or none; keep as zero
+    self.fabric_requirement_against_bom = 0
 
 
     def calculate_fabric_requirement_against_marker(self):
@@ -211,6 +246,18 @@ def get_details_on_panel_type_change(bom_no, panel_type):
 
 @frappe.whitelist()
 def get_fabric_requirement(bom_no, panel_type, size_table):
+    """Return fabric requirement for the given BOM/panel_type and size table.
+
+    Primary: sum(matched_bom.qty * planned_cut_quantity) for rows where
+      - BOM Item.custom_item_type == "Fabrics"
+      - BOM Item.custom_fg_link == panel_type
+      - BOM Item.custom_size matches row.size
+
+    Fallback: if there are **no size matches**, and there is **exactly one**
+    matching BOM Item with **blank/None custom_size**, then use:
+      per_unit_qty_of_that_item * sum(all planned_cut_quantity)
+    """
+
     if not bom_no or not panel_type or not size_table:
         return 0
 
@@ -219,28 +266,51 @@ def get_fabric_requirement(bom_no, panel_type, size_table):
     except frappe.DoesNotExistError:
         return 0
 
-    size_rows = json.loads(size_table)
+    from frappe.utils import flt
+    import json
 
+    size_rows = json.loads(size_table) or []
+
+    # Filter BOM items for the selected panel type & Fabrics
     matching_bom_items = [
-        item for item in bom.items
-        if item.custom_fg_link == panel_type and item.custom_item_type == "Fabrics"
+        item for item in (bom.items or [])
+        if item.custom_item_type == "Fabrics" and item.custom_fg_link == panel_type
     ]
+    if not matching_bom_items:
+        return 0
 
-    total_qty = 0
+    total_qty = 0.0
+
+    # Try size-by-size matching first
     for row in size_rows:
         size = (row.get("size") or "").strip().lower()
         planned_qty = flt(row.get("planned_cut_quantity"))
 
-        matched_item = next((
-            item for item in matching_bom_items
-            if (item.custom_size or "").strip().lower() == size
-        ), None)
+        if not size or planned_qty <= 0:
+            continue
 
+        matched_item = next(
+            (it for it in matching_bom_items if (it.custom_size or "").strip().lower() == size),
+            None
+        )
         if matched_item:
-            total_qty += matched_item.qty * planned_qty
+            total_qty += flt(matched_item.qty) * planned_qty
 
-    return total_qty
+    if total_qty > 0:
+        return total_qty
 
+    # Fallback: no size matches. If exactly one no-size BOM row exists, apply it to ALL sizes.
+    bom_items_no_size = [
+        it for it in matching_bom_items
+        if not (it.custom_size or "").strip()
+    ]
+    if len(bom_items_no_size) == 1:
+        per_unit = flt(bom_items_no_size[0].qty)
+        total_planned = sum(flt(r.get("planned_cut_quantity")) for r in size_rows)
+        return per_unit * total_planned
+
+    # Otherwise, keep it zero
+    return 0
 
 @frappe.whitelist()
 def get_sales_orders_by_item(doctype, txt, searchfield, start, page_len, filters):
