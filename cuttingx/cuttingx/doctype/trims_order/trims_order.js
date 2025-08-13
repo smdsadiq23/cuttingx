@@ -172,7 +172,7 @@ function fetch_and_fill_summary(frm) {
                   sales_order: row.sales_order,
                   size: row.size,
                   wo_quantity: row.wo_quantity,
-                  already_issued_quantity: O
+                  already_issued_quantity: "0"
                 });
               });
               frm.refresh_field("table_trims_order_summary");
