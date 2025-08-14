@@ -2,6 +2,13 @@ frappe.ui.form.on('Trims Order', {
   onload(frm) {
     frm.get_field('table_trims_order_details').grid.cannot_add_rows = true;
     frm.get_field('table_trims_order_summary').grid.cannot_add_rows = true;
+    frm.set_query("work_order", function() {
+            return {
+                filters: {
+                    "docstatus": 1  // Filter for submitted documents
+                }
+            };
+        });    
   },
   work_order(frm) {
     // 🔄 Case 1: Work Order is cleared

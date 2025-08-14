@@ -6,8 +6,9 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "work_order",
+  "bundle_order_no",
   "sales_order",
+  "work_order",
   "style",
   "section_break_bggz",
   "table_vxuv"
@@ -38,12 +39,18 @@
    "fieldname": "table_vxuv",
    "fieldtype": "Table",
    "options": "Line in Item"
+  },
+  {
+   "fieldname": "bundle_order_no",
+   "fieldtype": "Link",
+   "label": "Bundle Order No",
+   "options": "Bundle Creation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-30 10:23:14.059684",
+ "modified": "2025-08-13 20:27:50.369157",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Line In",
