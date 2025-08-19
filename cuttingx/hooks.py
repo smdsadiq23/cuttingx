@@ -255,10 +255,17 @@ fixtures = [
     {
         "doctype": "Translation",
         "filters": [
-            ["language", "=", "en"],
+            ["language", "=", "en"]
             # optionally scope to your app text:
             # ["source_text", "like", "%MaintainX%"]
         ],
     },
+    {
+        "doctype": "Kanban Board",
+        "filters": {
+            "reference_doctype": "Cut Docket",
+            "name": "Cutting Kanban Board"
+        }
+    }    
 ]
 

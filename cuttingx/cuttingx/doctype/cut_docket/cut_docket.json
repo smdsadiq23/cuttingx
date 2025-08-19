@@ -8,6 +8,7 @@
  "field_order": [
   "naming_series",
   "style",
+  "style_no",
   "brand",
   "bom_no",
   "panel_type",
@@ -28,6 +29,7 @@
   "raw_material_composition",
   "fabric_requirement_against_bom",
   "fabric_requirement_against_marker",
+  "status",
   "section_break_akmr",
   "sale_order_details",
   "work_order_details",
@@ -43,7 +45,8 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Naming Series",
-   "options": ".YYYY.MM.DD.-.#####"
+   "options": ".YYYY.MM.DD.-.#####",
+   "read_only": 1
   },
   {
    "fieldname": "panel_code",
@@ -187,7 +190,7 @@
   {
    "fieldname": "style",
    "fieldtype": "Link",
-   "label": "Style",
+   "label": "FG Code",
    "link_filters": "[[\"Item\",\"custom_select_master\",\"=\",\"Style\"]]",
    "options": "Item",
    "reqd": 1
@@ -213,13 +216,29 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fetch_from": "style.custom_item_number",
+   "fieldname": "style_no",
+   "fieldtype": "Data",
+   "label": "Style",
+   "read_only": 1
+  },
+  {
+   "default": "Created",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "Created",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-06 21:18:38.693158",
+ "modified": "2025-08-19 17:41:41.982746",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

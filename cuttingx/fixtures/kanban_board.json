@@ -1,0 +1,26 @@
+[
+ {
+  "columns": [
+   {
+    "column_name": "Created",
+    "indicator": "Gray",
+    "order": "[\"20250813-00001\", \"20250806-00001\"]",
+    "parent": "Cutting Kanban Board",
+    "parentfield": "columns",
+    "parenttype": "Kanban Board",
+    "status": "Active"
+   }
+  ],
+  "docstatus": 0,
+  "doctype": "Kanban Board",
+  "field_name": "status",
+  "fields": "[\"creation\",\"marker_length_meters\",\"marker_width_meters\",\"no_of_plies\",\"docstatus\"]",
+  "filters": null,
+  "kanban_board_name": "Cutting Kanban Board",
+  "modified": "2025-08-19 18:52:20.336912",
+  "name": "Cutting Kanban Board",
+  "private": 0,
+  "reference_doctype": "Cut Docket",
+  "show_labels": 1
+ }
+]
