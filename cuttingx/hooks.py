@@ -250,22 +250,22 @@ doc_events = {
 # }
 
 
-fixtures = [
-    # …your other fixtures…,
-    {
-        "doctype": "Translation",
-        "filters": [
-            ["language", "=", "en"]
-            # optionally scope to your app text:
-            # ["source_text", "like", "%MaintainX%"]
-        ],
-    },
-    {
-        "doctype": "Kanban Board",
-        "filters": {
-            "reference_doctype": "Cut Docket",
-            "name": "Cutting Kanban Board"
-        }
-    }    
-]
+# fixtures = [
+#     # …your other fixtures…,
+#     {
+#         "doctype": "Translation",
+#         "filters": [
+#             ["language", "=", "en"]
+#             # optionally scope to your app text:
+#             # ["source_text", "like", "%MaintainX%"]
+#         ],
+#     },
+#     {
+#         "doctype": "Kanban Board",
+#         "filters": {
+#             "reference_doctype": "Cut Docket",
+#             "name": "Cutting Kanban Board"
+#         }
+#     }    
+# ]
 

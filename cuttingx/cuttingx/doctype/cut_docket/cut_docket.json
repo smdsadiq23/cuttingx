@@ -30,6 +30,8 @@
   "fabric_requirement_against_bom",
   "fabric_requirement_against_marker",
   "status",
+  "barcode_image",
+  "qr_code_image",
   "section_break_akmr",
   "sale_order_details",
   "work_order_details",
@@ -46,6 +48,7 @@
    "hidden": 1,
    "label": "Naming Series",
    "options": ".YYYY.MM.DD.-.#####",
+   "print_hide": 1,
    "read_only": 1
   },
   {
@@ -232,13 +235,27 @@
    "label": "Status",
    "options": "Created",
    "read_only": 1
+  },
+  {
+   "fieldname": "barcode_image",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "Barcode image",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "qr_code_image",
+   "fieldtype": "Long Text",
+   "hidden": 1,
+   "label": "QR Code Image",
+   "print_hide": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-19 17:41:41.982746",
+ "modified": "2025-08-19 20:44:11.944512",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

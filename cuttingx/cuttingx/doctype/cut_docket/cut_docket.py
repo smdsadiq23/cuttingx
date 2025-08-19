@@ -6,8 +6,23 @@ from frappe import _
 from frappe.model.document import Document
 import json
 from frappe.utils import flt
+from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
 
 class CutDocket(Document):
+    def before_save(self):
+        """Generate and store barcode & QR code if not already set"""
+        if not self.barcode_image or not self.qr_code_image:
+            code = self.name  # Use the document name as the code
+
+            # Generate Base64 images
+            barcode_b64 = generate_barcode_base64(code)
+            qrcode_b64 = generate_qrcode_base64(code)
+
+            # Store in fields
+            self.barcode_image = barcode_b64
+            self.qr_code_image = qrcode_b64
+
+
     def validate(self):
         if self.style:
             self.set_bom_no_from_style()
