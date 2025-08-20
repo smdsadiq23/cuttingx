@@ -3,7 +3,84 @@
 
 // On form load: recalculate all rows
 frappe.ui.form.on('Cut Confirmation', {
+    setup(frm) {
+        // Target the cut_po_number field
+        const field = frm.fields_dict.cut_po_number;
+
+        // Wait for field to be ready
+        $(frm.wrapper).on('render_complete', () => {
+            if (!field.$input) return;
+
+            // Variable to hold scanned value
+            let scannedValue = '';
+
+            // Listen to keydown to catch Enter (13) or Tab (9) as delimiter
+            field.$input.on('keydown', function (e) {
+                // If Enter or Tab is pressed, process the scan
+                if (e.which === 13 || e.which === 9) {  // 13 = Enter, 9 = Tab
+                    e.preventDefault();
+
+                    scannedValue = field.$input.val().trim();
+
+                    if (scannedValue) {
+                        // Validate if this is a valid Cut Docket
+                        frappe.db.exists('Cut Docket', scannedValue)
+                            .then(exists => {
+                                if (exists) {
+                                    frm.set_value('cut_po_number', scannedValue);
+                                    // Optional: clear input if reusing scanner
+                                    // field.$input.val('');
+                                } else {
+                                    frappe.toast({
+                                        title: __('Invalid Barcode'),
+                                        message: __('Cutting Kanban {0} not found', [scannedValue]),
+                                        indicator: 'red',
+                                        timeout: 3000
+                                    });
+                                    // Clear invalid input
+                                    field.$input.val('');
+                                }
+                            });
+                    }
+                }
+            });
+
+            // Optional: also capture fast input without Enter (rare, but possible)
+            let buffer = '';
+            let timer;
+
+            field.$input.on('keypress', function (e) {
+                // Skip modifiers and non-printable
+                if (e.which <= 31) return;
+
+                buffer += String.fromCharCode(e.which);
+                clearTimeout(timer);
+
+                // Wait for input pause (~100ms)
+                timer = setTimeout(() => {
+                    if (buffer.length >= 4 && !field.get_value()) {
+                        // Only act if not already set
+                        frappe.db.exists('Cut Docket', buffer.trim())
+                            .then(exists => {
+                                if (exists) {
+                                    frm.set_value('cut_po_number', buffer.trim());
+                                }
+                                buffer = '';
+                            });
+                    } else {
+                        buffer = '';
+                    }
+                }, 100); // Adjust based on scanner speed
+            });
+        });
+    },
     onload: function(frm) {
+        // Try immediately
+        focus_cut_po_field(frm);
+
+        // Fallback: after a short delay (if field not ready)
+        setTimeout(() => focus_cut_po_field(frm), 300);
+        setTimeout(() => focus_cut_po_field(frm), 800);     
         // Set filter to exclude already used Cut Dockets
         frm.set_query('cut_po_number', () => {
             return {
@@ -122,6 +199,20 @@ function calculate_all(frm, cdt, cdn) {
     // Set values
     frappe.model.set_value(cdt, cdn, 'balance_to_confirm', balance_to_confirm);
     frappe.model.set_value(cdt, cdn, 'total_reject', total_reject);
+}
+
+// Reusable function to focus the field
+function focus_cut_po_field(frm) {
+    const field = frm.fields_dict.cut_po_number;
+    if (!field) return;
+
+    // Check if $input exists and is visible
+    if (field.$input && field.$input.is(':visible') && field.$input.is(':enabled')) {
+        field.$input.focus().select(); // focus + select any existing text
+        console.log("✅ Focused cut_po_number field");
+    } else {
+        console.warn("⚠️ cut_po_number field not ready for focus");
+    }
 }
 
 

@@ -146,6 +146,9 @@ app_license = "mit"
 # }
 
 doc_events = {
+    "Cut Docket":{
+        "after_insert": "cuttingx.cuttingx.doctype.cut_docket.cut_docket.autofill_barcode_and_save"
+    },
     "Cut Confirmation": {
         "validate": "cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.validate"
     }

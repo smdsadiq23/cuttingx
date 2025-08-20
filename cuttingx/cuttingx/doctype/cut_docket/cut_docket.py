@@ -416,3 +416,16 @@ def get_cut_docket_items_from_work_orders(work_orders):
             })
 
     return result
+
+
+def autofill_barcode_and_save(doc, method):
+    """
+    After first save, set barcode_text = doc.name and save again.
+    """
+    # Only run if barcode_text is empty
+    if not doc.barcode:
+        # Use db_set to avoid full validation
+        doc.db_set('barcode', doc.name, commit=True)
+
+        # Optional: log it
+        frappe.msgprint(f"Barcode auto-filled with {doc.name}")

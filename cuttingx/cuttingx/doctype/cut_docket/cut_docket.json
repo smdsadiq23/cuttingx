@@ -6,6 +6,16 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "section_break_gxoj",
+  "column_break_evly",
+  "column_break_qduz",
+  "barcode",
+  "section_break_afon",
+  "column_break_wvzx",
+  "barcode_image",
+  "column_break_nbft",
+  "qr_code_image",
+  "section_break_nutg",
   "naming_series",
   "style",
   "style_no",
@@ -30,8 +40,6 @@
   "fabric_requirement_against_bom",
   "fabric_requirement_against_marker",
   "status",
-  "barcode_image",
-  "qr_code_image",
   "section_break_akmr",
   "sale_order_details",
   "work_order_details",
@@ -249,13 +257,50 @@
    "hidden": 1,
    "label": "QR Code Image",
    "print_hide": 1
+  },
+  {
+   "fieldname": "barcode",
+   "fieldtype": "Barcode",
+   "width": "200"
+  },
+  {
+   "fieldname": "column_break_wvzx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_nbft",
+   "fieldtype": "Column Break",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_nutg",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_evly",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "section_break_afon",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "section_break_gxoj",
+   "fieldtype": "Section Break",
+   "hidden": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_qduz",
+   "fieldtype": "Column Break"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-19 20:44:11.944512",
+ "modified": "2025-08-20 10:51:22.766418",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
