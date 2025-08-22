@@ -35,31 +35,31 @@ def get_eligible_cut_dockets():
     return eligible
 
 
-@frappe.whitelist()
-def get_sales_and_work_orders_from_docket(cut_docket_id):
-    if not cut_docket_id:
-        return {"sales_orders": [], "work_orders": []}
+# @frappe.whitelist()
+# def get_sales_and_work_orders_from_docket(cut_docket_id):
+#     if not cut_docket_id:
+#         return {"sales_orders": [], "work_orders": []}
 
-    try:
-        docket = frappe.get_doc("Cut Docket", cut_docket_id)
-    except frappe.DoesNotExistError:
-        return {"sales_orders": [], "work_orders": []}
+#     try:
+#         docket = frappe.get_doc("Cut Docket", cut_docket_id)
+#     except frappe.DoesNotExistError:
+#         return {"sales_orders": [], "work_orders": []}
 
-    sales_orders = set()
-    work_orders = set()
+#     sales_orders = set()
+#     work_orders = set()
 
-    for row in docket.get("sale_order_details", []):
-        if row.sales_order:
-            sales_orders.add(row.sales_order)
+#     for row in docket.get("sale_order_details", []):
+#         if row.sales_order:
+#             sales_orders.add(row.sales_order)
 
-    for row in docket.get("work_order_details", []):
-        if row.work_order:
-            work_orders.add(row.work_order)
+#     for row in docket.get("work_order_details", []):
+#         if row.work_order:
+#             work_orders.add(row.work_order)
 
-    return {
-        "sales_orders": list(sales_orders),
-        "work_orders": list(work_orders)
-    }
+#     return {
+#         "sales_orders": list(sales_orders),
+#         "work_orders": list(work_orders)
+#     }
 
 
 @frappe.whitelist()
@@ -82,12 +82,15 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
     items = frappe.get_all(
         'Cut Confirmation Item',
         filters={'parent': confirmation_name},
-        fields=['size', 'confirmed_quantity']
+        fields=['work_order', 'sales_order', 'line_item_no', 'size', 'confirmed_quantity']
     )
 
     # Return data in desired structure
     return [
         {
+            'work_order': item['work_order'],
+            'sales_order': item['sales_order'],
+            'line_item_no': item['line_item_no'],
             'size': item['size'],
             'cut_quantity': item['confirmed_quantity']
         }
@@ -99,7 +102,8 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
 def generate_bundle_details(docname):
     """
     Generate bundle rows with barcode/QR for a given Bundle Creation document.
-    Avoid duplicates if already generated once.
+    Validates unitsbundle > 0 per row.
+    Avoids duplicates if already generated.
     """
     doc = frappe.get_doc("Bundle Creation", docname)
 
@@ -112,28 +116,46 @@ def generate_bundle_details(docname):
     bundle_id_field = frappe.get_meta("Bundle Details").get_field("bundle_id")
     default_series = bundle_id_field.options or "BNDL.#####"
 
+    # ✅ Validate all rows before creating any bundles
     for item in doc.table_bundle_creation_item:
-        total_qty = int(item.planned_quantity or 0)
-        units_per_bundle = int(item.unitsbundle or 1)
+        planned_quantity = item.planned_quantity or 0
+        unitsbundle = item.unitsbundle
+
+        # Use int() safely with validation
+        try:
+            total_qty = int(planned_quantity)
+        except (ValueError, TypeError):
+            frappe.throw(f"Invalid Planned Quantity in row {item.idx}: must be a number")
+
+        try:
+            units_per_bundle = int(unitsbundle) if unitsbundle is not None else 0
+        except (ValueError, TypeError):
+            frappe.throw(f"Invalid Units per Bundle in row {item.idx}: must be a number")
 
         if units_per_bundle <= 0:
-            frappe.throw(f"Units per bundle must be greater than 0 for row {item.idx}")
+            frappe.throw(f"Units per bundle must be greater than 0 in row {item.idx}")
 
-        total_bundles = -(-total_qty // units_per_bundle)  # Ceiling division
+    # ✅ All valid — now generate bundles
+    for item in doc.table_bundle_creation_item:
+        total_qty = int(item.planned_quantity or 0)
+        units_per_bundle = int(item.unitsbundle)  # Already validated above
+
+        # Ceiling division: total_bundles = ceil(total_qty / units_per_bundle)
+        total_bundles = (total_qty + units_per_bundle - 1) // units_per_bundle
 
         for i in range(total_bundles):
-            # For last bundle, calculate remaining units
+            # Calculate quantity for this bundle
             if i == total_bundles - 1:
                 bundle_qty = total_qty - units_per_bundle * (total_bundles - 1)
             else:
                 bundle_qty = units_per_bundle
 
-            # Create bundle_id using naming series
+            # Generate bundle ID and codes
             bundle_id = make_autoname(default_series)
             barcode_b64 = generate_barcode_base64(bundle_id)
             qrcode_b64 = generate_qrcode_base64(bundle_id)
 
-            # Append row to Bundle Details
+            # Append to child table
             doc.append("table_bundle_details", {
                 "bundle_id": bundle_id,
                 "unitsbundle": bundle_qty,
@@ -142,5 +164,6 @@ def generate_bundle_details(docname):
                 "parent_item_id": item.name 
             })
 
+    # Save and notify
     doc.save(ignore_permissions=True)
     frappe.msgprint(f"✅ Created {len(doc.table_bundle_details)} bundles with QR & Barcode.")

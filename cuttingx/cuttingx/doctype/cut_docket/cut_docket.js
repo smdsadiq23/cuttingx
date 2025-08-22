@@ -3,7 +3,7 @@
 
 frappe.ui.form.on('Cut Docket', {  
     onload: function(frm) {
-        // Existing query logic...
+        setup_work_order_filter(frm);
 
         // If Style is already selected, fetch BOM and set panel_type options
         if (frm.doc.style) {
@@ -43,6 +43,7 @@ frappe.ui.form.on('Cut Docket', {
         }
     },
     refresh: function(frm) {
+        setup_work_order_filter(frm);
         // Only inject once
         if (!frm.custom_buttons_injected) {
             frm.fields_dict.table_size_ratio_qty.grid.add_custom_button(__('Fetch Size Details'), () => {
@@ -77,6 +78,8 @@ frappe.ui.form.on('Cut Docket', {
     },   
     style: function(frm) {
         if (!frm.doc.style) return;
+
+        setup_work_order_filter(frm);
 
         // Step 1: Get default_bom from Item
         frappe.call({
@@ -233,55 +236,55 @@ function calculate_marker_efficiency(frm) {
     }
 }
 
-frappe.ui.form.on('Cut Docket SO Details', {
-    sales_order: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
+// frappe.ui.form.on('Cut Docket SO Details', {
+//     sales_order: function(frm, cdt, cdn) {
+//         const row = locals[cdt][cdn];
 
-        if (!row.sales_order) {
-            frappe.msgprint(__('Please select a Sales Order.'));
-            return;
-        }
+//         if (!row.sales_order) {
+//             frappe.msgprint(__('Please select a Sales Order.'));
+//             return;
+//         }
 
-        frappe.call({
-            method: "frappe.client.get",
-            args: {
-                doctype: "Sales Order",
-                name: row.sales_order
-            },
-            callback: function(r) {
-                const so = r.message;
-                if (!so || !so.items || so.items.length === 0) {
-                    frappe.msgprint(__('No Items found in selected Sales Order.'));
-                    return;
-                }
+//         frappe.call({
+//             method: "frappe.client.get",
+//             args: {
+//                 doctype: "Sales Order",
+//                 name: row.sales_order
+//             },
+//             callback: function(r) {
+//                 const so = r.message;
+//                 if (!so || !so.items || so.items.length === 0) {
+//                     frappe.msgprint(__('No Items found in selected Sales Order.'));
+//                     return;
+//                 }
 
-                // Extract custom_lineitem values from Sales Order Items
-                const line_items = so.items
-                    .map(item => item.custom_lineitem)
-                    .filter(v => !!v); // remove falsy/null/undefined
+//                 // Extract custom_lineitem values from Sales Order Items
+//                 const line_items = so.items
+//                     .map(item => item.custom_lineitem)
+//                     .filter(v => !!v); // remove falsy/null/undefined
 
-                const unique_line_items = [...new Set(line_items)];
+//                 const unique_line_items = [...new Set(line_items)];
 
-                // Set the options for the `line_item` select field
-                frm.fields_dict.sale_order_details.grid.update_docfield_property(
-                    'line_item',
-                    'options',
-                    unique_line_items.join('\n')
-                );
+//                 // Set the options for the `line_item` select field
+//                 frm.fields_dict.sale_order_details.grid.update_docfield_property(
+//                     'line_item',
+//                     'options',
+//                     unique_line_items.join('\n')
+//                 );
 
-                // Clear existing value
-                frappe.model.set_value(cdt, cdn, 'line_item', '');
+//                 // Clear existing value
+//                 frappe.model.set_value(cdt, cdn, 'line_item', '');
 
-                // Auto-select if only one option
-                if (unique_line_items.length === 1) {
-                    frappe.model.set_value(cdt, cdn, 'line_item', unique_line_items[0]);
-                }
+//                 // Auto-select if only one option
+//                 if (unique_line_items.length === 1) {
+//                     frappe.model.set_value(cdt, cdn, 'line_item', unique_line_items[0]);
+//                 }
 
-                frm.fields_dict.sale_order_details.grid.refresh();
-            }
-        });
-    }
-});
+//                 frm.fields_dict.sale_order_details.grid.refresh();
+//             }
+//         });
+//     }
+// });
 
 frappe.ui.form.on('Cut Docket WO Details', {
     work_order: function(frm, cdt, cdn) {
@@ -308,3 +311,41 @@ frappe.ui.form.on('Cut Docket WO Details', {
         });
     }
 });
+
+function setup_work_order_filter(frm) {
+    const grid = frm.fields_dict.work_order_details?.grid;
+    if (!grid) return;
+
+    // Wait for grid to be ready
+    if (!grid.grid_rows || !grid.grid_rows.length) {
+        // No rows yet — just set the get_query for future rows
+        (grid.get_field || function() {}).call(grid, 'work_order');
+    }
+
+    // Set get_query on the work_order field
+    const work_order_field = grid.get_field('work_order');
+    if (work_order_field) {
+        work_order_field.get_query = function() {
+            if (!frm.doc.style) {
+                return {
+                    query: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_empty_work_order_list"
+                };
+            }
+
+            return {
+                query: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_work_orders_by_item",
+                filters: {
+                    item_code: frm.doc.style
+                }
+            };
+        };
+
+        // ✅ Correct way: Use frm.refresh_field or grid.refresh
+        // Do NOT call field.refresh()
+    } else {
+        console.warn("Work Order field not found in grid");
+    }
+
+    // ✅ Safely refresh the entire field
+    frm.refresh_field('work_order_details');
+}

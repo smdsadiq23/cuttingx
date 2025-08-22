@@ -106,6 +106,8 @@ frappe.ui.form.on('Cut Confirmation', {
                     (r.message || []).forEach(row => {
                         let child = frm.add_child('table_cut_confirmation_item');
                         child.work_order = row.work_order;
+                        child.sales_order = row.sales_order;
+                        child.line_item_no = row.line_item_no;
                         child.size = row.size;
                         child.planned_quantity = row.planned_quantity;
 
@@ -118,23 +120,23 @@ frappe.ui.form.on('Cut Confirmation', {
             }
         });
 
-        // Fetch associated Sales Orders
-        frappe.call({
-            method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_sales_orders_from_docket',
-            args: {
-                docket_name: frm.doc.cut_po_number
-            },
-            callback: function(r) {
-                if (r.message) {
-                    frm.clear_table('sales_orders');
-                    (r.message || []).forEach(so => {
-                        const row = frm.add_child('sales_orders');
-                        row.sales_order = so;
-                    });
-                    frm.refresh_field('sales_orders');
-                }
-            }
-        });
+        // // Fetch associated Sales Orders
+        // frappe.call({
+        //     method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_sales_orders_from_docket',
+        //     args: {
+        //         docket_name: frm.doc.cut_po_number
+        //     },
+        //     callback: function(r) {
+        //         if (r.message) {
+        //             frm.clear_table('sales_orders');
+        //             (r.message || []).forEach(so => {
+        //                 const row = frm.add_child('sales_orders');
+        //                 row.sales_order = so;
+        //             });
+        //             frm.refresh_field('sales_orders');
+        //         }
+        //     }
+        // });
     }
 });
 

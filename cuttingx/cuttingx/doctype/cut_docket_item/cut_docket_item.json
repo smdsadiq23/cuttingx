@@ -7,9 +7,10 @@
  "engine": "InnoDB",
  "field_order": [
   "ref_work_order",
+  "sales_order",
+  "line_item_no",
   "size",
   "quantity",
-  "already_cut",
   "planned_cut_quantity",
   "balance"
  ],
@@ -24,18 +25,10 @@
   },
   {
    "columns": 1,
-   "fieldname": "already_cut",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Already Cut",
-   "read_only": 1
-  },
-  {
-   "columns": 1,
    "fieldname": "planned_cut_quantity",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Planned Cut Quantity",
+   "label": "Cut Kanban Quantity",
    "reqd": 1
   },
   {
@@ -61,13 +54,29 @@
    "in_list_view": 1,
    "label": "Quantity",
    "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "sales_order",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Sales Order",
+   "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "line_item_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Line Item No",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-01 11:39:19.257102",
+ "modified": "2025-08-22 17:23:48.147977",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket Item",

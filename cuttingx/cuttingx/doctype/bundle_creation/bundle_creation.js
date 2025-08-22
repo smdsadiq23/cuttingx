@@ -43,31 +43,31 @@ frappe.ui.form.on('Bundle Creation', {
         });     
         if (!frm.doc.cut_docket_id) return;
 
-        frappe.call({
-            method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_sales_and_work_orders_from_docket',
-            args: {
-                cut_docket_id: frm.doc.cut_docket_id
-            },
-            callback: function(r) {
-                if (r.message) {
-                    // Clear and fill sales orders
-                    frm.clear_table('sales_orders');
-                    (r.message.sales_orders || []).forEach(so => {
-                        const row = frm.add_child('sales_orders');
-                        row.sales_order = so;
-                    });
+        // frappe.call({
+        //     method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_sales_and_work_orders_from_docket',
+        //     args: {
+        //         cut_docket_id: frm.doc.cut_docket_id
+        //     },
+        //     callback: function(r) {
+        //         if (r.message) {
+        //             // Clear and fill sales orders
+        //             frm.clear_table('sales_orders');
+        //             (r.message.sales_orders || []).forEach(so => {
+        //                 const row = frm.add_child('sales_orders');
+        //                 row.sales_order = so;
+        //             });
 
-                    // Clear and fill work orders
-                    frm.clear_table('work_orders');
-                    (r.message.work_orders || []).forEach(wo => {
-                        const row = frm.add_child('work_orders');
-                        row.work_order = wo;
-                    });
+        //             // Clear and fill work orders
+        //             frm.clear_table('work_orders');
+        //             (r.message.work_orders || []).forEach(wo => {
+        //                 const row = frm.add_child('work_orders');
+        //                 row.work_order = wo;
+        //             });
 
-                    frm.refresh_fields(['sales_orders', 'work_orders']);
-                }
-            }
-        });
+        //             frm.refresh_fields(['sales_orders', 'work_orders']);
+        //         }
+        //     }
+        // });
         frappe.call({
             method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_cut_confirmation_items_from_docket',
             args: {
@@ -79,6 +79,9 @@ frappe.ui.form.on('Bundle Creation', {
 
                     (r.message || []).forEach(row => {
                         const child = frm.add_child('table_bundle_creation_item');
+                        child.work_order = row.work_order;
+                        child.sales_order = row.sales_order;
+                        child.line_item_no = row.line_item_no;
                         child.size = row.size;
                         child.cut_quantity = row.cut_quantity;
                     });

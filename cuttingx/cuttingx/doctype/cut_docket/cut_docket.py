@@ -327,41 +327,41 @@ def get_fabric_requirement(bom_no, panel_type, size_table):
     # Otherwise, keep it zero
     return 0
 
+# @frappe.whitelist()
+# def get_sales_orders_by_item(doctype, txt, searchfield, start, page_len, filters):
+#     style = filters.get("style")
+#     if not style:
+#         return []
+
+#     return frappe.db.sql("""
+#         SELECT DISTINCT so.name
+#         FROM `tabSales Order` so
+#         JOIN `tabSales Order Item` soi ON soi.parent = so.name
+#         WHERE soi.item_code = %s
+#         AND so.docstatus = 1
+#         AND so.status != 'Closed'
+#         AND so.name LIKE %s
+#         ORDER BY so.name ASC
+#         LIMIT %s OFFSET %s
+#     """, (style, f"%{txt}%", page_len, start))
+
+
 @frappe.whitelist()
-def get_sales_orders_by_item(doctype, txt, searchfield, start, page_len, filters):
-    style = filters.get("style")
-    if not style:
+def get_work_orders_by_item(doctype, txt, searchfield, start, page_len, filters):
+    item_code = filters.get("item_code")
+    if not item_code:
         return []
 
     return frappe.db.sql("""
-        SELECT DISTINCT so.name
-        FROM `tabSales Order` so
-        JOIN `tabSales Order Item` soi ON soi.parent = so.name
-        WHERE soi.item_code = %s
-        AND so.docstatus = 1
-        AND so.status != 'Closed'
-        AND so.name LIKE %s
-        ORDER BY so.name ASC
-        LIMIT %s OFFSET %s
-    """, (style, f"%{txt}%", page_len, start))
-
-
-@frappe.whitelist()
-def get_work_orders_by_so_and_lineitem(doctype, txt, searchfield, start, page_len, filters):
-    sales_order = filters.get("sales_order")
-    line_item = filters.get("line_item")
-
-    return frappe.db.sql("""
-        SELECT DISTINCT wo.name
+        SELECT wo.name
         FROM `tabWork Order` wo
-        JOIN `tabWork Order Line Item` woli ON woli.parent = wo.name
         WHERE wo.docstatus < 2
-        AND wo.sales_order = %s
-        AND woli.line_item_no = %s
-        AND wo.name LIKE %s
+          AND wo.status != 'Closed'
+          AND wo.production_item = %s
+          AND wo.name LIKE %s
         ORDER BY wo.name DESC
         LIMIT %s OFFSET %s
-    """, (sales_order, line_item, f"%{txt}%", page_len, start))
+    """, (item_code, f"%{txt}%", page_len, start))
 
 
 @frappe.whitelist()
@@ -395,19 +395,27 @@ def get_cut_docket_items_from_work_orders(work_orders):
         wo_line_items = wo_doc.get("custom_work_order_line_items") or []
 
         for line in wo_line_items:
+            sales_order = line.sales_order
+            line_item_no = line.line_item_no  
             size = line.size
             allocated_qty = float(line.work_order_allocated_qty or 0)
-
+          
             already_cut_result = frappe.db.sql("""
                 SELECT SUM(planned_cut_quantity) as total_cut
                 FROM `tabCut Docket Item`
-                WHERE ref_work_order = %s AND size = %s
-            """, (wo, size), as_dict=True)
+                WHERE 
+                    ref_work_order = %s
+                    AND sales_order = %s
+                    AND line_item_no = %s
+                    AND size = %s
+            """, (wo, sales_order, line_item_no, size), as_dict=True)
 
-            already_cut = float(already_cut_result[0].total_cut or 0)
+            already_cut = float(already_cut_result[0].total_cut or 0) if already_cut_result else 0
 
             result.append({
                 'ref_work_order': wo,
+                'sales_order': sales_order,
+                'line_item_no': line_item_no,                
                 'size': size,
                 'quantity': allocated_qty,
                 'already_cut': already_cut,
@@ -429,3 +437,9 @@ def autofill_barcode_and_save(doc, method):
 
         # Optional: log it
         frappe.msgprint(f"Barcode auto-filled with {doc.name}")
+
+
+@frappe.whitelist()
+def get_empty_work_order_list(doctype, txt, searchfield, start, page_len, filters):
+    """Returns empty list - used to disable dropdown when no style is selected"""
+    return []        

@@ -41,7 +41,6 @@
   "fabric_requirement_against_marker",
   "status",
   "section_break_akmr",
-  "sale_order_details",
   "work_order_details",
   "table_size_ratio_qty",
   "section_break_vifx",
@@ -118,7 +117,8 @@
   {
    "fieldname": "cut_start_date",
    "fieldtype": "Date",
-   "label": "Cut Start Date"
+   "label": "Cut Start Date",
+   "reqd": 1
   },
   {
    "fieldname": "table_size_ratio_qty",
@@ -213,12 +213,6 @@
    "options": "Cut Docket Roll Allocation"
   },
   {
-   "fieldname": "sale_order_details",
-   "fieldtype": "Table",
-   "label": "Sales Order Details",
-   "options": "Cut Docket SO Details"
-  },
-  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -261,6 +255,7 @@
   {
    "fieldname": "barcode",
    "fieldtype": "Barcode",
+   "read_only": 1,
    "width": "200"
   },
   {
@@ -287,9 +282,7 @@
   },
   {
    "fieldname": "section_break_gxoj",
-   "fieldtype": "Section Break",
-   "hidden": 1,
-   "read_only": 1
+   "fieldtype": "Section Break"
   },
   {
    "fieldname": "column_break_qduz",
@@ -300,7 +293,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-20 10:51:22.766418",
+ "modified": "2025-08-22 17:10:06.502284",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

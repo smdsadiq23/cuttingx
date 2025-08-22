@@ -7,50 +7,50 @@
  "engine": "InnoDB",
  "field_order": [
   "bundle_order_no",
-  "sales_order",
-  "work_order",
   "style",
   "section_break_bggz",
-  "table_vxuv"
+  "table_line_in_item",
+  "amended_from"
  ],
  "fields": [
   {
-   "fieldname": "sales_order",
-   "fieldtype": "Link",
-   "label": "Sales Order",
-   "options": "Sales Order"
-  },
-  {
-   "fieldname": "work_order",
-   "fieldtype": "Link",
-   "label": "Work Order",
-   "options": "Work Order"
-  },
-  {
    "fieldname": "style",
    "fieldtype": "Data",
-   "label": "Work Center"
+   "in_list_view": 1,
+   "label": "Work Center",
+   "reqd": 1
   },
   {
    "fieldname": "section_break_bggz",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "table_vxuv",
-   "fieldtype": "Table",
-   "options": "Line in Item"
-  },
-  {
    "fieldname": "bundle_order_no",
    "fieldtype": "Link",
    "label": "Bundle Order No",
    "options": "Bundle Creation"
+  },
+  {
+   "fieldname": "table_line_in_item",
+   "fieldtype": "Table",
+   "options": "Line In Item"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Line In",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2025-08-13 20:27:50.369157",
+ "modified": "2025-08-22 19:46:41.631287",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Line In",

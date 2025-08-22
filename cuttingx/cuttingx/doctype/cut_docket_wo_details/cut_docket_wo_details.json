@@ -39,7 +39,7 @@
    "fieldname": "already_cut_quantity",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Already Cut Quantity",
+   "label": "Kanban Created Quantity",
    "read_only": 1
   }
  ],
@@ -47,7 +47,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-31 21:13:32.697705",
+ "modified": "2025-08-22 17:24:29.601282",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket WO Details",
