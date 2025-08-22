@@ -2,21 +2,13 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Line In', {
-    refresh: function(frm) {
-        // Re-apply event listener when form refreshes
+    onload: function(frm) {
+        setup_bundle_order_filter(frm);
         setup_date_and_time_sync(frm);
     },
-    onload: function(frm) {
-        frm.set_query('bundle_order_no', function() {
-            return {
-                filters: {
-                    docstatus: 0,  // Only draft (not submitted)
-                    name: ['!=', '']
-                }
-            };
-        });        
+    refresh: function(frm) {
         setup_date_and_time_sync(frm);
-    },    
+    },
     bundle_order_no: function(frm) {
         if (!frm.doc.bundle_order_no) {
             frm.clear_table('table_line_in_item');
@@ -26,10 +18,7 @@ frappe.ui.form.on('Line In', {
 
         frappe.call({
             method: 'cuttingx.cuttingx.doctype.line_in.line_in.get_bundles_from_bundle_creation',
-            // ^ Update path: your_app = cuttingx, your_module = e.g. doctype.line_in or custom_folder
-            args: {
-                bundle_creation: frm.doc.bundle_order_no
-            },
+            args: { bundle_creation: frm.doc.bundle_order_no },
             callback: function(r) {
                 const bundles = r.message || [];
 
@@ -39,55 +28,64 @@ frappe.ui.form.on('Line In', {
                 }
 
                 frm.clear_table('table_line_in_item');
-
-                for (const bundle of bundles) {
+                bundles.forEach(bundle => {
                     const row = frm.add_child('table_line_in_item');
                     row.work_order = bundle.work_order;
                     row.sales_order = bundle.sales_order;
                     row.line_item_no = bundle.line_item_no;
-                    row.size = bundle.size;                  
+                    row.size = bundle.size;
                     row.bundle_id = bundle.bundle_id;
                     row.line_in_quantity = bundle.unitsbundle;
-
-                    // Add more fields if needed
-                }
+                });
 
                 frm.refresh_field('table_line_in_item');
-                //frappe.msgprint(__('✅ Fetched {0} bundles from {1}', [bundles.length, frm.doc.bundle_order_no]));
+                frappe.show_alert({
+                    message: __('✅ Fetched {0} bundles', [bundles.length]),
+                    indicator: 'green'
+                }, 3);
             }
         });
     }
 });
 
+// Set query to exclude already used Bundle Creation docs
+function setup_bundle_order_filter(frm) {
+    frm.set_query('bundle_order_no', function() {
+        return {
+            query: 'cuttingx.cuttingx.doctype.line_in.line_in.get_unused_bundle_creations'
+        };
+    });
+}
+
+// Sync date_and_time from first row to all others
 function setup_date_and_time_sync(frm) {
-    // Only proceed if table exists
     if (!frm.fields_dict.table_line_in_item) return;
 
     const grid = frm.fields_dict.table_line_in_item.grid;
 
-    // Patch the refresh method to re-bind events
+    // Patch refresh to rebind events
     if (!grid.refresh_patched) {
         const original_refresh = grid.refresh;
-        grid.refresh = function () {
+        grid.refresh = function() {
             original_refresh.apply(this, arguments);
             bind_date_and_time_events(frm);
         };
         grid.refresh_patched = true;
     }
 
-    // Initial bind
     bind_date_and_time_events(frm);
 }
 
 function bind_date_and_time_events(frm) {
     const grid = frm.fields_dict.table_line_in_item.grid;
+    const $wrapper = $(grid.wrapper);
 
-    $(grid.wrapper).off('change', 'input[data-fieldname="date_and_time"]');
-    $(grid.wrapper).on('change', 'input[data-fieldname="date_and_time"]', function () {
+    $wrapper.off('change', 'input[data-fieldname="date_and_time"]');
+    $wrapper.on('change', 'input[data-fieldname="date_and_time"]', function () {
         const $input = $(this);
-        const grid_row = $input.closest('.grid-row');
-        const row_index = grid_row.index();
+        const row_index = $input.closest('.grid-row').index();
 
+        // Only sync from first row
         if (row_index !== 0) return;
 
         const raw_value = $input.val();
@@ -97,28 +95,22 @@ function bind_date_and_time_events(frm) {
         try {
             dt = frappe.datetime.user_to_obj(raw_value);
         } catch (e) {
-            frappe.msgprint("Invalid date/time format");
+            frappe.msgprint(__('Invalid date/time format. Use DD-MM-YYYY HH:mm'));
             return;
         }
 
-        // ✅ Force correct format
-        const db_format = [
-            dt.getFullYear(),
-            String(dt.getMonth() + 1).padStart(2, '0'),
-            String(dt.getDate()).padStart(2, '0')
-        ].join('-') + ' ' + [
-            String(dt.getHours()).padStart(2, '0'),
-            String(dt.getMinutes()).padStart(2, '0'),
-            String(dt.getSeconds()).padStart(2, '0')
-        ].join(':');
+        // Format as "YYYY-MM-DD HH:mm:ss"
+        const pad = n => String(n).padStart(2, '0');
+        const db_format = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())} ` +
+                          `${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
 
-        console.log("✅ Final time to save:", db_format);
+        console.log('Syncing time:', db_format);
 
         (frm.doc.table_line_in_item || []).forEach((row, idx) => {
             if (idx === 0) return;
             frappe.model.set_value(row.doctype, row.name, 'date_and_time', db_format);
         });
 
-        //frappe.show_alert("⏰ Time synced", 3);
+        frappe.show_alert(__('⏰ Time synced to all rows'), 2);
     });
 }
