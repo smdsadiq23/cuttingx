@@ -10,7 +10,6 @@
   "sales_order",
   "line_item_no",
   "size",
-  "color",
   "batch",
   "shade",
   "cut_quantity",
@@ -29,17 +28,10 @@
   },
   {
    "columns": 1,
-   "fieldname": "color",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Color"
-  },
-  {
-   "columns": 1,
    "fieldname": "planned_quantity",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Planned Quantity"
+   "label": "Bundle Order Quantity"
   },
   {
    "columns": 1,
@@ -107,7 +99,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-22 17:47:54.910925",
+ "modified": "2025-08-25 16:28:38.468213",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation Item",

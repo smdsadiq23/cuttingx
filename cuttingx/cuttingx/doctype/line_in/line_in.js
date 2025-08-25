@@ -40,7 +40,7 @@ frappe.ui.form.on('Line In', {
 
                 frm.refresh_field('table_line_in_item');
                 frappe.show_alert({
-                    message: __('✅ Fetched {0} bundles', [bundles.length]),
+                    //message: __('Fetched {0} bundles', [bundles.length]),
                     indicator: 'green'
                 }, 3);
             }

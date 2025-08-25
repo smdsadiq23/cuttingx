@@ -19,6 +19,7 @@
   "naming_series",
   "style",
   "style_no",
+  "color",
   "brand",
   "bom_no",
   "panel_type",
@@ -287,13 +288,20 @@
   {
    "fieldname": "column_break_qduz",
    "fieldtype": "Column Break"
+  },
+  {
+   "fetch_from": "style.custom_colour_name",
+   "fieldname": "color",
+   "fieldtype": "Data",
+   "label": "Color",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-25 12:31:09.268534",
+ "modified": "2025-08-25 15:05:57.380258",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

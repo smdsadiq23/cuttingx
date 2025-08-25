@@ -13,7 +13,6 @@
   "panel_type",
   "panel_code",
   "table_no",
-  "sales_orders",
   "section_break_dwom",
   "table_cut_confirmation_item",
   "amended_from"
@@ -87,20 +86,13 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
-  },
-  {
-   "fieldname": "sales_orders",
-   "fieldtype": "Table MultiSelect",
-   "label": "Sales Orders",
-   "options": "Cut Confirmation SO",
-   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-20 09:35:20.795333",
+ "modified": "2025-08-25 16:07:01.205581",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

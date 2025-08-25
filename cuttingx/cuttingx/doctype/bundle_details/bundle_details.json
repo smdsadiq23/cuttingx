@@ -9,6 +9,7 @@
  "field_order": [
   "naming_series",
   "bundle_id",
+  "size",
   "unitsbundle",
   "barcode_image",
   "qrcode_image",
@@ -58,13 +59,20 @@
    "label": "Parent Bundle Creation Item",
    "options": "Bundle Creation Item",
    "read_only": 1
+  },
+  {
+   "fieldname": "size",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Size",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-19 19:19:30.971649",
+ "modified": "2025-08-25 16:28:01.090152",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Details",

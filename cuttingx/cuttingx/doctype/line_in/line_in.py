@@ -72,7 +72,7 @@ def get_bundles_from_bundle_creation(bundle_creation):
 def get_unused_bundle_creations(doctype, txt, searchfield, start, page_len, filters):
     """
     Return Bundle Creation docs that:
-    - Are draft (docstatus = 0)
+    - Are SUBMITTED (docstatus = 1)
     - Not used in any Line In (draft or submitted)
     """
     # Get all Bundle Creation docs already used in any Line In
@@ -80,10 +80,10 @@ def get_unused_bundle_creations(doctype, txt, searchfield, start, page_len, filt
         SELECT DISTINCT bundle_order_no
         FROM `tabLine In`
         WHERE bundle_order_no IS NOT NULL
-          AND docstatus < 2
     """)
+    # No need to check docstatus < 2 — we want to exclude ALL Line In entries
 
-    conditions = ["bc.docstatus = 0"]
+    conditions = ["bc.docstatus = 1"]  # Only submitted Bundle Creation
     values = {
         "txt": f"%{txt}%",
         "start": start,

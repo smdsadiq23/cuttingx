@@ -102,6 +102,7 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
 def generate_bundle_details(docname):
     """
     Generate bundle rows with barcode/QR for a given Bundle Creation document.
+    Includes: bundle_id, unitsbundle, size, barcode, QR
     Validates unitsbundle > 0 per row.
     Avoids duplicates if already generated.
     """
@@ -139,6 +140,7 @@ def generate_bundle_details(docname):
     for item in doc.table_bundle_creation_item:
         total_qty = int(item.planned_quantity or 0)
         units_per_bundle = int(item.unitsbundle)  # Already validated above
+        size = item.size  # ✅ Fetch size from Bundle Creation Item
 
         # Ceiling division: total_bundles = ceil(total_qty / units_per_bundle)
         total_bundles = (total_qty + units_per_bundle - 1) // units_per_bundle
@@ -159,6 +161,7 @@ def generate_bundle_details(docname):
             doc.append("table_bundle_details", {
                 "bundle_id": bundle_id,
                 "unitsbundle": bundle_qty,
+                "size": size,  # ✅ Add size
                 "barcode_image": barcode_b64,
                 "qrcode_image": qrcode_b64,
                 "parent_item_id": item.name 
@@ -166,4 +169,4 @@ def generate_bundle_details(docname):
 
     # Save and notify
     doc.save(ignore_permissions=True)
-    frappe.msgprint(f"✅ Created {len(doc.table_bundle_details)} bundles with QR & Barcode.")
+    frappe.msgprint(f"✅ Created {len(doc.table_bundle_details)} bundles with QR, Barcode, and Size.")

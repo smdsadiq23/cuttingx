@@ -10,6 +10,7 @@
   "cut_docket_id",
   "fg_item",
   "style_number",
+  "color",
   "section_break_nmab",
   "table_bundle_creation_item",
   "table_bundle_details",
@@ -70,13 +71,20 @@
    "label": "Naming Series",
    "options": "YYYY.MM.DD.-.###",
    "read_only": 1
+  },
+  {
+   "fetch_from": "fg_item.custom_colour_name",
+   "fieldname": "color",
+   "fieldtype": "Data",
+   "label": "Color",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-22 17:44:00.765543",
+ "modified": "2025-08-25 16:15:19.751224",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",
