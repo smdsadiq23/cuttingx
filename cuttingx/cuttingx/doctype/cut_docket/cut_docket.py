@@ -436,7 +436,7 @@ def autofill_barcode_and_save(doc, method):
         doc.db_set('barcode', doc.name, commit=True)
 
         # Optional: log it
-        frappe.msgprint(f"Barcode auto-filled with {doc.name}")
+        # frappe.msgprint(f"Barcode auto-filled with {doc.name}")
 
 
 @frappe.whitelist()

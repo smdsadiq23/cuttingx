@@ -1,7 +1,7 @@
-// Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
+// Copyright (c) 2025, CognitionX Logic India Private Limited and contributors
 // For license information, please see license.txt
 
-frappe.ui.form.on('Cut Docket', {  
+frappe.ui.form.on('Cut Docket', {
     onload: function(frm) {
         setup_work_order_filter(frm);
 
@@ -42,40 +42,12 @@ frappe.ui.form.on('Cut Docket', {
             });
         }
     },
+
     refresh: function(frm) {
         setup_work_order_filter(frm);
-        // Only inject once
-        if (!frm.custom_buttons_injected) {
-            frm.fields_dict.table_size_ratio_qty.grid.add_custom_button(__('Fetch Size Details'), () => {
-                const work_orders = frm.doc.work_order_details.map(row => row.work_order).filter(Boolean);
+        // Button removed: now auto-fetches on WO selection
+    },
 
-                if (!work_orders.length) {
-                    frappe.msgprint("No Work Orders selected in WO Details.");
-                    return;
-                }
-
-                //frappe.show_progress('Fetching Size Details', 30, 100, 'Please wait...');
-
-                frappe.call({
-                    method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_cut_docket_items_from_work_orders',
-                    args: {
-                        work_orders: JSON.stringify(work_orders)
-                    },
-                    callback: function(r) {
-                        //frappe.hide_progress(); 
-                        frm.clear_table('table_size_ratio_qty');
-                        (r.message || []).forEach(item => {
-                            const row = frm.add_child('table_size_ratio_qty');
-                            Object.assign(row, item);
-                        });
-                        frm.refresh_field('table_size_ratio_qty');
-                    }
-                });
-            }, 'table_size_ratio_qty');
-
-            frm.custom_buttons_injected = true;
-        }
-    },   
     style: function(frm) {
         if (!frm.doc.style) return;
 
@@ -113,10 +85,7 @@ frappe.ui.form.on('Cut Docket', {
                         }
 
                         const fabric_fg_links = bom.items
-                            .filter(row =>
-                                row.custom_item_type === "Fabrics" &&
-                                !!row.custom_fg_link
-                            )
+                            .filter(row => row.custom_item_type === "Fabrics" && !!row.custom_fg_link)
                             .map(row => row.custom_fg_link);
 
                         const unique_fg_links = [...new Set(fabric_fg_links)];
@@ -141,6 +110,7 @@ frappe.ui.form.on('Cut Docket', {
             }
         });
     },
+
     panel_type: function(frm) {
         recalculate_fabric_requirement(frm);
 
@@ -161,23 +131,27 @@ frappe.ui.form.on('Cut Docket', {
             }
         });
     },
+
     fabric_requirement_against_bom: function(frm) {
         calculate_marker_efficiency(frm);
-    },      
+    },
+
     marker_length_meters: function(frm) {
         calculate_fabric_requirement_against_marker(frm);
         calculate_marker_efficiency(frm);
     },
+
     marker_width_meters: function(frm) {
         calculate_marker_efficiency(frm);
-    },    
+    },
+
     no_of_plies: function(frm) {
         calculate_fabric_requirement_against_marker(frm);
         calculate_marker_efficiency(frm);
-    }  
+    }
 });
 
-
+// Child table: Cut Docket Item
 frappe.ui.form.on('Cut Docket Item', {
     planned_cut_quantity: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
@@ -188,14 +162,91 @@ frappe.ui.form.on('Cut Docket Item', {
 
         row.balance = quantity - already_cut - planned;
 
-        frm.refresh_field('cut_docket_item');
+        frm.refresh_field('table_size_ratio_qty');
         recalculate_fabric_requirement(frm);
     }
 });
 
+// Child table: Cut Docket WO Details
+frappe.ui.form.on('Cut Docket WO Details', {
+    work_order: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+
+        if (!row.work_order) return;
+
+        // ✅ Check for duplicates
+        const existing = frm.doc.work_order_details.filter(r => {
+            return r.work_order === row.work_order && r.name !== row.name;
+        });
+
+        if (existing.length > 0) {
+            frappe.msgprint(__("Work Order {0} is already added.", [row.work_order]));
+            frappe.model.set_value(cdt, cdn, 'work_order', '');
+            return;
+        }
+
+        // 1. Fetch already cut quantity
+        frappe.call({
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_already_cut_quantity",
+            args: {
+                work_order: row.work_order
+            },
+            callback: function(r) {
+                const already_cut = flt(r.message || 0);
+                frappe.model.set_value(cdt, cdn, 'already_cut_quantity', already_cut);
+
+                // Fetch work_order_quantity from Work Order
+                frappe.db.get_value('Work Order', row.work_order, 'qty', (value) => {
+                    const wo_qty = flt(value.qty || 0);
+                    const balance = wo_qty - already_cut;
+                    frappe.model.set_value(cdt, cdn, 'balance_quantity', balance);
+                });
+            }
+        });
+
+        // 2. Auto-fetch size details
+        fetch_size_details_for_work_order(frm, row.work_order);
+    }
+});
+
+// ========================
+// Utility Functions
+// ========================
+
+function fetch_size_details_for_work_order(frm, work_order) {
+    frappe.call({
+        method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_cut_docket_items_from_work_orders',
+        args: {
+            work_orders: JSON.stringify([work_order])
+        },
+        callback: function(r) {
+            if (!(r.message || []).length) {
+                frappe.msgprint(__("No size details found for Work Order {0}", [work_order]));
+                return;
+            }
+
+            // Avoid duplicates
+            const existing = (frm.doc.table_size_ratio_qty || []).map(item => {
+                return `${item.ref_work_order}-${item.sales_order}-${item.line_item_no}-${item.size}`;
+            });
+
+            (r.message || []).forEach(item => {
+                const key = `${item.ref_work_order}-${item.sales_order}-${item.line_item_no}-${item.size}`;
+                if (!existing.includes(key)) {
+                    const row = frm.add_child('table_size_ratio_qty');
+                    Object.assign(row, item);
+                }
+            });
+
+            frm.refresh_field('table_size_ratio_qty');
+            recalculate_fabric_requirement(frm);
+        }
+    });
+}
 
 function recalculate_fabric_requirement(frm) {
     if (!frm.doc.bom_no || !frm.doc.panel_type || !frm.doc.table_size_ratio_qty) return;
+
     frappe.call({
         method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_fabric_requirement",
         args: {
@@ -236,93 +287,14 @@ function calculate_marker_efficiency(frm) {
     }
 }
 
-// frappe.ui.form.on('Cut Docket SO Details', {
-//     sales_order: function(frm, cdt, cdn) {
-//         const row = locals[cdt][cdn];
-
-//         if (!row.sales_order) {
-//             frappe.msgprint(__('Please select a Sales Order.'));
-//             return;
-//         }
-
-//         frappe.call({
-//             method: "frappe.client.get",
-//             args: {
-//                 doctype: "Sales Order",
-//                 name: row.sales_order
-//             },
-//             callback: function(r) {
-//                 const so = r.message;
-//                 if (!so || !so.items || so.items.length === 0) {
-//                     frappe.msgprint(__('No Items found in selected Sales Order.'));
-//                     return;
-//                 }
-
-//                 // Extract custom_lineitem values from Sales Order Items
-//                 const line_items = so.items
-//                     .map(item => item.custom_lineitem)
-//                     .filter(v => !!v); // remove falsy/null/undefined
-
-//                 const unique_line_items = [...new Set(line_items)];
-
-//                 // Set the options for the `line_item` select field
-//                 frm.fields_dict.sale_order_details.grid.update_docfield_property(
-//                     'line_item',
-//                     'options',
-//                     unique_line_items.join('\n')
-//                 );
-
-//                 // Clear existing value
-//                 frappe.model.set_value(cdt, cdn, 'line_item', '');
-
-//                 // Auto-select if only one option
-//                 if (unique_line_items.length === 1) {
-//                     frappe.model.set_value(cdt, cdn, 'line_item', unique_line_items[0]);
-//                 }
-
-//                 frm.fields_dict.sale_order_details.grid.refresh();
-//             }
-//         });
-//     }
-// });
-
-frappe.ui.form.on('Cut Docket WO Details', {
-    work_order: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-
-        if (!row.work_order) return;
-
-        frappe.call({
-            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_already_cut_quantity",
-            args: {
-                work_order: row.work_order
-            },
-            callback: function(r) {
-                const already_cut = flt(r.message || 0);
-                frappe.model.set_value(cdt, cdn, 'already_cut_quantity', already_cut);
-
-                // Fetch work_order_quantity from Work Order doctype
-                frappe.db.get_value('Work Order', row.work_order, 'qty', (value) => {
-                    const wo_qty = flt(value.qty || 0);
-                    const balance = wo_qty - already_cut;
-                    frappe.model.set_value(cdt, cdn, 'balance_quantity', balance);
-                });
-            }
-        });
-    }
-});
+// ========================
+// Setup Functions
+// ========================
 
 function setup_work_order_filter(frm) {
     const grid = frm.fields_dict.work_order_details?.grid;
     if (!grid) return;
 
-    // Wait for grid to be ready
-    if (!grid.grid_rows || !grid.grid_rows.length) {
-        // No rows yet — just set the get_query for future rows
-        (grid.get_field || function() {}).call(grid, 'work_order');
-    }
-
-    // Set get_query on the work_order field
     const work_order_field = grid.get_field('work_order');
     if (work_order_field) {
         work_order_field.get_query = function() {
@@ -339,13 +311,9 @@ function setup_work_order_filter(frm) {
                 }
             };
         };
-
-        // ✅ Correct way: Use frm.refresh_field or grid.refresh
-        // Do NOT call field.refresh()
     } else {
         console.warn("Work Order field not found in grid");
     }
 
-    // ✅ Safely refresh the entire field
     frm.refresh_field('work_order_details');
 }
