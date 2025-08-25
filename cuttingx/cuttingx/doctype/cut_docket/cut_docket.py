@@ -187,7 +187,73 @@ class CutDocket(Document):
                         row.size, row.ref_work_order or "Unknown"
                     )
                 )
+
             
+    def on_submit(self):
+        """
+        Notify all users with "Stock User" role when Cut Docket is submitted
+        """
+        self.notify_stock_users_on_submit()
+
+
+    def notify_stock_users_on_submit(self):
+        """
+        Send email and desktop notification to all users with 'Stock User' or 'Stock Manager' role
+        """
+        from frappe.utils import get_url_to_form
+
+        roles_to_notify = ["Stock User", "Stock Manager"]
+
+        # Get users with any of the roles
+        stock_users = frappe.get_all(
+            "Has Role",
+            filters={
+                "role": ["in", roles_to_notify],
+                "parenttype": "User"
+            },
+            pluck="parent"
+        )
+
+        # Filter only enabled users
+        enabled_users = frappe.get_all("User", filters={"enabled": 1}, pluck="name")
+        recipients = list(set(user for user in stock_users if user in enabled_users))
+
+        # Remove current user (submitter) from recipients
+        recipients = [user for user in recipients if user != frappe.session.user]        
+
+        if not recipients:
+            return
+
+        # ✅ Ensure name exists
+        if not self.name:
+            frappe.log_error("Cut Docket has no name when submitting", "Cut Docket Submit Error")
+            return
+
+        subject = f"✅ Cut Docket {self.name} Submitted"
+        message = f"""
+            <p>The <b>Cut Docket {self.name}</b> has been <b>submitted</b>.</p>
+            <p><b>Style:</b> {self.style or 'Not set'}</p>
+            <p><b>Fabric Requirement:</b> {self.fabric_requirement_against_bom} m²</p>
+            <p><a href="{get_url_to_form('Cut Docket', self.name)}" target="_blank">View Cut Docket</a></p>
+        """
+
+        # 📧 Send Email
+        frappe.sendmail(
+            recipients=recipients,
+            subject=subject,
+            message=message
+        )
+
+        # 💬 Send Desktop Notification
+        for user in recipients:
+            # ✅ Always send a non-empty message
+            msg = f"✅ Cut Docket {self.name} submitted."
+            frappe.publish_realtime(
+                "msgprint",
+                message=msg,
+                user=user
+            )
+
 
 @frappe.whitelist()
 def get_details_on_panel_type_change(bom_no, panel_type):
@@ -442,4 +508,4 @@ def autofill_barcode_and_save(doc, method):
 @frappe.whitelist()
 def get_empty_work_order_list(doctype, txt, searchfield, start, page_len, filters):
     """Returns empty list - used to disable dropdown when no style is selected"""
-    return []        
+    return []

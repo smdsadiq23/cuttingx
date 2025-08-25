@@ -35,33 +35,6 @@ def get_eligible_cut_dockets():
     return eligible
 
 
-# @frappe.whitelist()
-# def get_sales_and_work_orders_from_docket(cut_docket_id):
-#     if not cut_docket_id:
-#         return {"sales_orders": [], "work_orders": []}
-
-#     try:
-#         docket = frappe.get_doc("Cut Docket", cut_docket_id)
-#     except frappe.DoesNotExistError:
-#         return {"sales_orders": [], "work_orders": []}
-
-#     sales_orders = set()
-#     work_orders = set()
-
-#     for row in docket.get("sale_order_details", []):
-#         if row.sales_order:
-#             sales_orders.add(row.sales_order)
-
-#     for row in docket.get("work_order_details", []):
-#         if row.work_order:
-#             work_orders.add(row.work_order)
-
-#     return {
-#         "sales_orders": list(sales_orders),
-#         "work_orders": list(work_orders)
-#     }
-
-
 @frappe.whitelist()
 def get_cut_confirmation_items_from_docket(cut_docket_id):
     """Fetch size and confirmed_quantity from Cut Confirmation Item for the given Cut PO"""
@@ -102,10 +75,10 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
 def generate_bundle_details(docname):
     """
     Generate bundle rows with barcode/QR for a given Bundle Creation document.
-    Includes: bundle_id, unitsbundle, size, barcode, QR
-    Validates unitsbundle > 0 per row.
-    Avoids duplicates if already generated.
+    Bundle ID now uses a per-Work-Order series, e.g., BNDL-WO-0001-00001, and
+    continues across documents/cut dockets for the same Work Order.
     """
+    import re
     doc = frappe.get_doc("Bundle Creation", docname)
 
     # 🚫 Don't regenerate if bundles already exist
@@ -113,60 +86,86 @@ def generate_bundle_details(docname):
         frappe.msgprint("⚠️ Bundles already created. Please remove existing bundles to regenerate.")
         return
 
-    # 🔍 Get naming series from 'bundle_id' field in 'Bundle Details'
+    # Original default (fallback) from child field options or a sensible default
     bundle_id_field = frappe.get_meta("Bundle Details").get_field("bundle_id")
-    default_series = bundle_id_field.options or "BNDL.#####"
+    default_series = (bundle_id_field.options or "BNDL.#####").replace(".", "-.")  # normalize to BNDL-.#####
 
     # ✅ Validate all rows before creating any bundles
     for item in doc.table_bundle_creation_item:
-        planned_quantity = item.planned_quantity or 0
-        unitsbundle = item.unitsbundle
-
-        # Use int() safely with validation
         try:
-            total_qty = int(planned_quantity)
+            total_qty = int(item.planned_quantity or 0)
         except (ValueError, TypeError):
             frappe.throw(f"Invalid Planned Quantity in row {item.idx}: must be a number")
 
         try:
-            units_per_bundle = int(unitsbundle) if unitsbundle is not None else 0
+            units_per_bundle = int(item.unitsbundle) if item.unitsbundle is not None else 0
         except (ValueError, TypeError):
             frappe.throw(f"Invalid Units per Bundle in row {item.idx}: must be a number")
 
         if units_per_bundle <= 0:
             frappe.throw(f"Units per bundle must be greater than 0 in row {item.idx}")
 
+        # optional: skip rows with 0 total
+        # if total_qty <= 0:
+        #     frappe.throw(f"Planned Quantity must be greater than 0 in row {item.idx}")
+
+    # Helper to build a clean series per Work Order
+    def series_for_work_order(work_order: str) -> str:
+        """
+        Returns a series like: BNDL-{work_order}-.#####
+        Example: work_order 'WO-0001' -> 'BNDL-WO-0001-.#####'
+        This ensures per-WO counters in tabSeries.
+        """
+        if not work_order:
+            return default_series  # fallback to common counter
+
+        # Keep typical Frappe docname characters; remove spaces and weird chars
+        safe_wo = re.sub(r"[^A-Za-z0-9\-_./]", "", str(work_order)).strip()
+        # Make sure we have the literal "-." before hashes (required by make_autoname)
+        return f"BNDL-{safe_wo}-.#####"
+
     # ✅ All valid — now generate bundles
+    total_created = 0
     for item in doc.table_bundle_creation_item:
         total_qty = int(item.planned_quantity or 0)
-        units_per_bundle = int(item.unitsbundle)  # Already validated above
-        size = item.size  # ✅ Fetch size from Bundle Creation Item
+        if total_qty <= 0:
+            continue  # nothing to generate for this row
 
-        # Ceiling division: total_bundles = ceil(total_qty / units_per_bundle)
+        units_per_bundle = int(item.unitsbundle)
+        size = item.size
+        work_order = getattr(item, "work_order", None)
+
+        # Ceil division: number of bundles
         total_bundles = (total_qty + units_per_bundle - 1) // units_per_bundle
 
+        # Build series for this row's Work Order
+        per_wo_series = series_for_work_order(work_order)
+
         for i in range(total_bundles):
-            # Calculate quantity for this bundle
+            # Quantity for this bundle
             if i == total_bundles - 1:
                 bundle_qty = total_qty - units_per_bundle * (total_bundles - 1)
             else:
                 bundle_qty = units_per_bundle
 
-            # Generate bundle ID and codes
-            bundle_id = make_autoname(default_series)
+            # 👇 This keeps an independent counter for each Work Order automatically
+            bundle_id = make_autoname(per_wo_series)
+
             barcode_b64 = generate_barcode_base64(bundle_id)
             qrcode_b64 = generate_qrcode_base64(bundle_id)
 
-            # Append to child table
             doc.append("table_bundle_details", {
                 "bundle_id": bundle_id,
                 "unitsbundle": bundle_qty,
-                "size": size,  # ✅ Add size
+                "size": size,
                 "barcode_image": barcode_b64,
                 "qrcode_image": qrcode_b64,
-                "parent_item_id": item.name 
+                "parent_item_id": item.name,
+                # Optional: persist work_order at detail level if the child doctype has it
+                # "work_order": work_order,
             })
+            total_created += 1
 
-    # Save and notify
     doc.save(ignore_permissions=True)
-    frappe.msgprint(f"✅ Created {len(doc.table_bundle_details)} bundles with QR, Barcode, and Size.")
+    frappe.msgprint(f"✅ Created {total_created} bundles with per-Work-Order series, QR and Barcode.")
+    
