@@ -92,10 +92,10 @@ def generate_bundle_details(docname):
 
     # ✅ Validate all rows before creating any bundles
     for item in doc.table_bundle_creation_item:
-        try:
-            total_qty = int(item.planned_quantity or 0)
-        except (ValueError, TypeError):
-            frappe.throw(f"Invalid Planned Quantity in row {item.idx}: must be a number")
+        # try:
+        #     total_qty = int(item.planned_quantity or 0)
+        # except (ValueError, TypeError):
+        #     frappe.throw(f"Invalid Planned Quantity in row {item.idx}: must be a number")
 
         try:
             units_per_bundle = int(item.unitsbundle) if item.unitsbundle is not None else 0
@@ -127,7 +127,8 @@ def generate_bundle_details(docname):
     # ✅ All valid — now generate bundles
     total_created = 0
     for item in doc.table_bundle_creation_item:
-        total_qty = int(item.planned_quantity or 0)
+        # total_qty = int(item.planned_quantity or 0)
+        total_qty = int(item.cut_quantity or 0)
         if total_qty <= 0:
             continue  # nothing to generate for this row
 

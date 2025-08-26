@@ -13,7 +13,6 @@
   "batch",
   "shade",
   "cut_quantity",
-  "planned_quantity",
   "unitsbundle",
   "no_of_bundles"
  ],
@@ -25,13 +24,6 @@
    "in_list_view": 1,
    "label": "Size",
    "read_only": 1
-  },
-  {
-   "columns": 1,
-   "fieldname": "planned_quantity",
-   "fieldtype": "Int",
-   "in_list_view": 1,
-   "label": "Bundle Order Quantity"
   },
   {
    "columns": 1,
@@ -99,7 +91,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-25 16:28:38.468213",
+ "modified": "2025-08-26 19:55:02.877621",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation Item",
