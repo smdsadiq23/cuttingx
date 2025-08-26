@@ -76,7 +76,7 @@
    "fetch_from": "fg_item.custom_colour_name",
    "fieldname": "color",
    "fieldtype": "Data",
-   "label": "Color",
+   "label": "Colour",
    "read_only": 1
   }
  ],
@@ -84,7 +84,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-25 16:15:19.751224",
+ "modified": "2025-08-26 16:08:54.889174",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",
