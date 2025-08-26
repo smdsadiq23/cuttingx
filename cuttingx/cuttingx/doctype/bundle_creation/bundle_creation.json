@@ -76,15 +76,14 @@
    "fetch_from": "fg_item.custom_colour_name",
    "fieldname": "color",
    "fieldtype": "Data",
-   "label": "Colour",
-   "read_only": 1
+   "label": "Colour"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-26 16:08:54.889174",
+ "modified": "2025-08-26 16:10:51.836269",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",
