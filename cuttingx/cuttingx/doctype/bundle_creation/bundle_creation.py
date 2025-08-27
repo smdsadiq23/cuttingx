@@ -117,12 +117,14 @@ def generate_bundle_details(docname):
     total_created = 0
 
     for item in doc.table_bundle_creation_item:
-        total_qty = int(item.cut_quantity or 0)
+        total_qty = int(item.shade_cut_quantity or 0)
         if total_qty <= 0:
             continue
 
         units_per_bundle = int(item.unitsbundle)
         size = item.size
+        shade = item.shade
+        ply = item.ply
         work_order = getattr(item, "work_order", None)
         if not work_order:
             frappe.throw(f"Work Order is missing in row {item.idx}")
@@ -168,6 +170,8 @@ def generate_bundle_details(docname):
                     "bundle_id": bundle_id,
                     "unitsbundle": bundle_qty,
                     "size": size,
+                    "shade": shade,
+                    "ply": ply,
                     "component": component_name,
                     "barcode_image": barcode_b64,
                     "qrcode_image": qrcode_b64,

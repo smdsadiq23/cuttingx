@@ -1,0 +1,66 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-27 09:33:33.740625",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "shade_code",
+  "ply_count",
+  "shade_percent",
+  "start_ply_no",
+  "end_ply_no"
+ ],
+ "fields": [
+  {
+   "fieldname": "shade_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Shade Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ply_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Ply Count",
+   "reqd": 1
+  },
+  {
+   "fieldname": "start_ply_no",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Start Ply No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_ply_no",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "End Ply No",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shade_percent",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Shade %",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-08-27 15:10:46.476823",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Bundle Shade and Ply",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

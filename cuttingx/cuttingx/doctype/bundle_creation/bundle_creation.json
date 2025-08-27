@@ -11,7 +11,9 @@
   "fg_item",
   "style_number",
   "color",
+  "no_of_plies",
   "section_break_nmab",
+  "table_shade_and_ply",
   "table_bundle_creation_item",
   "table_bundle_details",
   "amended_from"
@@ -40,7 +42,8 @@
    "fieldname": "style_number",
    "fieldtype": "Data",
    "label": "Style Number",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
   },
   {
    "fieldname": "amended_from",
@@ -78,13 +81,26 @@
    "fieldtype": "Data",
    "label": "Colour",
    "read_only": 1
+  },
+  {
+   "fieldname": "table_shade_and_ply",
+   "fieldtype": "Table",
+   "label": "Shade and Ply Details",
+   "options": "Bundle Shade and Ply"
+  },
+  {
+   "fetch_from": "cut_docket_id.no_of_plies",
+   "fieldname": "no_of_plies",
+   "fieldtype": "Int",
+   "label": "No of Plies",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-26 16:13:50.639100",
+ "modified": "2025-08-27 10:42:57.778574",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",
