@@ -109,10 +109,10 @@ frappe.ui.form.on('Bundle Shade and Ply', {
         const row = locals[cdt][cdn];
         const no_of_plies = frm.doc.no_of_plies || 0;
 
-        // Calculate shade %        
+        // Calculate shade %
         if (row.ply_count && no_of_plies > 0) {
             const percent = (row.ply_count / no_of_plies) * 100;
-            frappe.model.set_value(cdt, cdn, 'shade_percent', `${percent.toFixed(1)}%`);
+            frappe.model.set_value(cdt, cdn, 'shade_percent', `${percent.toFixed(1)}`);
         } else {
             frappe.model.set_value(cdt, cdn, 'shade_percent', '');
         }
@@ -254,40 +254,35 @@ function fetch_and_split_data(frm) {
 }
 
 // ✅ Handle Bundle Creation Item changes
-frappe.ui.form.on('Bundle Shade and Ply', {
-    ply_count: function(frm, cdt, cdn) {
+frappe.ui.form.on('Bundle Creation Item', {
+    unitsbundle: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
-        const no_of_plies = frm.doc.no_of_plies || 0;
-
-        // Calculate shade %
-        if (row.ply_count && no_of_plies > 0) {
-            const percent = (row.ply_count / no_of_plies) * 100;
-            frappe.model.set_value(cdt, cdn, 'shade_percent', `${percent.toFixed(1)}%`);
+        if (row.unitsbundle < 0) {
+            frappe.msgprint(__("Units per Bundle cannot be negative"));
+            frappe.model.set_value(cdt, cdn, 'unitsbundle', 1);
         } else {
-            frappe.model.set_value(cdt, cdn, 'shade_percent', '');
+            calculate_bundles(frm, cdt, cdn);
         }
-
-        // Recalculate all ply numbers
-        const table = frm.doc.table_shade_and_ply;
-        if (table && Array.isArray(table)) {
-            table.forEach(r => calculate_ply_numbers(frm, r.doctype, r.name));
-            frm.refresh_field('table_shade_and_ply');
-        }
-
-        // Validate and correct if total exceeds
-        validate_and_correct_ply_count(frm, cdt, cdn);
     },
-
-    table_shade_and_ply_remove: function(frm) {
-        const table = frm.doc.table_shade_and_ply;
-        if (table && Array.isArray(table)) {
-            table.forEach(r => calculate_ply_numbers(frm, r.doctype, r.name));
-            frm.refresh_field('table_shade_and_ply');
-        }
-        validate_and_correct_ply_count(frm);
+    'Bundle Creation Item': function(frm, cdt, cdn) {
+        hide_add_delete_buttons(frm);
     }
 });
 
+// 🔍 Fetch eligible Cut Dockets
+function get_eligible_cut_dockets() {
+    let eligible = [];
+    frappe.call({
+        method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_eligible_cut_dockets',
+        async: false,
+        callback: function(r) {
+            if (r.message) eligible = r.message;
+        }
+    });
+    return eligible;
+}
+
+// ✅ Calculate start_ply_no and end_ply_no
 function calculate_ply_numbers(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
     const table = frm.doc.table_shade_and_ply;
@@ -336,7 +331,7 @@ function validate_and_correct_ply_count(frm, cdt, cdn) {
 // ✅ Calculate no_of_bundles from cut_quantity and unitsbundle
 function calculate_bundles(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
-    const qty = row.cut_quantity || 0;
+    const qty = row.shade_cut_quantity || 0;
     const units = row.unitsbundle || 1;
     const no_of_bundles = Math.ceil(qty / units);
     frappe.model.set_value(cdt, cdn, 'no_of_bundles', no_of_bundles);
