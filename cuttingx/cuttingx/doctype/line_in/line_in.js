@@ -3,59 +3,85 @@
 
 frappe.ui.form.on('Line In', {
     onload: function(frm) {
-        setup_bundle_order_filter(frm);
         setup_date_and_time_sync(frm);
     },
     refresh: function(frm) {
         setup_date_and_time_sync(frm);
     },
-    bundle_order_no: function(frm) {
-        if (!frm.doc.bundle_order_no) {
-            frm.clear_table('table_line_in_item');
-            frm.refresh_field('table_line_in_item');
+    validate: function(frm) {
+        const seen = new Set();
+        const duplicates = [];
+
+        frm.doc.table_line_in_item.forEach(row => {
+            if (!row.bundle_id) return;
+
+            if (seen.has(row.bundle_id)) {
+                duplicates.push(row.bundle_id);
+            } else {
+                seen.add(row.bundle_id);
+            }
+        });
+
+        if (duplicates.length > 0) {
+            frappe.throw(__(
+                'Cannot save: Duplicate Bundle IDs found: {0}',
+                [frappe.utils.comma_and(duplicates)]
+            ));
+        }
+    }    
+}); 
+
+frappe.ui.form.on('Line In Item', {
+    bundle_id: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        const bundle_id = (row.bundle_id || '').trim();
+
+        // ✅ Log safely
+        console.log('Scanning bundle ID:', bundle_id);
+
+        if (!bundle_id || bundle_id.length < 5) return;
+
+        // ✅ Check for duplicate bundle_id
+        const existing = frm.doc.table_line_in_item.filter(d => 
+            d.bundle_id === bundle_id && d.name !== row.name
+        );
+
+        if (existing.length > 0) {
+            frappe.msgprint({
+                title: __('Duplicate Bundle ID'),
+                message: __('Bundle ID <b>{0}</b> has already been scanned.', [bundle_id]),
+                indicator: 'red'
+            });
+            frappe.model.set_value(cdt, cdn, 'bundle_id', '');
             return;
         }
 
+        // ✅ Fetch bundle details
         frappe.call({
-            method: 'cuttingx.cuttingx.doctype.line_in.line_in.get_bundles_from_bundle_creation',
-            args: { bundle_creation: frm.doc.bundle_order_no },
+            method: 'cuttingx.cuttingx.doctype.line_in.line_in.get_bundle_details',
+            args: { bundle_id: bundle_id },
             callback: function(r) {
-                const bundles = r.message || [];
-
-                if (!bundles.length) {
-                    frappe.msgprint(__("No bundles found in Bundle Creation: {0}", [frm.doc.bundle_order_no]));
+                if (!r.message) {
+                    frappe.msgprint(__('❌ No bundle found with ID: {0}', [bundle_id]));
+                    frappe.model.set_value(cdt, cdn, 'bundle_id', '');  // Clear invalid
                     return;
                 }
 
-                frm.clear_table('table_line_in_item');
-                bundles.forEach(bundle => {
-                    const row = frm.add_child('table_line_in_item');
-                    row.work_order = bundle.work_order;
-                    row.sales_order = bundle.sales_order;
-                    row.line_item_no = bundle.line_item_no;
-                    row.size = bundle.size;
-                    row.bundle_id = bundle.bundle_id;
-                    row.line_in_quantity = bundle.unitsbundle;
-                });
+                const data = r.message;
 
-                frm.refresh_field('table_line_in_item');
-                frappe.show_alert({
-                    //message: __('Fetched {0} bundles', [bundles.length]),
-                    indicator: 'green'
-                }, 3);
+                // ✅ Set fields
+                frappe.model.set_value(cdt, cdn, 'work_order', data.work_order);
+                frappe.model.set_value(cdt, cdn, 'sales_order', data.sales_order);
+                frappe.model.set_value(cdt, cdn, 'line_item_no', data.line_item_no);
+                frappe.model.set_value(cdt, cdn, 'size', data.size);
+                frappe.model.set_value(cdt, cdn, 'line_in_quantity', data.line_in_quantity);
+
+                // Refresh to reflect changes
+                frm.refresh_field('line_in_item');
             }
         });
     }
 });
-
-// Set query to exclude already used Bundle Creation docs
-function setup_bundle_order_filter(frm) {
-    frm.set_query('bundle_order_no', function() {
-        return {
-            query: 'cuttingx.cuttingx.doctype.line_in.line_in.get_unused_bundle_creations'
-        };
-    });
-}
 
 // Sync date_and_time from first row to all others
 function setup_date_and_time_sync(frm) {
@@ -111,6 +137,6 @@ function bind_date_and_time_events(frm) {
             frappe.model.set_value(row.doctype, row.name, 'date_and_time', db_format);
         });
 
-        frappe.show_alert(__('⏰ Time synced to all rows'), 2);
+        //frappe.show_alert(__('⏰ Time synced to all rows'), 2);
     });
 }

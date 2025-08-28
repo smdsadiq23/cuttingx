@@ -7,11 +7,11 @@
  "engine": "InnoDB",
  "field_order": [
   "date_and_time",
+  "bundle_id",
   "work_order",
   "sales_order",
   "line_item_no",
   "size",
-  "bundle_id",
   "line_in_quantity"
  ],
  "fields": [
@@ -27,49 +27,55 @@
    "fieldname": "work_order",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Work Order"
+   "label": "Work Order",
+   "read_only": 1
   },
   {
    "columns": 2,
    "fieldname": "sales_order",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Sales Order"
+   "label": "Sales Order",
+   "read_only": 1
   },
   {
    "columns": 1,
    "fieldname": "line_item_no",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Line item No"
+   "label": "Line item No",
+   "read_only": 1
   },
   {
    "columns": 1,
    "fieldname": "size",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Size"
+   "label": "Size",
+   "read_only": 1
   },
   {
    "columns": 1,
    "fieldname": "bundle_id",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Bundle Id"
+   "label": "Bundle Id",
+   "options": "Barcode"
   },
   {
    "columns": 1,
    "fieldname": "line_in_quantity",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Line In Quantity"
+   "label": "Line In Quantity",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-22 19:31:21.340211",
+ "modified": "2025-08-28 12:24:18.617497",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Line In Item",

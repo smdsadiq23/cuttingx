@@ -6,7 +6,6 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "bundle_order_no",
   "style",
   "section_break_bggz",
   "table_line_in_item",
@@ -23,12 +22,6 @@
   {
    "fieldname": "section_break_bggz",
    "fieldtype": "Section Break"
-  },
-  {
-   "fieldname": "bundle_order_no",
-   "fieldtype": "Link",
-   "label": "Bundle Order No",
-   "options": "Bundle Creation"
   },
   {
    "fieldname": "table_line_in_item",
@@ -50,7 +43,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-22 19:46:41.631287",
+ "modified": "2025-08-28 12:19:49.681438",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Line In",
