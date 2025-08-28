@@ -144,7 +144,6 @@ function fetch_and_split_data(frm) {
         return;
     }
 
-    // Step 1: Fetch data from Cut Docket
     frappe.call({
         method: 'cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_cut_confirmation_items_from_docket',
         args: { cut_docket_id: frm.doc.cut_docket_id },
@@ -154,82 +153,52 @@ function fetch_and_split_data(frm) {
                 return;
             }
 
-            // Step 2: Get shade distribution with ply details
             const shade_table = frm.doc.table_shade_and_ply;
             if (!shade_table || !shade_table.length) {
                 frappe.msgprint(__('Please define Shade and Ply details first.'));
                 return;
             }
 
-            // Map shade_code → ply range
-            const shade_map = {};
-            shade_table.forEach(row => {
-                shade_map[row.shade_code] = {
-                    start: row.start_ply_no || 1,
-                    end: row.end_ply_no || 1,
-                };
-            });
-
             const no_of_plies = frm.doc.no_of_plies || 1;
 
-            // Step 3: Clear and rebuild table
+            // ✅ Sort by idx to ensure correct order
+            const sorted_items = [...r.message].sort((a, b) => a.idx - b.idx);
+
             frm.clear_table('table_bundle_creation_item');
 
-            (r.message || []).forEach(original_row => {
+            sorted_items.forEach(original_row => {
                 const size = original_row.size;
                 const total_cut_qty = original_row.cut_quantity;
                 let allocated = 0;
                 const rows = [];
 
-                // First pass: calculate all but last
-                Object.keys(shade_map).forEach((shade_code, idx) => {
-                    const shade = { shade_code };
-                    const new_qty = Math.round((total_cut_qty * (idx === 0 ? 100 : 0)) / 100); // Placeholder
-
-                    // Get actual percentage from shade_map source? No — use `shade_percent` if available
-                    // But we already have `shade_map` from `table_shade_and_ply`, so use it
-                    // We'll assume all shades are in `shade_table` and we use their order
-                });
-
-                // ✅ Use actual shade_table to preserve order
+                // Split by shade
                 shade_table.forEach((shade_row, idx) => {
                     const shade_code = shade_row.shade_code;
-                    const pct = parseFloat((shade_row.shade_percent || '').replace('%', '')) || 0;
+                    const pct = parseFloat(shade_row.shade_percent) || 0;
                     const new_qty = Math.round((total_cut_qty * pct) / 100);
                     if (new_qty <= 0 && idx !== shade_table.length - 1) return;
-
                     allocated += new_qty;
 
-                    const row = {
+                    rows.push({
                         work_order: original_row.work_order,
                         sales_order: original_row.sales_order,
                         line_item_no: original_row.line_item_no,
                         size: size,
                         cut_quantity: total_cut_qty,
                         shade: shade_code,
-                        //unitsbundle: original_row.unitsbundle || 1,
                         shade_cut_quantity: new_qty
-                    };
-
-                    rows.push(row);
+                    });
                 });
 
-                // ✅ Adjust last row
+                // Adjust last
                 if (rows.length > 0) {
-                    const last_row = rows[rows.length - 1];
-                    const adjustment = total_cut_qty - allocated;
-                    last_row.shade_cut_quantity += adjustment;
-
-                    if (last_row.shade_cut_quantity < 0) {
-                        frappe.msgprint(__(
-                            'Shade Cut Quantity for Size {0} is negative. Check shade percentages.',
-                            [size]
-                        ));
-                        last_row.shade_cut_quantity = 0;
-                    }
+                    const last = rows[rows.length - 1];
+                    last.shade_cut_quantity += (total_cut_qty - allocated);
+                    if (last.shade_cut_quantity < 0) last.shade_cut_quantity = 0;
                 }
 
-                // ✅ Append rows with ply info
+                // Append with ply info
                 rows.forEach(row => {
                     const shade_row = shade_table.find(s => s.shade_code === row.shade);
                     const start = shade_row?.start_ply_no || 1;
@@ -238,17 +207,12 @@ function fetch_and_split_data(frm) {
                     const child = frm.add_child('table_bundle_creation_item');
                     Object.assign(child, row, {
                         ply: `${start}-${end} of ${no_of_plies}`
-                    });
-
-                    //calculate_bundles(frm, child.doctype, child.name);
+                    });                    
                 });
             });
 
             frm.refresh_field('table_bundle_creation_item');
-            frappe.show_alert({
-                message: __('✅ Fetched and split {0} rows by shade with ply info.', [r.message.length]),
-                indicator: 'green'
-            }, 5);
+            //frappe.show_alert(__('✅ Fetched and split by shade in correct order.'), 5);
         }
     });
 }

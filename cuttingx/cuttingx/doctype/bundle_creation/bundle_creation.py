@@ -55,7 +55,8 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
     items = frappe.get_all(
         'Cut Confirmation Item',
         filters={'parent': confirmation_name},
-        fields=['work_order', 'sales_order', 'line_item_no', 'size', 'confirmed_quantity']
+        fields=['work_order', 'sales_order', 'line_item_no', 'size', 'confirmed_quantity', 'idx'],
+        order_by='idx'
     )
 
     # Return data in desired structure
@@ -65,7 +66,8 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
             'sales_order': item['sales_order'],
             'line_item_no': item['line_item_no'],
             'size': item['size'],
-            'cut_quantity': item['confirmed_quantity']
+            'cut_quantity': item['confirmed_quantity'],
+            'idx': item['idx']  # Keep idx for sorting
         }
         for item in items
     ]
