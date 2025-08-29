@@ -32,8 +32,7 @@
   "can_cut_percent",
   "remarks",
   "approval_section",
-  "html_jigk",
-  "amended_from"
+  "approval_card_html"
  ],
  "fields": [
   {
@@ -159,6 +158,7 @@
    "fieldname": "can_cut_percent",
    "fieldtype": "Percent",
    "label": "Can Cut %",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -187,35 +187,27 @@
    "label": "Approval Section"
   },
   {
-   "fieldname": "html_jigk",
-   "fieldtype": "HTML"
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Can Cut",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
    "fieldname": "naming_series",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Naming Series",
    "options": "CC.-.YYYY.-.MM.-.####",
    "read_only": 1
+  },
+  {
+   "fieldname": "approval_card_html",
+   "fieldtype": "HTML",
+   "label": "Approval Card"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-29 14:49:23.888203",
+ "modified": "2025-08-29 17:10:02.832410",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

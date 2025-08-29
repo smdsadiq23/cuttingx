@@ -1,7 +1,16 @@
 // Copyright (c) 2025, Cognitonx Logic India Private Limited and contributors
 // For license information, please see license.txt
 
+// Global guard to prevent duplicate execution
+window.can_cut_script = window.can_cut_script || {
+    executed_for: new Set()
+};
+
 frappe.ui.form.on('Can Cut', {
+    onload: function(frm) {
+        console.log('📥 Can Cut onload triggered for', frm.doc.name);
+    },
+
     // Trigger recalc on field changes
     fabric_ordered: function(frm) {
         frm.trigger('recalculate');
@@ -39,21 +48,19 @@ frappe.ui.form.on('Can Cut', {
         frm.set_value('can_cut_percent', can_cut_percent.toFixed(1));
     },
 
-    onload: function(frm) {
-        // Ensure status is loaded from server on hard refresh
-        if (!frm.doc.__islocal && frm.doc.docstatus === 0 && !frm.doc.status) {
-            frappe.db.get_value('Can Cut', frm.doc.name, 'status')
-                .then(r => {
-                    if (r.message?.status) {
-                        frm.set_value('status', r.message.status);
-                        frm.refresh();
-                    }
-                });
-        }
-    },
     refresh: function(frm) {
-        console.log('🔄 Can Cut refresh triggered');
-        console.log('Doc:', frm.doc);
+        if (!frm.doc || !frm.doc.name) return;
+
+        const docKey = `Can Cut:${frm.doc.name}`;
+
+        // Prevent duplicate execution
+        if (window.can_cut_script.executed_for.has(docKey)) {
+            console.log('🔄 Can Cut refresh: Already executed for', frm.doc.name);
+            return;
+        }
+
+        console.log('✅ Can Cut refresh: First execution for', frm.doc.name);
+        window.can_cut_script.executed_for.add(docKey);
 
         // Auto-set status on first save
         if (frm.doc.docstatus === 0 && !frm.doc.__islocal && !frm.doc.status) {
@@ -92,16 +99,14 @@ frappe.ui.form.on('Can Cut', {
             }, __('Actions'));
         }
 
-        // ✅ Handle approval card only if doc is saved
+        // Handle approval section
         if (frm.doc.__islocal) {
-            // 🆕 New doc → hide approval section
             if (frm.fields_dict.approval_section) {
                 frm.set_df_property('approval_section', 'hidden', true);
             }
             return;
         }
 
-        // After submit → show all sections
         if (is_submitted) {
             if (frm.fields_dict.approval_section) {
                 frm.set_df_property('approval_section', 'hidden', true);
@@ -109,34 +114,37 @@ frappe.ui.form.on('Can Cut', {
             return;
         }
 
-        // ✅ Only show approval card to approver in pending state
         if (is_approver && is_pending) {
-            console.log('✅ Approver + Pending → Show approval card');
+            console.log('✅ Approver + Pending → Show approval section');
 
-            // ✅ Wait for fields to be fully loaded
-            waitForFields(frm, () => {
-                if (frm.fields_dict.approval_section) {
-                    frm.set_df_property('approval_section', 'hidden', false);
-                    frm.refresh_field('approval_section');
-                }
+            // Show approval section
+            if (frm.fields_dict.approval_section) {
+                frm.set_df_property('approval_section', 'hidden', false);
+                frm.refresh_field('approval_section');
+            }
 
-                // Inject card
+            // Hide all other sections
+            hide_all_sections_except(frm, ['approval_section']);
+
+            // Inject card
+            if (frm.fields_dict.approval_card_html) {
+                const html = get_approval_card_html(frm);
+                frm.set_df_property('approval_card_html', 'options', html);
+                frm.set_df_property('approval_card_html', 'hidden', false);
+                frm.refresh_field('approval_card_html');
+
+                // Attach event listeners after injection
                 setTimeout(() => {
-                    add_approval_card(frm);
+                    attach_approval_listeners(frm);
                 }, 100);
-
-                // Hide all other sections
-                hide_all_sections_except(frm, ['approval_section']);
-            });
+            }
         } else {
-            console.log('❌ Not approver or not pending → Show all sections');
-
             if (frm.fields_dict.approval_section) {
                 frm.set_df_property('approval_section', 'hidden', true);
             }
-            // Frappe shows all sections by default
         }
     },
+
     sales_order: function(frm) {
         if (!frm.doc.sales_order) {
             frm.set_value('order_quantity', 0);
@@ -255,20 +263,9 @@ function flt(value, precision) {
     return Math.round((val || 0) * factor) / factor;
 }
 
-// ✅ Add Approval Card into approval_section
-function add_approval_card(frm) {
-    // Remove existing card
-    $('.approval-card').remove();
-
-    // Get approval_section wrapper
-    const $section = $(frm.fields_dict.approval_section.wrapper);
-    if (!$section.length) {
-        console.warn('❌ approval_section wrapper not found');
-        return;
-    }
-
-    // Build card HTML
-    const $card = $(`
+// ✅ Build approval card HTML
+function get_approval_card_html(frm) {
+    return `
         <div class="approval-card" style="border: 1px solid #4c9658; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; background: white; font-family: Arial, sans-serif;">
             <h3 style="color: #4c9658; text-align: center; margin: 0 0 15px;">Can Cut % – Approval</h3>
             <div style="font-size: 0.9em; line-height: 1.6; margin-bottom: 15px;">
@@ -301,7 +298,7 @@ function add_approval_card(frm) {
 
             <div style="text-align: center; margin: 15px 0; color: #4c9658; font-size: 1.1em;">
                 <b>Can Cut %:</b>
-                <span style="background-color: #4c9658; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; margin-left: 10px;">${frm.doc.can_cut_percent}%</span>
+                <span style="background-color: #4c9658; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; margin-left: 10px;">${parseFloat(frm.doc.can_cut_percent || 0).toFixed(2)}%</span>
             </div>
 
             <div style="margin: 15px 0; font-size: 0.8em; color: #666; text-align: center;">
@@ -320,18 +317,29 @@ function add_approval_card(frm) {
                 <button type="button" class="btn-approve" style="background-color: #5cb85c; color: white; border: none; padding: 8px 16px; margin: 0 10px; border-radius: 4px; cursor: pointer;">Approve</button>
             </div>
         </div>
-    `);
+        </br>
+    `;
+}
+
+// ✅ Attach event listeners to approval card buttons
+function attach_approval_listeners(frm) {
+    const $wrapper = $(frm.fields_dict.approval_card_html.wrapper);
+    const $card = $wrapper.find('.approval-card');
+
+    if (!$card.length) {
+        console.warn('❌ Approval card not found in DOM');
+        return;
+    }
 
     // ✅ Approve Button
-    $card.find('.btn-approve').on('click', function() {
+    $card.find('.btn-approve').off('click').on('click', function() {
         const remarks = $card.find('.approval-remarks').val();
         frappe.confirm('Approve this Can Cut?', () => {
             frappe.call({
                 method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.approve',
                 args: { docname: frm.doc.name },
-                callback: function(r) {
+                callback: r => {
                     if (!r.exc) {
-                        // ✅ Force full browser reload
                         location.reload();
                     }
                 }
@@ -340,7 +348,7 @@ function add_approval_card(frm) {
     });
 
     // ✅ Reject Button
-    $card.find('.btn-reject').on('click', function() {
+    $card.find('.btn-reject').off('click').on('click', function() {
         const remarks = $card.find('.approval-remarks').val();
         if (!remarks) {
             frappe.msgprint('Please enter remarks for rejection.');
@@ -349,17 +357,13 @@ function add_approval_card(frm) {
         frappe.call({
             method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.reject',
             args: { docname: frm.doc.name, reason: remarks },
-            callback: function(r) {
+            callback: r => {
                 if (!r.exc) {
-                    // ✅ Force full browser reload
                     location.reload();
                 }
             }
         });
     });
-
-    // Inject into section
-    $section.find('.section-body').html($card);
 }
 
 // ✅ Helper: Hide all sections except listed
@@ -370,21 +374,4 @@ function hide_all_sections_except(frm, visible_section_fields) {
             frm.set_df_property(fieldname, 'hidden', !visible_section_fields.includes(fieldname));
         }
     });
-}
-
-function waitForFields(frm, callback) {
-    let attempts = 0;
-    const maxAttempts = 30; // 3 seconds max
-    const interval = setInterval(() => {
-        attempts++;
-        // Check if fields_dict exists and has at least a few fields
-        if (frm.fields_dict && Object.keys(frm.fields_dict).length > 5) {
-            clearInterval(interval);
-            callback();
-        } else if (attempts > maxAttempts) {
-            clearInterval(interval);
-            console.warn('⚠️ waitForFields: Timeout, forcing render');
-            callback();
-        }
-    }, 100);
 }
