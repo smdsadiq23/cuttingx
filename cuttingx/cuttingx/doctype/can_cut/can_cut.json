@@ -1,0 +1,206 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-08-28 13:43:20.938131",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "basic_details_section",
+  "status",
+  "sales_order",
+  "work_order",
+  "colour",
+  "style",
+  "fabric_details_section",
+  "fabric_ordered",
+  "fabric_issued",
+  "fabric_balance",
+  "consumption_details_section",
+  "file_consumption",
+  "file_fabric_width",
+  "file_dia",
+  "file_gsm",
+  "actual_consumption",
+  "actual_fabric_width",
+  "actual_dia",
+  "actual_gsm",
+  "order_and_cutting_calculation_section",
+  "order_quantity",
+  "can_cut_quantity",
+  "can_cut_percent",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order"
+  },
+  {
+   "fieldname": "style",
+   "fieldtype": "Data",
+   "label": "Style",
+   "options": "Style Master",
+   "read_only": 1
+  },
+  {
+   "fieldname": "colour",
+   "fieldtype": "Select",
+   "label": "Colour"
+  },
+  {
+   "fieldname": "basic_details_section",
+   "fieldtype": "Section Break",
+   "label": "Basic Details"
+  },
+  {
+   "fieldname": "fabric_details_section",
+   "fieldtype": "Section Break",
+   "label": "Fabric Details"
+  },
+  {
+   "fieldname": "fabric_ordered",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Fabric Ordered (Kg / Mtr)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "fabric_balance",
+   "fieldtype": "Float",
+   "label": "Fabric Balance (Kg / Mtr)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "consumption_details_section",
+   "fieldtype": "Section Break",
+   "label": "Consumption Details"
+  },
+  {
+   "fieldname": "file_consumption",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "File Consumption (Grams / Pcs)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "file_fabric_width",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "File Fabric Width (Cm)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "file_dia",
+   "fieldtype": "Float",
+   "label": "File Dia",
+   "reqd": 1
+  },
+  {
+   "fieldname": "file_gsm",
+   "fieldtype": "Float",
+   "label": "File GSM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_consumption",
+   "fieldtype": "Float",
+   "label": "Actual Consumption (Grams / Pcs)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_fabric_width",
+   "fieldtype": "Float",
+   "label": "Actual Fabric Width (Cm)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_dia",
+   "fieldtype": "Float",
+   "label": "Actual Dia",
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_gsm",
+   "fieldtype": "Float",
+   "label": "Actual GSM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "order_and_cutting_calculation_section",
+   "fieldtype": "Section Break",
+   "label": "Order and Cutting Calculation"
+  },
+  {
+   "fieldname": "order_quantity",
+   "fieldtype": "Float",
+   "label": "Order Quantity (Pcs)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "can_cut_quantity",
+   "fieldtype": "Float",
+   "label": "Can Cut Quantity (Pcs)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "can_cut_percent",
+   "fieldtype": "Percent",
+   "label": "Can Cut %",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "fabric_issued",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Fabric Issued (Kg / Mtr)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "options": "\nPending for Approval\nApproved\nRejected",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-28 19:59:55.339997",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Can Cut",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
