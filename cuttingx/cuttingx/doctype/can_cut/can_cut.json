@@ -1,12 +1,14 @@
 {
  "actions": [],
  "allow_rename": 1,
+ "autoname": "naming_series:",
  "creation": "2025-08-28 13:43:20.938131",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "basic_details_section",
   "status",
+  "naming_series",
   "sales_order",
   "work_order",
   "colour",
@@ -28,7 +30,10 @@
   "order_quantity",
   "can_cut_quantity",
   "can_cut_percent",
-  "remarks"
+  "remarks",
+  "approval_section",
+  "html_jigk",
+  "amended_from"
  ],
  "fields": [
   {
@@ -69,13 +74,13 @@
    "fieldname": "fabric_ordered",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Fabric Ordered (Kg / Mtr)",
+   "label": "Fabric Ordered (Kg)",
    "reqd": 1
   },
   {
    "fieldname": "fabric_balance",
    "fieldtype": "Float",
-   "label": "Fabric Balance (Kg / Mtr)",
+   "label": "Fabric Balance (Kg)",
    "read_only": 1
   },
   {
@@ -87,7 +92,7 @@
    "fieldname": "file_consumption",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "File Consumption (Grams / Pcs)",
+   "label": "File Consumption (Kg / Pcs)",
    "reqd": 1
   },
   {
@@ -112,7 +117,7 @@
   {
    "fieldname": "actual_consumption",
    "fieldtype": "Float",
-   "label": "Actual Consumption (Grams / Pcs)",
+   "label": "Actual Consumption (Kg / Pcs)",
    "reqd": 1
   },
   {
@@ -165,7 +170,7 @@
    "fieldname": "fabric_issued",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Fabric Issued (Kg / Mtr)",
+   "label": "Fabric Issued (Kg)",
    "reqd": 1
   },
   {
@@ -173,14 +178,41 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Status",
-   "options": "\nPending for Approval\nApproved\nRejected",
+   "options": "\nDraft\nPending for Approval\nApproved\nRejected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approval_section",
+   "fieldtype": "Section Break",
+   "label": "Approval Section"
+  },
+  {
+   "fieldname": "html_jigk",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Can Cut",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "CC.-.YYYY.-.MM.-.####",
    "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-28 19:59:55.339997",
+ "modified": "2025-08-29 14:49:23.888203",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
