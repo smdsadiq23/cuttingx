@@ -9,6 +9,7 @@
   "roll_number",
   "batch_number",
   "shade",
+  "location",
   "roll_length",
   "to_be_allocated",
   "balance_length",
@@ -16,54 +17,68 @@
  ],
  "fields": [
   {
+   "columns": 1,
    "fieldname": "roll_number",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Roll Number"
   },
   {
+   "columns": 1,
    "fieldname": "batch_number",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Batch Number"
   },
   {
+   "columns": 1,
    "fieldname": "shade",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Shade"
   },
   {
+   "columns": 1,
    "fieldname": "roll_length",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Roll Length"
   },
   {
+   "columns": 1,
    "fieldname": "to_be_allocated",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "To be Allocated"
   },
   {
+   "columns": 1,
    "fieldname": "balance_length",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Balance Length"
   },
   {
+   "columns": 1,
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "System Generated\nManual Override"
+   "options": "\nSystem Generated\nManual Override"
+  },
+  {
+   "columns": 2,
+   "fieldname": "location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Location"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-31 12:17:46.983313",
+ "modified": "2025-08-29 17:57:59.243115",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket Roll Allocation",

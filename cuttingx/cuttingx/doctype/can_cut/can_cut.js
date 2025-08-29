@@ -70,15 +70,15 @@ frappe.ui.form.on('Can Cut', {
 
         const is_approver = frappe.user.has_role('Can Cut Approver');
         const is_pending = frm.doc.status === 'Pending for Approval';
-        const is_submitted = frm.doc.docstatus === 1;
+        //const is_submitted = frm.doc.docstatus === 1;
 
         // Clear buttons
         frm.remove_custom_button('Approve');
         frm.remove_custom_button('Reject');
-        frm.remove_custom_button('Submit for Approval');
+        //frm.remove_custom_button('Submit for Approval');
 
         // Hide Save button if not in Draft
-        if (!frm.doc.__islocal && (is_pending || is_submitted || frm.doc.status !== 'Draft')) {
+        if (!frm.doc.__islocal && (is_pending || frm.doc.status !== 'Draft')) {
             frm.disable_save();
         } else {
             frm.enable_save();
@@ -93,11 +93,11 @@ frappe.ui.form.on('Can Cut', {
         }
 
         // Add "Submit for Approval" for creators
-        if (frm.doc.docstatus === 0 && frm.doc.status === 'Draft') {
-            frm.add_custom_button(__('Submit for Approval'), () => {
-                frm.set_value('status', 'Pending for Approval');
-            }, __('Actions'));
-        }
+        // if (frm.doc.docstatus === 0 && frm.doc.status === 'Draft') {
+        //     frm.add_custom_button(__('Submit for Approval'), () => {
+        //         frm.set_value('status', 'Pending for Approval');
+        //     }, __('Actions'));
+        // }
 
         // Handle approval section
         if (frm.doc.__islocal) {
@@ -107,12 +107,12 @@ frappe.ui.form.on('Can Cut', {
             return;
         }
 
-        if (is_submitted) {
-            if (frm.fields_dict.approval_section) {
-                frm.set_df_property('approval_section', 'hidden', true);
-            }
-            return;
-        }
+        // if (is_submitted) {
+        //     if (frm.fields_dict.approval_section) {
+        //         frm.set_df_property('approval_section', 'hidden', true);
+        //     }
+        //     return;
+        // }
 
         if (is_approver && is_pending) {
             console.log('✅ Approver + Pending → Show approval section');
