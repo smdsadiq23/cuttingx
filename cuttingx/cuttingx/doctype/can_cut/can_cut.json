@@ -184,7 +184,9 @@
   {
    "fieldname": "approval_section",
    "fieldtype": "Section Break",
-   "label": "Approval Section"
+   "hidden": 1,
+   "label": "Approval Section",
+   "read_only": 1
   },
   {
    "fieldname": "naming_series",
@@ -197,13 +199,15 @@
   {
    "fieldname": "approval_card_html",
    "fieldtype": "HTML",
-   "label": "Approval Card"
+   "hidden": 1,
+   "label": "Approval Card",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-29 17:10:02.832410",
+ "modified": "2025-08-29 17:22:58.900041",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
