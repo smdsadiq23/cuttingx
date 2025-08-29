@@ -259,16 +259,46 @@ doc_events = {
 #         "doctype": "Translation",
 #         "filters": [
 #             ["language", "=", "en"]
-#             # optionally scope to your app text:
-#             # ["source_text", "like", "%MaintainX%"]
 #         ],
 #     },
+#     {
+#         "doctype": "Property Setter",
+#         "filters": [
+#             ["doc_type", "=", "Can Cut"],
+#             ["module", "=", 'CuttingX']
+#         ],
+#     },
+#     {
+#         "doctype": "Role",
+#         "filters": [
+#             [
+#                 "name",
+#                 "in",
+#                 [
+#                 "Can Cut User",
+#                 "Can Cut Approver"
+#                 ]
+#             ]
+#         ]
+#     },
+#     {
+#         "doctype": "Custom DocPerm",
+#         "filters": [
+#             [
+#                 "role",
+#                 "in",
+#                 [
+#                 "Can Cut User",
+#                 "Can Cut Approver"
+#                 ]
+#             ]
+#         ]
+#     },     
 #     {
 #         "doctype": "Kanban Board",
 #         "filters": {
 #             "reference_doctype": "Cut Docket",
 #             "name": "Cutting Kanban Board"
 #         }
-#     }    
+#     }
 # ]
-
