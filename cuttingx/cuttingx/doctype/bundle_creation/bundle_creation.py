@@ -101,6 +101,20 @@ def generate_bundle_details(docname):
     if not fg_components:
         frappe.throw(f"No FG Components found for Item {doc.fg_item}")
 
+    # ✅ Get company via fallback
+    company = None
+
+    # 1. Try from user's default company
+    user_company = frappe.defaults.get_user_default("company", user=frappe.session.user)
+    if user_company:
+        company = user_company
+
+
+    # ✅ Get company abbreviation
+    company_abbr = frappe.db.get_value("Company", company, "abbr")
+    if not company_abbr:
+        frappe.throw(f"Company {company} has no abbreviation (abbr). Please set it in Company master.")      
+
     def safe_series_name(name: str) -> str:
         if not name:
             return "UNKNOWN"
@@ -150,7 +164,7 @@ def generate_bundle_details(docname):
             # ✅ Generate one bundle ID per bundle
             # Series: BNDL-MFG-{WO}-{COMP_CODE}-.#####
             # But we need to use same base for all components
-            base_series = f"BNDL-MFG-{safe_wo}-"
+            base_series = f"BDL-{company_abbr}-MFG-{safe_wo}-"
 
             # For each component, create one row
             for comp_code, component_name in comp_codes:
