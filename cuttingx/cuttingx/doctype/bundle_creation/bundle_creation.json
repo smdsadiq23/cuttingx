@@ -12,6 +12,7 @@
   "style_number",
   "color",
   "no_of_plies",
+  "cut_bundle_inspection",
   "section_break_nmab",
   "table_shade_and_ply",
   "table_bundle_creation_item",
@@ -94,13 +95,19 @@
    "fieldtype": "Int",
    "label": "No of Plies",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "cut_bundle_inspection",
+   "fieldtype": "Check",
+   "label": "Cut Bundle Inspection"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-29 17:55:43.263575",
+ "modified": "2025-09-01 18:01:01.399145",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

@@ -41,11 +41,12 @@
   "fabric_requirement_against_bom",
   "fabric_requirement_against_marker",
   "status",
+  "lay_cut_inspection",
   "section_break_akmr",
   "work_order_details",
   "table_size_ratio_qty",
   "section_break_vifx",
-  "roll_details",
+  "table_roll_details",
   "amended_from"
  ],
  "fields": [
@@ -208,12 +209,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "roll_details",
-   "fieldtype": "Table",
-   "label": "Roll Details",
-   "options": "Cut Docket Roll Allocation"
-  },
-  {
    "fieldname": "amended_from",
    "fieldtype": "Link",
    "label": "Amended From",
@@ -295,32 +290,31 @@
    "fieldtype": "Data",
    "label": "Colour",
    "read_only": 1
+  },
+  {
+   "fieldname": "table_roll_details",
+   "fieldtype": "Table",
+   "label": "Roll Details",
+   "options": "Cut Docket Roll Allocation"
+  },
+  {
+   "default": "0",
+   "fieldname": "lay_cut_inspection",
+   "fieldtype": "Check",
+   "label": "Lay Cut inspection"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-26 16:07:13.182475",
+ "modified": "2025-09-01 18:00:20.539797",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
  "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
- "permissions": [
-  {
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "write": 1
-  }
- ],
+ "permissions": [],
  "row_format": "Dynamic",
  "sort_field": "modified",
  "sort_order": "DESC",
