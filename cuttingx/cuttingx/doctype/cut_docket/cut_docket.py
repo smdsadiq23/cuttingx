@@ -588,7 +588,7 @@ def allocate_fabric_rolls(docname):
                 "custom_roll_no as roll_no",
                 "custom_grn_batch_no as batch_no",
                 "custom_shade as shade",
-                "custom_accepted_warehouse as warehouse",
+                "warehouse as warehouse",
                 "custom_fabric_length as roll_length",  # authoritative; fallback to qty if 0/None
                 "qty",                                   # fallback only
                 "name as pr_item_name",
