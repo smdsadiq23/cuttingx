@@ -5,6 +5,11 @@ frappe.ui.form.on('Cut Docket', {
     onload: function(frm) {
         setup_work_order_filter(frm);
 
+        if (frm.fields_dict.table_roll_details) {
+            const grid = frm.fields_dict.table_roll_details.grid;
+            grid.roll_details_button_added = false;
+        }
+
         // If Style is already selected, fetch BOM and set panel_type options
         if (frm.doc.style) {
             frappe.call({
@@ -42,10 +47,41 @@ frappe.ui.form.on('Cut Docket', {
             });
         }
     },
-
+    
     refresh: function(frm) {
         setup_work_order_filter(frm);
-        // Button removed: now auto-fetches on WO selection
+
+        // Add "Roll Details" button inside the table_roll_details grid
+        if (frm.fields_dict.table_roll_details) {
+            if (!frm.custom_roll_details_button_added) {
+                const grid = frm.fields_dict.table_roll_details.grid;
+                if (grid) {
+                    grid.add_custom_button(
+                        __('Roll Details'),
+                        function () {
+                            // Check if doc is new (not saved)
+                            if (!frm.doc.__islocal && frm.doc.name) {
+                                // Already saved – proceed with allocation
+                                allocateRolls(frm);
+                            } else {
+                                // Not saved yet – prompt to save
+                                frappe.confirm(
+                                    'This document must be saved before allocating fabric rolls. Do you want to save and continue?',
+                                    () => {
+                                        frm.save().then(() => {
+                                            allocateRolls(frm);
+                                        });
+                                    }
+                                );
+                            }
+                        },
+                        __('Actions')
+                    );
+
+                    frm.custom_roll_details_button_added = true;
+                }
+            }
+        }      
     },
 
     style: function(frm) {
@@ -316,4 +352,54 @@ function setup_work_order_filter(frm) {
     }
 
     frm.refresh_field('work_order_details');
+}
+
+function allocateRolls(frm) {
+  frappe.call({
+    method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.allocate_fabric_rolls',
+    args: { docname: frm.doc.name },
+    freeze: true,
+    freeze_message: __('Allocating fabric rolls...'),
+    callback: function (r) {
+      if (r.exc) {
+        frappe.msgprint(__('Failed to allocate fabric rolls. Please check logs.'));
+        return;
+      }
+
+      // Prefer a server-returned payload (recommended server shape: {status, message, shortage})
+      const payload = r && r.message;
+      let msg = null;
+      let is_warning = false;
+
+      if (payload) {
+        if (typeof payload === 'string') {
+          msg = payload;
+        } else if (typeof payload === 'object') {
+          msg = payload.message || null;
+          is_warning = payload.status === 'warning';
+        }
+      }
+
+      // If server already displayed its own messages, _server_messages will be set.
+      // In that case, avoid opening another (possibly blank) modal.
+      if (!msg && r._server_messages) {
+        frm.reload_doc();
+        return;
+      }
+
+      // No message? show a small toast instead of an empty modal
+      if (!msg) {
+        frappe.show_alert({ message: __('Fabric rolls allocated successfully.'), indicator: 'green' });
+      } else if (is_warning) {
+        frappe.msgprint(msg); // show warnings in a modal
+      } else {
+        frappe.show_alert({ message: msg, indicator: 'green' });
+      }
+
+      frm.reload_doc();
+    },
+    error: function () {
+      frappe.msgprint(__('Failed to allocate fabric rolls. Please check logs.'));
+    }
+  });
 }
