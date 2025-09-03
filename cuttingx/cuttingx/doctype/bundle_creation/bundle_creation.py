@@ -9,7 +9,7 @@ from frappe.model.naming import make_autoname
 
 
 class BundleCreation(Document):
-    def validate(self):
+    def on_submit(self):
         # ✅ Validate bundles are generated
         if not self.table_bundle_details or len(self.table_bundle_details) == 0:
             frappe.throw(
