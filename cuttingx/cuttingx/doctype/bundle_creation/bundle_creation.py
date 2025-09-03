@@ -2,13 +2,19 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
 from frappe.model.naming import make_autoname
 
 
 class BundleCreation(Document):
-	pass
+    def validate(self):
+        # ✅ Validate bundles are generated
+        if not self.table_bundle_details or len(self.table_bundle_details) == 0:
+            frappe.throw(
+                _("Bundles not generated. Please click 'Create Bundles' before saving.")
+            )
 
 
 @frappe.whitelist()
