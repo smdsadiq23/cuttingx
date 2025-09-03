@@ -273,6 +273,7 @@ function get_approval_card_html(frm) {
                 <b>Status:</b> Sent for Approval<br>
                 <b>Style:</b> ${frm.doc.style || '–'} &nbsp;&nbsp;
                 <b>Sales Order:</b> ${frm.doc.sales_order || '–'} &nbsp;&nbsp;
+                <b>Work Order:</b> ${frm.doc.work_order || '–'} &nbsp;&nbsp;
                 <b>Colour:</b> ${frm.doc.colour || '–'}<br>
                 <b>Requested By:</b> ${frm.doc.owner} &nbsp;&nbsp;
                 <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}

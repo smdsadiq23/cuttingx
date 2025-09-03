@@ -10,7 +10,8 @@
   "size",
   "wo_quantity",
   "already_issued_quantity",
-  "trims_order_quantity"
+  "trims_order_quantity",
+  "balance_quantity"
  ],
  "fields": [
   {
@@ -30,10 +31,9 @@
    "read_only": 1
   },
   {
-   "columns": 2,
    "fieldname": "already_issued_quantity",
    "fieldtype": "Data",
-   "in_list_view": 1,
+   "hidden": 1,
    "label": "Already Issued Quantity",
    "read_only": 1
   },
@@ -51,13 +51,21 @@
    "in_list_view": 1,
    "label": "Sales Order",
    "read_only": 1
+  },
+  {
+   "columns": 2,
+   "fieldname": "balance_quantity",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Balance Quantity",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-08-13 12:17:16.076436",
+ "modified": "2025-09-03 13:52:50.580947",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Trims Order Summary",

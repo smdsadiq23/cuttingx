@@ -123,6 +123,9 @@ frappe.ui.form.on("Trims Order Summary", {
       frappe.model.set_value(cdt, cdn, "trims_order_quantity", available);
     }
 
+    // ✅ Calculate balance
+    calculate_balance_quantity(frm, cdt, cdn);    
+
     // Recalculate only details matching this (sales_order, size)
     const matches = (frm.doc.table_trims_order_details || []).filter(
       r => (r.sales_order || "") === (srow.sales_order || "") &&
@@ -133,10 +136,28 @@ frappe.ui.form.on("Trims Order Summary", {
     frm.refresh_field("table_trims_order_details");
   },
 
+  // Also recalculate if wo_quantity or already_issued_quantity changes
+  wo_quantity: function(frm, cdt, cdn) {
+      calculate_balance_quantity(frm, cdt, cdn);
+  },
+  already_issued_quantity: function(frm, cdt, cdn) {
+      calculate_balance_quantity(frm, cdt, cdn);
+  },  
+
   // If keys change, recompute all
   sales_order(frm) { recalc_required_for_all_details(frm); },
   size(frm) { recalc_required_for_all_details(frm); },
 });
+
+function calculate_balance_quantity(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    const wo_qty = flt(row.wo_quantity);
+    const issued = flt(row.already_issued_quantity);
+    const order_qty = flt(row.trims_order_quantity);
+
+    const balance = wo_qty - issued - order_qty;
+    frappe.model.set_value(cdt, cdn, "balance_quantity", balance);
+}
 
 /**
  * Fetch & fill the SUMMARY table.
@@ -164,7 +185,7 @@ function fetch_and_fill_summary(frm) {
             size: row.size,
             wo_quantity: row.wo_quantity,
             already_issued_quantity: row.already_issued_quantity
-          });
+          });       
         });
         frm.refresh_field("table_trims_order_summary");
       } else {
@@ -187,6 +208,9 @@ function fetch_and_fill_summary(frm) {
           }
         });
       }
+      (frm.doc.table_trims_order_summary || []).forEach(row => {  // ✅ Safe: different scope
+          calculate_balance_quantity(frm, row.doctype, row.name);
+      });      
     }
   });
 }

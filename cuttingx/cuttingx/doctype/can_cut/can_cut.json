@@ -156,7 +156,7 @@
   },
   {
    "fieldname": "can_cut_percent",
-   "fieldtype": "Percent",
+   "fieldtype": "Float",
    "label": "Can Cut %",
    "precision": "2",
    "read_only": 1
@@ -207,7 +207,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-29 17:22:58.900041",
+ "modified": "2025-09-03 15:01:15.262035",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
