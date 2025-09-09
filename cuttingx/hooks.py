@@ -147,7 +147,9 @@ app_license = "mit"
 
 doc_events = {
     "Cut Docket":{
-        "after_insert": "cuttingx.cuttingx.doctype.cut_docket.cut_docket.autofill_barcode_and_save"
+        "after_insert": "cuttingx.cuttingx.doctype.cut_docket.cut_docket.autofill_barcode_and_save",
+        "on_submit": "erpnext_trackerx_customization.api.cut_docket_integration.on_cut_docket_submit",
+        "on_cancel": "erpnext_trackerx_customization.api.cut_docket_integration.on_cut_docket_cancel"
     },
     "Cut Confirmation": {
         "validate": "cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.validate"
