@@ -15,6 +15,85 @@ class BundleCreation(Document):
             frappe.throw(
                 _("Bundles not generated. Please click 'Create Bundles' before saving.")
             )
+            
+        # ✅ Create Bundle Inspection if cut_bundle_inspection is checked
+        if self.cut_bundle_inspection:
+            self.create_bundle_inspection()
+            
+    def create_bundle_inspection(self):
+        """Create Cutting Bundle Inspection record when cut_bundle_inspection is checked"""
+        try:
+            # Check if inspection already exists
+            existing = frappe.db.exists("Cutting Bundle Inspection", {
+                "bundle_configuration_reference": self.name
+            })
+            
+            if existing:
+                frappe.msgprint(_("Bundle Inspection already exists: {0}").format(existing))
+                return existing
+                
+            # Ensure bundles are generated before creating inspection
+            if not self.table_bundle_details or len(self.table_bundle_details) == 0:
+                frappe.msgprint(_("Generating bundle details first..."))
+                generate_bundle_details(self.name)
+                # Reload the document to get the generated bundle details
+                self.reload()
+                
+            # Create new inspection
+            from erpnext_trackerx_customization.erpnext_trackerx_customization.doctype.cutting_bundle_inspection.cutting_bundle_inspection import CuttingBundleInspection
+            
+            inspection = frappe.new_doc("Cutting Bundle Inspection")
+            inspection.bundle_configuration_reference = self.name
+            inspection.inspector = frappe.session.user
+            
+            # Copy main bundle configuration fields
+            inspection.cut_docket_id = self.cut_docket_id
+            inspection.fg_item = self.fg_item
+            inspection.style_number = self.style_number
+            inspection.color = self.color
+            inspection.no_of_plies = self.no_of_plies
+            inspection.tracking_tech = self.tracking_tech
+            
+            # Set default required values
+            total_quantity = sum([item.cut_quantity for item in self.table_bundle_creation_item if item.cut_quantity])
+            inspection.lot_size = int(total_quantity) if total_quantity else 1000
+            
+            # Set default AQL parameters
+            inspection.inspection_regime = "Normal"   # This is a Select field, not a Link
+            
+            # Create or find default AQL Level if it doesn't exist
+            aql_level_code = "2"  # Level II = code "2"
+            if not frappe.db.exists("AQL Level", aql_level_code):
+                aql_level = frappe.new_doc("AQL Level")
+                aql_level.level_code = aql_level_code
+                aql_level.level_type = "General"
+                aql_level.description = "General Inspection Level II - Standard discrimination. Most commonly used general inspection level for routine inspections."
+                aql_level.is_active = 1
+                try:
+                    aql_level.insert(ignore_permissions=True)
+                except Exception as e:
+                    frappe.log_error(f"Error creating AQL Level: {str(e)}")
+            
+            # Set inspection level to the correct level_code
+            inspection.inspection_level = aql_level_code
+            
+            # Set default AQL values
+            inspection.critical_aql = "2.5"
+            inspection.major_aql = "4.0"
+            inspection.minor_aql = "6.5"
+            
+            inspection.insert(ignore_permissions=True)
+            
+            # Populate child table data after creation
+            inspection.populate_from_bundle_configuration()
+            inspection.save(ignore_permissions=True)
+            
+            frappe.msgprint(_("Bundle Inspection created successfully: {0}").format(inspection.name))
+            return inspection.name
+            
+        except Exception as e:
+            frappe.log_error(f"Error creating bundle inspection: {str(e)}")
+            frappe.throw(_("Failed to create Bundle Inspection: {0}").format(str(e)))
 
 
 @frappe.whitelist()
