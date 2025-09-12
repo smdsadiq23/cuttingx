@@ -256,7 +256,17 @@ doc_events = {
 
 
 # fixtures = [
-#     # …your other fixtures…,
+#     {
+#         "dt": "Custom Field",
+#         "filters": [
+#             [
+#                 "dt", "in", ["Sales Order"],
+#             ],
+#             [
+#                 "module", "=", "CuttingX"
+#             ]
+#         ]
+#     },
 #     {
 #         "doctype": "Translation",
 #         "filters": [
@@ -304,20 +314,4 @@ doc_events = {
 #         }
 #     }
 # ]
-
-
-fixtures = [
-    {
-        "dt": "Custom Field",
-        "filters": [
-            [
-                "dt", "in", ["Sales Order"],
-            ],
-            [
-                "module", "=", "CuttingX"
-            ]
-        ]
-    }
-]
-
 
