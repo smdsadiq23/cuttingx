@@ -276,7 +276,7 @@ doc_events = {
 #     {
 #         "doctype": "Property Setter",
 #         "filters": [
-#             ["doc_type", "=", "Can Cut"],
+#             ["doc_type", "in", ["Can Cut", "Sales Order"]],
 #             ["module", "=", 'CuttingX']
 #         ],
 #     },
@@ -314,4 +314,3 @@ doc_events = {
 #         }
 #     }
 # ]
-
