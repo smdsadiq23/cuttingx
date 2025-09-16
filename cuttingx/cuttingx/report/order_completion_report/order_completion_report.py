@@ -107,59 +107,68 @@ def get_data(filters):
         conditions += " AND so.delivery_date <= %(to_date)s"
 
     query = """
-        SELECT
-            so.name AS ocn,
-            item.custom_style_master AS style,
-            sod.custom_color AS colour,
-            sod.custom_order_qty AS order_qty,
+        SELECT 
+            *,
+            CASE WHEN rn = 1 THEN 1 ELSE 0 END AS is_first_row
+        FROM (
+            SELECT
+                so.name AS ocn,
+                item.custom_style_master AS style,
+                sod.custom_color AS colour,
+                sod.custom_order_qty AS order_qty,
 
-            cc.fabric_ordered,
-            cc.fabric_issued,
-            cc.folding,
-            cc.end_bit,
-            cc.file_consumption,
-            cc.actual_consumption,
-            cc.name AS can_cut_name,
+                cc.fabric_ordered,
+                cc.fabric_issued,
+                cc.folding,
+                cc.end_bit,
+                cc.file_consumption,
+                cc.actual_consumption,
+                cc.name AS can_cut_name,
 
-            CASE 
-                WHEN cc.actual_consumption > 0 THEN (cc.fabric_issued / cc.actual_consumption)
-                ELSE 0
-            END AS can_cut_qty,
+                CASE 
+                    WHEN cc.actual_consumption > 0 THEN (cc.fabric_issued / cc.actual_consumption)
+                    ELSE 0
+                END AS can_cut_qty,
 
-            COALESCE((
-                SELECT SUM(cci.confirmed_quantity)
-                FROM `tabCut Confirmation Item` cci
-                INNER JOIN `tabCut Confirmation` con ON con.name = cci.parent
-                INNER JOIN `tabCut Docket` cd ON cd.name = con.cut_po_number
-                INNER JOIN `tabCut Docket Item` cdi ON cdi.parent = cd.name AND cdi.sales_order = cci.sales_order
-                WHERE cci.sales_order = so.name
-                  AND cd.color = sod.custom_color
-                  AND cci.docstatus = 1
-            ), 0) AS cut_qty_actual,
+                COALESCE((
+                    SELECT SUM(cci.confirmed_quantity)
+                    FROM `tabCut Confirmation Item` cci
+                    INNER JOIN `tabCut Confirmation` con ON con.name = cci.parent
+                    INNER JOIN `tabCut Docket` cd ON cd.name = con.cut_po_number
+                    INNER JOIN `tabCut Docket Item` cdi ON cdi.parent = cd.name AND cdi.sales_order = cci.sales_order
+                    WHERE cci.sales_order = so.name
+                    AND cd.color = sod.custom_color
+                    AND cci.docstatus = 1
+                ), 0) AS cut_qty_actual,
 
-            (COALESCE((
-                SELECT SUM(cci.confirmed_quantity)
-                FROM `tabCut Confirmation Item` cci
-                INNER JOIN `tabCut Confirmation` con ON con.name = cci.parent
-                INNER JOIN `tabCut Docket` cd ON cd.name = con.cut_po_number
-                INNER JOIN `tabCut Docket Item` cdi ON cdi.parent = cd.name AND cdi.sales_order = cci.sales_order
-                WHERE cci.sales_order = so.name
-                  AND cd.color = sod.custom_color
-                  AND cci.docstatus = 1
-            ), 0) - sod.custom_order_qty) AS difference,
+                (COALESCE((
+                    SELECT SUM(cci.confirmed_quantity)
+                    FROM `tabCut Confirmation Item` cci
+                    INNER JOIN `tabCut Confirmation` con ON con.name = cci.parent
+                    INNER JOIN `tabCut Docket` cd ON cd.name = con.cut_po_number
+                    INNER JOIN `tabCut Docket Item` cdi ON cdi.parent = cd.name AND cdi.sales_order = cci.sales_order
+                    WHERE cci.sales_order = so.name
+                    AND cd.color = sod.custom_color
+                    AND cci.docstatus = 1
+                ), 0) - sod.custom_order_qty) AS difference,
 
-            so.custom_consumption_status AS status
+                COALESCE(so.custom_consumption_status, 'Pending for Approval') AS status,
 
-        FROM `tabSales Order` so
-        INNER JOIN `tabSales Order Item` sod ON sod.parent = so.name
-        INNER JOIN `tabItem` item ON item.name = sod.item_code
-        LEFT JOIN `tabCan Cut` cc 
-               ON cc.sales_order = so.name 
-              AND cc.colour = sod.custom_color
-        WHERE so.docstatus = 1
-          {conditions}
-        ORDER BY so.delivery_date, sod.custom_color
+                -- Row number to show editable status only once per OCN
+                ROW_NUMBER() OVER (PARTITION BY so.name ORDER BY sod.custom_color) AS rn
+
+            FROM `tabSales Order` so
+            INNER JOIN `tabSales Order Item` sod ON sod.parent = so.name
+            INNER JOIN `tabItem` item ON item.name = sod.item_code
+            LEFT JOIN `tabCan Cut` cc 
+                ON cc.sales_order = so.name 
+                AND cc.colour = sod.custom_color
+            WHERE so.docstatus = 1
+            {conditions}
+        ) sub_query
+        ORDER BY delivery_date, ocn, rn
     """.format(conditions=conditions)
 
     data = frappe.db.sql(query, filters, as_dict=1)
     return data
+

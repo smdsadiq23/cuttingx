@@ -34,21 +34,25 @@ frappe.query_reports["Order Completion Report"] = {
 		// Handle Status Dropdown
 		if (isStatus) {
 			const docname = data.ocn;
-			const currentValue = value || "";
+			const currentValue = value || "Pending for Approval"; // Default if blank
+			const isFactoryManager =
+				Array.isArray(frappe.boot?.user_info?.roles) &&
+				frappe.boot.user_info.roles.includes("System Manager");
 
-			let options = ['<option value=""></option>'];
-			["Pending", "In Progress", "Completed"].forEach((opt) => {
+			let options = [];
+			["Pending for Approval"].forEach((opt) => {
 				const selected = opt === currentValue ? "selected" : "";
 				options.push(`<option value="${opt}" ${selected}>${opt}</option>`);
 			});
 
-			// Only System Manager sees "Approved"
-			if (isSystemManager) {
+			if (isFactoryManager) {
 				const selected = "Approved" === currentValue ? "selected" : "";
 				options.push(`<option value="Approved" ${selected}>Approved</option>`);
 			}
 
-			return `
+			// Only show dropdown on first row for this OCN
+			if (data.is_first_row) {
+				return `
             <select class="report-status-select"
                     data-docname="${docname}"
                     data-doctype="Sales Order"
@@ -57,6 +61,10 @@ frappe.query_reports["Order Completion Report"] = {
                 ${options.join("")}
             </select>
         `;
+			} else {
+				// Show current value on other rows
+				return `<span>${frappe.utils.escape_html(currentValue)}</span>`;
+			}
 		}
 
 		return html;
