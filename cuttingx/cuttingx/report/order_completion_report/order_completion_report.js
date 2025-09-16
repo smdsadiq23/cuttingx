@@ -13,7 +13,7 @@ frappe.query_reports["Order Completion Report"] = {
 
 		// ✅ Safe role check
 		const user_roles = frappe.boot?.user_info?.roles;
-		const isSystemManager = Array.isArray(user_roles) && user_roles.includes("System Manager");
+		const isSystemManager = Array.isArray(user_roles) && user_roles.includes("Factory Manager");
 
 		// Handle Folding and End Bit
 		if (isFolding || isEndBit) {

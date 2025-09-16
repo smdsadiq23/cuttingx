@@ -287,6 +287,7 @@ doc_events = {
 #                 "name",
 #                 "in",
 #                 [
+#                 "Factory Manager",
 #                 "Can Cut User",
 #                 "Can Cut Approver"
 #                 ]
@@ -300,6 +301,7 @@ doc_events = {
 #                 "role",
 #                 "in",
 #                 [
+#                 "Factory Manager",
 #                 "Can Cut User",
 #                 "Can Cut Approver"
 #                 ]
