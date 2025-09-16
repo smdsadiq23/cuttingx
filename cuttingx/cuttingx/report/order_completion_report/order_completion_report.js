@@ -11,27 +11,30 @@ frappe.query_reports["Order Completion Report"] = {
 		const isFolding = fieldname === "folding";
 		const isEndBit = fieldname === "end_bit";
 
-		// Handle Folding and End Bit (editable from Can Cut)
+		// ✅ Safe role check
+		const user_roles = frappe.boot?.user_info?.roles;
+		const isSystemManager = Array.isArray(user_roles) && user_roles.includes("System Manager");
+
+		// Handle Folding and End Bit
 		if (isFolding || isEndBit) {
 			const docname = data.can_cut_name;
 			if (!docname) return html;
 
 			const safeValue = frappe.utils.escape_html(value || "");
 			return `
-                <textarea class="report-editable-field"
-                          data-docname="${docname}"
-                          data-doctype="Can Cut"
-                          data-fieldname="${fieldname}"
-                          rows="1"
-                          style="width:100%; padding:4px; resize:vertical;">${safeValue}</textarea>
-            `;
+            <textarea class="report-editable-field"
+                      data-docname="${docname}"
+                      data-doctype="Can Cut"
+                      data-fieldname="${fieldname}"
+                      rows="1"
+                      style="width:100%; padding:4px; resize:vertical;">${safeValue}</textarea>
+        `;
 		}
 
-		// Handle Status Dropdown (Sales Order status)
+		// Handle Status Dropdown
 		if (isStatus) {
 			const docname = data.ocn;
 			const currentValue = value || "";
-			const isFactoryManager = frappe.boot.user_roles.includes("System Manager");
 
 			let options = ['<option value=""></option>'];
 			["Pending", "In Progress", "Completed"].forEach((opt) => {
@@ -39,20 +42,21 @@ frappe.query_reports["Order Completion Report"] = {
 				options.push(`<option value="${opt}" ${selected}>${opt}</option>`);
 			});
 
-			if (isFactoryManager) {
+			// Only System Manager sees "Approved"
+			if (isSystemManager) {
 				const selected = "Approved" === currentValue ? "selected" : "";
 				options.push(`<option value="Approved" ${selected}>Approved</option>`);
 			}
 
 			return `
-                <select class="report-status-select"
-                        data-docname="${docname}"
-                        data-doctype="Sales Order"
-                        data-fieldname="custom_consumption_status"
-                        style="width:100%; padding:4px; border-radius:4px;">
-                    ${options.join("")}
-                </select>
-            `;
+            <select class="report-status-select"
+                    data-docname="${docname}"
+                    data-doctype="Sales Order"
+                    data-fieldname="custom_consumption_status"
+                    style="width:100%; padding:4px; border-radius:4px;">
+                ${options.join("")}
+            </select>
+        `;
 		}
 
 		return html;
