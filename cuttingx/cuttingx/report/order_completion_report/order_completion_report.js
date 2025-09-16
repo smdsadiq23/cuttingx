@@ -2,6 +2,17 @@
 // For license information, please see license.txt
 
 frappe.query_reports["Order Completion Report"] = {
+	// --- small helper
+	hasRole(role) {
+		// prefer built-in (sync) check if available
+		if (frappe.user?.has_role) return frappe.user.has_role(role);
+
+		// fallback to arrays present in most builds
+		const roles =
+			frappe.boot?.user_info?.[frappe.session.user]?.roles || frappe.user_roles || [];
+		return Array.isArray(roles) && roles.includes(role);
+	},
+
 	formatter(value, row, column, data, default_formatter) {
 		const html = default_formatter(value, row, column, data, default_formatter);
 		if (!data) return html;
@@ -11,10 +22,6 @@ frappe.query_reports["Order Completion Report"] = {
 		const isFolding = fieldname === "folding";
 		const isEndBit = fieldname === "end_bit";
 
-		// ✅ Safe role check
-		const user_roles = frappe.boot?.user_info?.roles;
-		const isSystemManager = Array.isArray(user_roles) && user_roles.includes("Factory Manager");
-
 		// Handle Folding and End Bit
 		if (isFolding || isEndBit) {
 			const docname = data.can_cut_name;
@@ -22,47 +29,47 @@ frappe.query_reports["Order Completion Report"] = {
 
 			const safeValue = frappe.utils.escape_html(value || "");
 			return `
-            <textarea class="report-editable-field"
-                      data-docname="${docname}"
-                      data-doctype="Can Cut"
-                      data-fieldname="${fieldname}"
-                      rows="1"
-                      style="width:100%; padding:4px; resize:vertical;">${safeValue}</textarea>
-        `;
+        <textarea class="report-editable-field"
+                  data-docname="${docname}"
+                  data-doctype="Can Cut"
+                  data-fieldname="${fieldname}"
+                  rows="1"
+                  style="width:100%; padding:4px; resize:vertical;">${safeValue}</textarea>
+      `;
 		}
 
 		// Handle Status Dropdown
 		if (isStatus) {
 			const docname = data.ocn;
-			const currentValue = value || "Pending for Approval"; // Default if blank
-			const isFactoryManager =
-				Array.isArray(frappe.boot?.user_info?.roles) &&
-				frappe.boot.user_info.roles.includes("Factory Manager");
+			const currentValue = value || "Pending for Approval";
 
-			let options = [];
-			["Pending for Approval"].forEach((opt) => {
-				const selected = opt === currentValue ? "selected" : "";
-				options.push(`<option value="${opt}" ${selected}>${opt}</option>`);
-			});
+			// ✅ correct role check
+			const isFactoryManager = this.hasRole("Factory Manager");
 
-			if (isFactoryManager) {
-				const selected = "Approved" === currentValue ? "selected" : "";
-				options.push(`<option value="Approved" ${selected}>Approved</option>`);
-			}
+			const opts = ["Pending for Approval"];
+			if (isFactoryManager) opts.push("Approved");
 
 			// Only show dropdown on first row for this OCN
 			if (data.is_first_row) {
+				const options = opts
+					.map(
+						(opt) =>
+							`<option value="${opt}" ${
+								opt === currentValue ? "selected" : ""
+							}>${opt}</option>`
+					)
+					.join("");
+
 				return `
-            <select class="report-status-select"
-                    data-docname="${docname}"
-                    data-doctype="Sales Order"
-                    data-fieldname="custom_consumption_status"
-                    style="width:100%; padding:4px; border-radius:4px;">
-                ${options.join("")}
-            </select>
+          <select class="report-status-select"
+                  data-docname="${docname}"
+                  data-doctype="Sales Order"
+                  data-fieldname="custom_consumption_status"
+                  style="width:100%; padding:4px; border-radius:4px;">
+            ${options}
+          </select>
         `;
 			} else {
-				// Show current value on other rows
 				return `<span>${frappe.utils.escape_html(currentValue)}</span>`;
 			}
 		}
@@ -71,10 +78,8 @@ frappe.query_reports["Order Completion Report"] = {
 	},
 
 	onload(report) {
-		console.log("User Roles:", frappe.boot?.user_info?.roles);
 		const $wrap = report.page.wrapper;
 
-		// Use report.get_columns() or wait for report.data
 		setTimeout(() => {
 			const columns = report.get_columns() || [];
 			columns.forEach((c) => {
@@ -84,18 +89,24 @@ frappe.query_reports["Order Completion Report"] = {
 			});
 		}, 500);
 
-		const save = frappe.utils.debounce(function (e) {
+		const save = frappe.utils.debounce((e) => {
 			const $el = $(e.currentTarget);
 			const docname = $el.data("docname");
 			const doctype = $el.data("doctype");
 			const fieldname = $el.data("fieldname");
 			const value = $el.val();
 
-			// Use safe role check
-			const user_roles = frappe.boot?.user_info?.roles || [];
+			// ✅ gatekeeping for Approved
 			if (fieldname === "custom_consumption_status" && value === "Approved") {
-				if (!user_roles.includes("System Manager")) {
-					frappe.msgprint("Only System Manager can set status to 'Approved'");
+				// allow System Manager OR Factory Manager (tweak as needed)
+				const ok =
+					frappe.query_reports["Order Completion Report"].hasRole("System Manager") ||
+					frappe.query_reports["Order Completion Report"].hasRole("Factory Manager");
+
+				if (!ok) {
+					frappe.msgprint(
+						__("Only System Manager or Factory Manager can set status to 'Approved'")
+					);
 					$el.val($el.data("old-value"));
 					return;
 				}
@@ -104,18 +115,13 @@ frappe.query_reports["Order Completion Report"] = {
 			$el.css("opacity", 0.6);
 			frappe.call({
 				method: "frappe.client.set_value",
-				args: {
-					doctype: doctype,
-					name: docname,
-					fieldname: fieldname,
-					value: value,
-				},
+				args: { doctype, name: docname, fieldname, value },
 				callback(r) {
 					if (!r.exc) {
-						frappe.show_alert({ message: "Saved", indicator: "green" });
+						frappe.show_alert({ message: __("Saved"), indicator: "green" });
 						$el.data("old-value", value);
 					} else {
-						frappe.msgprint("Save failed");
+						frappe.msgprint(__("Save failed"));
 					}
 				},
 				always() {
