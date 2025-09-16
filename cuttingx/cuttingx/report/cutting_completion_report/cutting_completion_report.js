@@ -1,7 +1,7 @@
 // Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
 // For license information, please see license.txt
 
-frappe.query_reports["Order Completion Report"] = {
+frappe.query_reports["Cutting completion Report"] = {
 	// --- small helper
 	hasRole(role) {
 		// prefer built-in (sync) check if available

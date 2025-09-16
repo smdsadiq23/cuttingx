@@ -1,4 +1,3 @@
-
 # Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
 # For license information, please see license.txt
 
@@ -171,5 +170,3 @@ def get_data(filters):
 
     data = frappe.db.sql(query, filters, as_dict=1)
     return data
-
-
