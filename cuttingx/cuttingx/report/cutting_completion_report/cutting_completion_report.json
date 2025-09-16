@@ -13,11 +13,11 @@
  "modified": "2025-09-16 20:28:31.558102",
  "modified_by": "Administrator",
  "module": "CuttingX",
- "name": "Cutting completion Report",
+ "name": "Cutting Completion Report",
  "owner": "Administrator",
  "prepared_report": 0,
  "ref_doctype": "Sales Order",
- "report_name": "Cutting completion Report",
+ "report_name": "Cutting Completion Report",
  "report_type": "Script Report",
  "roles": [
   {
