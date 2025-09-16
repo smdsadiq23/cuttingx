@@ -58,7 +58,7 @@
  },
  {
   "allow_in_quick_entry": 0,
-  "allow_on_submit": 0,
+  "allow_on_submit": 1,
   "bold": 0,
   "collapsible": 0,
   "collapsible_depends_on": null,
@@ -73,7 +73,7 @@
   "fetch_if_empty": 0,
   "fieldname": "custom_consumption_status",
   "fieldtype": "Select",
-  "hidden": 0,
+  "hidden": 1,
   "hide_border": 0,
   "hide_days": 0,
   "hide_seconds": 0,
