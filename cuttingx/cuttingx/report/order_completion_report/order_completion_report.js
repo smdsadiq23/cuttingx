@@ -37,7 +37,7 @@ frappe.query_reports["Order Completion Report"] = {
 			const currentValue = value || "Pending for Approval"; // Default if blank
 			const isFactoryManager =
 				Array.isArray(frappe.boot?.user_info?.roles) &&
-				frappe.boot.user_info.roles.includes("System Manager");
+				frappe.boot.user_info.roles.includes("Factory Manager");
 
 			let options = [];
 			["Pending for Approval"].forEach((opt) => {
