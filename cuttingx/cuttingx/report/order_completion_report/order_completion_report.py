@@ -116,6 +116,7 @@ def get_data(filters):
                 item.custom_style_master AS style,
                 sod.custom_color AS colour,
                 sod.custom_order_qty AS order_qty,
+                so.delivery_date,  -- ← Added here
 
                 cc.fabric_ordered,
                 cc.fabric_issued,
@@ -154,7 +155,6 @@ def get_data(filters):
 
                 COALESCE(so.custom_consumption_status, 'Pending for Approval') AS status,
 
-                -- Row number to show editable status only once per OCN
                 ROW_NUMBER() OVER (PARTITION BY so.name ORDER BY sod.custom_color) AS rn
 
             FROM `tabSales Order` so
@@ -171,4 +171,5 @@ def get_data(filters):
 
     data = frappe.db.sql(query, filters, as_dict=1)
     return data
+
 
