@@ -32,7 +32,7 @@ frappe.query_reports["Order Completion Report"] = {
         if (isStatus) {
             const docname = data.ocn;
             const currentValue = value || "";
-            const isFactoryManager = frappe.boot.user_roles.includes("Factory Manager");
+            const isFactoryManager = frappe.boot.user_roles.includes("System Manager");
 
             let options = ['<option value=""></option>'];
             ["Pending", "In Progress", "Completed"].forEach(opt => {
