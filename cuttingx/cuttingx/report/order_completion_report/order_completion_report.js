@@ -71,6 +71,7 @@ frappe.query_reports["Order Completion Report"] = {
 	},
 
 	onload(report) {
+		console.log("User Roles:", frappe.boot?.user_info?.roles);
 		const $wrap = report.page.wrapper;
 
 		// Use report.get_columns() or wait for report.data
