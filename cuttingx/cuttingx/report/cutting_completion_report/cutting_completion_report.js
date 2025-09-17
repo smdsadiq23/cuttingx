@@ -82,9 +82,9 @@ frappe.query_reports["Cutting completion Report"] = {
             const value = $el.val();
 
 			if (fieldname === "custom_consumption_status" && value === "Approved") {
-				const isAllowed = this.hasRole("System Manager") || this.hasRole("Factory Manager");
+				const isAllowed = this.hasRole("Factory Manager");
 				if (!isAllowed) {
-					frappe.msgprint(__("Only System Manager or Factory Manager can set status to 'Approved'"));
+					frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
 					$el.val($el.data("old-value"));
 					return;
 				}
