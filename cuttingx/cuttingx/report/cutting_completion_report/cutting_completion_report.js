@@ -1,13 +1,6 @@
-// Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
-// For license information, please see license.txt
-
 frappe.query_reports["Cutting Completion Report"] = {
-    // --- small helper
     hasRole(role) {
-        // prefer built-in (sync) check if available
         if (frappe.user?.has_role) return frappe.user.has_role(role);
-
-        // fallback to arrays present in most builds
         const roles =
             frappe.boot?.user_info?.[frappe.session.user]?.roles || frappe.user_roles || [];
         return Array.isArray(roles) && roles.includes(role);
@@ -25,7 +18,7 @@ frappe.query_reports["Cutting Completion Report"] = {
         // Handle Folding and End Bit
         if (isFolding || isEndBit) {
             const docname = data.can_cut_name;
-            if (!docname) return html;
+            if (!docname) return html;  // ← Will be empty if no Can Cut exists
 
             const safeValue = frappe.utils.escape_html(value || "");
             return `
@@ -47,14 +40,10 @@ frappe.query_reports["Cutting Completion Report"] = {
             const opts = ["Pending for Approval"];
             if (isFactoryManager) opts.push("Approved");
 
-            // Only show dropdown on first row for this OCN
             if (data.is_first_row) {
-                const options = opts
-                    .map(
-                        (opt) =>
-                            `<option value="${opt}" ${opt === currentValue ? "selected" : ""}>${opt}</option>`
-                    )
-                    .join("");
+                const options = opts.map(opt =>
+                    `<option value="${opt}" ${opt === currentValue ? "selected" : ""}>${opt}</option>`
+                ).join("");
 
                 return `
                     <select class="report-status-select"
@@ -78,45 +67,25 @@ frappe.query_reports["Cutting Completion Report"] = {
 
         setTimeout(() => {
             const columns = report.get_columns() || [];
-            columns.forEach((c) => {
+            columns.forEach(c => {
                 if (["status", "folding", "end_bit"].includes((c.fieldname || "").toLowerCase())) {
                     c.editable = 1;
                 }
             });
         }, 500);
 
-        const save = frappe.utils.debounce((e) => {
+        const save = frappe.utils.debounce(function (e) {
             const $el = $(e.currentTarget);
             const docname = $el.data("docname");
             const doctype = $el.data("doctype");
             const fieldname = $el.data("fieldname");
             const value = $el.val();
 
-            // Gatekeeping: Only allow approved if user has role AND all fields are filled
+            // ✅ Fixed: Use `this` instead of wrong report name
             if (fieldname === "custom_consumption_status" && value === "Approved") {
-                const ok = this.hasRole("System Manager") || this.hasRole("Factory Manager");
+                const ok = this.hasRole("Factory Manager");
                 if (!ok) {
-                    frappe.msgprint(__("Only System Manager or Factory Manager can set status to 'Approved'"));
-                    $el.val($el.data("old-value"));
-                    return;
-                }
-
-                // Get all rows for this OCN
-                const ocn = docname;
-                const relatedRows = report.data.filter(row => row.ocn === ocn);
-
-                // Required fields that must be non-empty
-                const requiredFields = ["folding", "end_bit", "fabric_issued", "actual_consumption"];
-
-                const incomplete = relatedRows.some(row => {
-                    return requiredFields.some(f => {
-                        const val = row[f];
-                        return !val || String(val).trim() === "";
-                    });
-                });
-
-                if (incomplete) {
-                    frappe.msgprint(__("Cannot approve: All required fields (Folding, End Bit, Fabric Issued, Actual Consumption) must be filled."));
+                    frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
                     $el.val($el.data("old-value"));
                     return;
                 }
@@ -138,14 +107,12 @@ frappe.query_reports["Cutting Completion Report"] = {
                     $el.css("opacity", 1);
                 }
             });
-        }, 600);
+        }.bind(this), 600);  // Bind `this` context
 
-        // Track original value on focus
         $wrap.on("focus", ".report-editable-field, .report-status-select", function () {
             $(this).data("old-value", $(this).val());
         });
 
-        // Save on blur (text areas) and change (dropdowns)
         $wrap.on("blur", ".report-editable-field", save);
         $wrap.on("change", ".report-status-select", save);
     }
