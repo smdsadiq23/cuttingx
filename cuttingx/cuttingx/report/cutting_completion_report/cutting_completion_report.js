@@ -81,15 +81,43 @@ frappe.query_reports["Cutting completion Report"] = {
             const fieldname = $el.data("fieldname");
             const value = $el.val();
 
-            // ✅ Fixed: Use `this` instead of wrong report name
-            if (fieldname === "custom_consumption_status" && value === "Approved") {
-                const ok = this.hasRole("Factory Manager");
-                if (!ok) {
-                    frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
-                    $el.val($el.data("old-value"));
-                    return;
-                }
-            }
+			if (fieldname === "custom_consumption_status" && value === "Approved") {
+				const isAllowed = this.hasRole("Factory Manager");
+				if (!isAllowed) {
+					frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
+					$el.val($el.data("old-value"));
+					return;
+				}
+
+				// Get all rows for this OCN
+				const ocn = docname;
+				const relatedRows = report.data.filter(row => row.ocn === ocn);
+
+				// ALL required fields from Can Cut that must be filled
+				const requiredFields = [
+					"fabric_ordered",
+					"fabric_issued",
+					"file_consumption",
+					"actual_consumption",
+					"folding",
+					"end_bit",
+					"pcd"
+				];
+
+				const incomplete = relatedRows.some(row => {
+					return requiredFields.some(f => {
+						const val = row[f];
+						// Treat empty string, null, undefined as incomplete
+						return !val || String(val).trim() === "";
+					});
+				});
+
+				if (incomplete) {
+					frappe.msgprint(__("Cutting flow not completed. Cannot approve."));
+					$el.val($el.data("old-value"));
+					return;
+				}
+			}
 
             $el.css("opacity", 0.6);
             frappe.call({
