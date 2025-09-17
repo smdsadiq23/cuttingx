@@ -114,8 +114,8 @@ def get_data(filters):
                 so.name AS ocn,
                 item.custom_style_master AS style,
                 sod.custom_color AS colour,
-                sod.custom_order_qty AS order_qty,
-                so.delivery_date,  -- ← Added here
+                SUM(sod.custom_order_qty) AS order_qty,  -- Aggregated
+                so.delivery_date,
 
                 cc.fabric_ordered,
                 cc.fabric_issued,
@@ -150,7 +150,7 @@ def get_data(filters):
                     WHERE cci.sales_order = so.name
                     AND cd.color = sod.custom_color
                     AND cci.docstatus = 1
-                ), 0) - sod.custom_order_qty) AS difference,
+                ), 0) - SUM(sod.custom_order_qty)) AS difference,
 
                 COALESCE(so.custom_consumption_status, 'Pending for Approval') AS status,
 
@@ -164,6 +164,9 @@ def get_data(filters):
                 AND cc.colour = sod.custom_color
             WHERE so.docstatus = 1
             {conditions}
+
+            GROUP BY so.name, sod.custom_color, item.custom_style_master, cc.name
+            ORDER BY so.delivery_date, so.name, sod.custom_color
         ) sub_query
         ORDER BY delivery_date, ocn, rn
     """.format(conditions=conditions)
