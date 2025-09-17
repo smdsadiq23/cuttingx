@@ -82,9 +82,9 @@ frappe.query_reports["Cutting completion Report"] = {
             const value = $el.val();
 
 			if (fieldname === "custom_consumption_status" && value === "Approved") {
-				const isAllowed = this.hasRole("Factory Manager");
+				const isAllowed = this.hasRole("System Manager") || this.hasRole("Factory Manager");
 				if (!isAllowed) {
-					frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
+					frappe.msgprint(__("Only System Manager or Factory Manager can set status to 'Approved'"));
 					$el.val($el.data("old-value"));
 					return;
 				}
@@ -93,27 +93,36 @@ frappe.query_reports["Cutting completion Report"] = {
 				const ocn = docname;
 				const relatedRows = report.data.filter(row => row.ocn === ocn);
 
-				// ALL required fields from Can Cut that must be filled
+				// Define required fields and their human-readable labels
 				const requiredFields = [
-					"fabric_ordered",
-					"fabric_issued",
-					"file_consumption",
-					"actual_consumption",
-					"folding",
-					"end_bit",
-					"pcd"
+					{ key: "fabric_ordered", label: "Fabric Ordered" },
+					{ key: "fabric_issued", label: "Fabric Issued" },
+					{ key: "folding", label: "Folding" },
+					{ key: "end_bit", label: "End Bit" },
+					{ key: "file_consumption", label: "File Consumption" },
+					{ key: "actual_consumption", label: "Actual Consumption" }
 				];
 
-				const incomplete = relatedRows.some(row => {
-					return requiredFields.some(f => {
-						const val = row[f];
-						// Treat empty string, null, undefined as incomplete
-						return !val || String(val).trim() === "";
+				const missingFields = [];
+
+				relatedRows.forEach(row => {
+					requiredFields.forEach(field => {
+						const val = row[field.key];
+						if (!val || String(val).trim() === "") {
+							if (!missingFields.includes(field.label)) {
+								missingFields.push(field.label);
+							}
+						}
 					});
 				});
 
-				if (incomplete) {
-					frappe.msgprint(__("Cutting flow not completed. Cannot approve."));
+				if (missingFields.length > 0) {
+					const message = `Cutting flow not completed. Cannot approve.<br><br>Missing: <b>${missingFields.join(", ")}</b>`;
+					frappe.msgprint({
+						title: __('Approval Blocked'),
+						indicator: 'red',
+						message: __(message)
+					});
 					$el.val($el.data("old-value"));
 					return;
 				}
