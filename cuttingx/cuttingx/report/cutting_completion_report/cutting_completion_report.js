@@ -1,4 +1,4 @@
-frappe.query_reports["Cutting Completion Report"] = {
+frappe.query_reports["Cutting completion Report"] = {
     hasRole(role) {
         if (frappe.user?.has_role) return frappe.user.has_role(role);
         const roles =
