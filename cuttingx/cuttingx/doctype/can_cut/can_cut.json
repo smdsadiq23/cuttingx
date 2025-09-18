@@ -32,7 +32,10 @@
   "can_cut_percent",
   "remarks",
   "approval_section",
-  "approval_card_html"
+  "approval_card_html",
+  "section_break_jisc",
+  "folding",
+  "end_bit"
  ],
  "fields": [
   {
@@ -202,12 +205,31 @@
    "hidden": 1,
    "label": "Approval Card",
    "read_only": 1
+  },
+  {
+   "fieldname": "section_break_jisc",
+   "fieldtype": "Section Break",
+   "hidden": 1
+  },
+  {
+   "fieldname": "folding",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Folding",
+   "read_only": 1
+  },
+  {
+   "fieldname": "end_bit",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "End Bit ",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-03 15:01:15.262035",
+ "modified": "2025-09-16 14:04:56.421598",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

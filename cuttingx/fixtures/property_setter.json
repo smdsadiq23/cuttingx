@@ -46,7 +46,7 @@
   "property_type": "Check",
   "row_name": null,
   "value": "1"
- }, 
+ },
  {
   "default_value": null,
   "doc_type": "Can Cut",
@@ -62,7 +62,7 @@
   "property_type": "Check",
   "row_name": null,
   "value": "1"
- }, 
+ },
  {
   "default_value": null,
   "doc_type": "Can Cut",
@@ -126,7 +126,7 @@
   "property_type": "Check",
   "row_name": null,
   "value": "1"
- }, 
+ },
  {
   "default_value": null,
   "doc_type": "Can Cut",
@@ -142,5 +142,5 @@
   "property_type": "Check",
   "row_name": null,
   "value": "1"
- } 
+ }
 ]

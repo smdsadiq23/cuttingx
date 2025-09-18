@@ -256,7 +256,17 @@ doc_events = {
 
 
 # fixtures = [
-#     # …your other fixtures…,
+#     {
+#         "dt": "Custom Field",
+#         "filters": [
+#             [
+#                 "dt", "in", ["Sales Order"],
+#             ],
+#             [
+#                 "module", "=", "CuttingX"
+#             ]
+#         ]
+#     },
 #     {
 #         "doctype": "Translation",
 #         "filters": [
@@ -266,7 +276,7 @@ doc_events = {
 #     {
 #         "doctype": "Property Setter",
 #         "filters": [
-#             ["doc_type", "=", "Can Cut"],
+#             ["doc_type", "in", ["Can Cut", "Sales Order"]],
 #             ["module", "=", 'CuttingX']
 #         ],
 #     },
@@ -277,6 +287,7 @@ doc_events = {
 #                 "name",
 #                 "in",
 #                 [
+#                 "Factory Manager",
 #                 "Can Cut User",
 #                 "Can Cut Approver"
 #                 ]
@@ -290,6 +301,7 @@ doc_events = {
 #                 "role",
 #                 "in",
 #                 [
+#                 "Factory Manager",
 #                 "Can Cut User",
 #                 "Can Cut Approver"
 #                 ]

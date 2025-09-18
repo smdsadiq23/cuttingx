@@ -1,0 +1,42 @@
+{
+ "add_total_row": 0,
+ "add_translate_data": 0,
+ "columns": [],
+ "creation": "2025-09-12 11:25:21.850807",
+ "disabled": 0,
+ "docstatus": 0,
+ "doctype": "Report",
+ "filters": [],
+ "idx": 0,
+ "is_standard": "Yes",
+ "json": "{}",
+ "letterhead": null,
+ "modified": "2025-09-12 13:23:56.442993",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Cutting Balance Report",
+ "owner": "Administrator",
+ "prepared_report": 0,
+ "query": "SELECT\n    so.customer AS `Buyer`,\n    item.custom_style_master AS `Style`,\n    so.name AS `OCN`,\n    cc.PCD AS `PCD`,\n    so.delivery_date AS `Delivery Date`,\n    so.total_qty AS `Order Quantity`,\n    NULL AS `Fabric Available`,\n    COALESCE(cci.`Cut Quantity`, 0) AS `Cut Quantity`,\n    (so.total_qty - COALESCE(cci.`Cut Quantity`, 0)) AS `Cut Balance against Order Qty`,\n    CAST(so.custom_report_remarks AS CHAR) AS `Remarks`\nFROM `tabSales Order` so\nINNER JOIN `tabSales Order Item` sod ON sod.parent = so.name\nINNER JOIN `tabItem` item ON item.name = sod.item_code\nLEFT JOIN (\n    SELECT sales_order, MAX(DATE(modified)) AS PCD\n    FROM `tabCan Cut`\n    GROUP BY sales_order\n) cc ON cc.sales_order = so.name\nLEFT JOIN (\n    SELECT sales_order, SUM(confirmed_quantity) AS `Cut Quantity`\n    FROM `tabCut Confirmation Item`\n    GROUP BY sales_order\n) cci ON cci.sales_order = so.name\nWHERE\n    so.docstatus = 1\n    AND item.custom_select_master = 'Finished Goods'\n    AND sod.name = (\n        SELECT sub_sod.name\n        FROM `tabSales Order Item` sub_sod\n        INNER JOIN `tabItem` sub_item ON sub_item.name = sub_sod.item_code\n        WHERE sub_sod.parent = so.name\n          AND sub_item.custom_select_master = 'Finished Goods'\n        ORDER BY sub_sod.idx\n        LIMIT 1\n    )\nORDER BY so.delivery_date ASC;\n",
+ "ref_doctype": "Sales Order",
+ "report_name": "Cutting Balance Report",
+ "report_type": "Query Report",
+ "roles": [
+  {
+   "role": "Sales User"
+  },
+  {
+   "role": "Sales Manager"
+  },
+  {
+   "role": "Maintenance User"
+  },
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Stock User"
+  }
+ ],
+ "timeout": 0
+}
