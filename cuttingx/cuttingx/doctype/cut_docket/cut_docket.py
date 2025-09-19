@@ -191,8 +191,10 @@ class CutDocket(Document):
     def on_submit(self):
         """
         Notify all users with "Stock User" role when Cut Docket is submitted
+        and create Wh Material Picking record
         """
         self.notify_stock_users_on_submit()
+        self.create_wh_material_picking()
 
 
     def notify_stock_users_on_submit(self):
@@ -251,6 +253,87 @@ class CutDocket(Document):
                 "msgprint",
                 message=msg,
                 user=user
+            )
+
+
+    def create_wh_material_picking(self):
+        """
+        Create a Wh Material Picking record with exact same data as Cut Docket
+        """
+        try:
+            # Create new Wh Material Picking document
+            wh_picking = frappe.new_doc("Wh Material Picking")
+
+            # Copy main fields (excluding system fields)
+            exclude_fields = ['name', 'naming_series', 'creation', 'modified', 'modified_by', 'owner', 'docstatus', 'amended_from']
+
+            for field in self.meta.get_valid_columns():
+                if field not in exclude_fields and hasattr(self, field):
+                    value = getattr(self, field)
+                    if value is not None:
+                        setattr(wh_picking, field, value)
+
+            # Set specific fields for Wh Material Picking
+            wh_picking.cut_docket = self.name
+            wh_picking.status = "Draft"
+
+            # Copy child table: table_roll_details -> table_roll_details (with extra fields)
+            if self.table_roll_details:
+                for roll_row in self.table_roll_details:
+                    wh_picking.append("table_roll_details", {
+                        "roll_number": roll_row.roll_number,
+                        "batch_number": roll_row.batch_number,
+                        "shade": roll_row.shade,
+                        "location": roll_row.location,
+                        "roll_length": roll_row.roll_length,
+                        "to_be_allocated": roll_row.to_be_allocated,
+                        "balance_length": roll_row.balance_length,
+                        "status": roll_row.status,
+                        "purchase_receipt": roll_row.purchase_receipt,
+                        "target_warehouse": None,  # New field - to be filled by user
+                        "picked_quantity": 0.0     # New field - to be filled by user
+                    })
+
+            # Copy child table: table_size_ratio_qty -> table_size_ratio_qty
+            if self.table_size_ratio_qty:
+                for size_row in self.table_size_ratio_qty:
+                    wh_picking.append("table_size_ratio_qty", {
+                        "ref_work_order": size_row.ref_work_order,
+                        "sales_order": size_row.sales_order,
+                        "line_item_no": size_row.line_item_no,
+                        "size": size_row.size,
+                        "quantity": size_row.quantity,
+                        "planned_cut_quantity": size_row.planned_cut_quantity,
+                        "balance": size_row.balance
+                    })
+
+            # Copy child table: work_order_details -> work_order_details
+            if self.work_order_details:
+                for wo_row in self.work_order_details:
+                    wh_picking.append("work_order_details", {
+                        "work_order": wo_row.work_order,
+                        "work_order_quantity": wo_row.work_order_quantity,
+                        "already_cut_quantity": wo_row.already_cut_quantity,
+                        "balance_quantity": wo_row.balance_quantity
+                    })
+
+            # Save the new document
+            wh_picking.insert(ignore_permissions=True)
+
+            # Log success
+            frappe.msgprint(
+                f"✅ Wh Material Picking {wh_picking.name} created successfully from Cut Docket {self.name}",
+                alert=True
+            )
+
+        except Exception as e:
+            frappe.log_error(
+                f"Failed to create Wh Material Picking for Cut Docket {self.name}: {frappe.get_traceback()}",
+                "Cut Docket - Wh Material Picking Creation Error"
+            )
+            frappe.msgprint(
+                f"⚠️ Failed to create Wh Material Picking: {str(e)}",
+                alert=True
             )
 
 
