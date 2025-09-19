@@ -186,19 +186,28 @@ def generate_bundle_details(docname):
     if not fg_components:
         frappe.throw(f"No FG Components found for Item {doc.fg_item}")
 
-    # ✅ Get company via fallback
-    company = None
+    company = frappe.defaults.get_user_default("Company", user=frappe.session.user) \
+        or frappe.defaults.get_global_default("Company")
 
-    # 1. Try from user's default company
-    user_company = frappe.defaults.get_user_default("company", user=frappe.session.user)
-    if user_company:
-        company = user_company
+    if not company:
+        frappe.throw(
+            "No Company is set for this user and no Global Default Company found. "
+            "Please set one in User Defaults or Global Defaults."
+        )
 
-
-    # ✅ Get company abbreviation
     company_abbr = frappe.db.get_value("Company", company, "abbr")
     if not company_abbr:
-        frappe.throw(f"Company {company} has no abbreviation (abbr). Please set it in Company master.")      
+        frappe.throw(
+            f"Company '{frappe.utils.escape_html(company)}' has no abbreviation (abbr)."
+        )
+
+    # ✅ Now safely fetch abbreviation
+    company_abbr = frappe.db.get_value("Company", company, "abbr")
+    if not company_abbr:
+        frappe.throw(
+            f"Company '{frappe.utils.escape_html(company)}' has no abbreviation (abbr). "
+            "Please set it in the Company master."
+        )
 
     def safe_series_name(name: str) -> str:
         if not name:
