@@ -507,148 +507,275 @@ def get_empty_work_order_list(doctype, txt, searchfield, start, page_len, filter
     return []
 
 
+# @frappe.whitelist()
+# def allocate_fabric_rolls(docname):
+#     """
+#     Allocate fabric rolls using ONLY `fabric_requirement_against_marker` (length units).
+#     ALWAYS derive PRs via Sales Order -> MRP -> PO -> GRN -> PR (no PRs read from child rows).
+
+#     Flow:
+#       1) Validate `fabric_requirement_against_marker` > 0.
+#       2) Collect unique Sales Orders from `table_size_ratio_qty` (order preserved).
+#       3) For each SO, resolve PR via SO -> MRP -> PO -> GRN -> PR. Build PR list (order preserved).
+#       4) For each PR, allocate by roll_number (ascending):
+#             total_len(roll) = custom_fabric_length; if 0/None -> fallback to qty
+#             available = total_len - (prev dockets' allocations + allocations in this run)
+#          Keep appending allocation rows until requirement is satisfied or rolls exhausted.
+#       5) Write `roll_length` from PR baseline and `balance_length` = remaining length.
+#     Notes:
+#       - `table_size_ratio_qty` is used ONLY to discover Sales Orders (not for quantities).
+#       - Qty is NEVER used unless `custom_fabric_length` is 0/None (fallback only).
+#     """
+#     # ---------- helpers ----------
+#     def get_pr_for_sales_order(so: str) -> str | None:
+#         """Return PR via SO -> MRP -> PO -> GRN -> PR, or None with a warning."""
+#         if not so:
+#             return None
+
+#         mrp_name = frappe.db.get_value(
+#             "Material Requirement Plan Item",
+#             {"sales_order": so, "docstatus": 1},
+#             "parent",
+#         )
+#         if not mrp_name:
+#             frappe.msgprint(_("No MRP found for SO {0}").format(so), alert=True)
+#             return None
+
+#         po = frappe.db.get_value(
+#             "Purchase Order Item",
+#             {"custom_reference_parent_id": mrp_name, "custom_reference_type": "MRP", "docstatus": 1},
+#             "parent",
+#         )
+#         if not po:
+#             frappe.msgprint(_("No PO for MRP {0} (SO {1})").format(mrp_name, so), alert=True)
+#             return None
+
+#         grn = frappe.db.get_value(
+#             "Goods Receipt Note", {"purchase_order": po, "docstatus": 1}, "name"
+#         )
+#         if not grn:
+#             frappe.msgprint(_("No GRN for PO {0} (SO {1})").format(po, so), alert=True)
+#             return None
+
+#         pr = frappe.db.get_value(
+#             "Purchase Receipt", {"linked_grn": grn, "docstatus": 1}, "name"
+#         )
+#         if not pr:
+#             frappe.msgprint(_("No PR for GRN {0} (SO {1})").format(grn, so), alert=True)
+#             return None
+
+#         return pr
+
+#     def ensure_pr_state(pr: str, docname: str, cache: dict):
+#         """
+#         Build per-PR state once:
+#           - roll_len: {roll_no: total length}   (custom_fabric_length; fallback to qty if length is 0/None)
+#           - used:     {roll_no: length used}    (previous dockets for this PR)
+#           - order:    [roll_no sorted asc]
+#           - meta:     {roll_no: {batch_no, shade, warehouse, pr_item_name}}
+#         """
+#         if pr in cache:
+#             return cache[pr]
+
+#         items = frappe.get_all(
+#             "Purchase Receipt Item",
+#             filters={
+#                 "parent": pr,
+#                 "item_group": "Fabrics",
+#                 "custom_roll_no": ["is", "set"],
+#             },
+#             fields=[
+#                 "custom_roll_no as roll_no",
+#                 "custom_grn_batch_no as batch_no",
+#                 "custom_shade as shade",
+#                 "warehouse as warehouse",
+#                 "custom_fabric_length as roll_length",  # authoritative; fallback to qty if 0/None
+#                 "qty",                                   # fallback only
+#                 "name as pr_item_name",
+#             ],
+#             order_by="custom_roll_no asc",
+#         )
+
+#         roll_len, meta, roll_numbers = {}, {}, []
+#         for it in items:
+#             rn = (it.roll_no or "").strip()
+#             if not rn:
+#                 continue
+#             length = flt(it.roll_length)
+#             if length <= 0:
+#                 length = flt(it.qty)  # fallback ONLY when length is not provided/zero
+#             roll_len[rn] = roll_len.get(rn, 0.0) + length
+#             roll_numbers.append(rn)
+#             meta[rn] = {
+#                 "batch_no": it.batch_no,
+#                 "shade": it.shade,
+#                 "warehouse": it.warehouse,
+#                 "pr_item_name": it.pr_item_name,
+#             }
+#         if not roll_len:
+#             return None
+
+#         # Sum previous allocations for this PR across other dockets
+#         prev_rows = frappe.get_all(
+#             "Cut Docket Roll Allocation",
+#             filters={
+#                 "docstatus": ["<", 2],
+#                 "parent": ["!=", docname],
+#                 "purchase_receipt": pr,
+#                 "roll_number": ["in", list(roll_len.keys())],
+#             },
+#             fields=["roll_number", "to_be_allocated"],
+#             limit_page_length=0,
+#         )
+#         used = {}
+#         for r in prev_rows:
+#             used[r.roll_number] = used.get(r.roll_number, 0.0) + flt(r.to_be_allocated)
+
+#         cache[pr] = {
+#             "roll_len": roll_len,
+#             "used": used,
+#             "order": sorted(set(roll_numbers), key=lambda x: x),  # strict roll_number order
+#             "meta": meta,
+#         }
+#         return cache[pr]
+
+#     try:
+#         doc = frappe.get_doc("Cut Docket", docname)
+
+#         # 1) Validate requirement
+#         requirement = flt(doc.get("fabric_requirement_against_marker"))
+#         if requirement <= 0:
+#             frappe.throw(_("Fabric Requirement Against Marker is empty or zero. Please enter a value before allocating."))
+
+#         # 2) Collect unique Sales Orders from table_size_ratio_qty (order preserved)
+#         sos = []
+#         seen_sos = set()
+#         for row in (doc.get("table_size_ratio_qty") or []):
+#             so = (row.get("sales_order") or "").strip()
+#             if so and so not in seen_sos:
+#                 sos.append(so)
+#                 seen_sos.add(so)
+
+#         if not sos:
+#             frappe.throw(_("No Sales Orders found in Size Ratio table. Add at least one SO to resolve PR(s)."))
+
+#         # 3) Resolve PRs via SO -> MRP -> PO -> GRN -> PR (order preserved, deduped)
+#         prs = []
+#         seen_prs = set()
+#         for so in sos:
+#             pr = get_pr_for_sales_order(so)
+#             if pr and pr not in seen_prs:
+#                 prs.append((pr, so))  # keep SO for optional traceability on rows
+#                 seen_prs.add(pr)
+
+#         if not prs:
+#             frappe.throw(_("Could not resolve any Purchase Receipts from the Sales Orders via MRP → PO → GRN → PR."))
+
+#         # 4) Clear table and allocate the single requirement across PRs
+#         doc.set("table_roll_details", [])
+#         has_error = False
+#         pr_cache = {}
+#         remaining = requirement
+
+#         for pr, so in prs:
+#             if remaining <= 0:
+#                 break
+
+#             state = ensure_pr_state(pr, docname, pr_cache)
+#             if not state:
+#                 frappe.msgprint(_("No fabric rolls found in Purchase Receipt {0}. Skipping.").format(pr), alert=True)
+#                 has_error = True
+#                 continue
+
+#             roll_len = state["roll_len"]
+#             used = state["used"]     # will be mutated as we allocate
+#             order = state["order"]
+#             meta = state["meta"]
+
+#             for rn in order:
+#                 if remaining <= 0:
+#                     break
+
+#                 total_len = flt(roll_len.get(rn, 0.0))
+#                 already = flt(used.get(rn, 0.0))
+#                 available = max(0.0, total_len - already)
+#                 if available <= 0:
+#                     continue
+
+#                 alloc_len = min(available, remaining)
+#                 used[rn] = already + alloc_len
+#                 balance_after = max(0.0, total_len - used[rn])
+
+#                 m = meta.get(rn, {})
+#                 doc.append("table_roll_details", {
+#                     "roll_number": rn,
+#                     "batch_number": m.get("batch_no"),
+#                     "shade": m.get("shade"),
+#                     "location": m.get("warehouse"),
+#                     "roll_length": total_len,          # baseline length (len or qty fallback)
+#                     "to_be_allocated": alloc_len,      # allocated length
+#                     "balance_length": balance_after,   # remaining length
+#                     "status": "System Generated",
+#                     "custom_pr_item": m.get("pr_item_name"),
+#                     "purchase_receipt": pr,
+#                     "custom_source_so": so,            # optional traceability
+#                 })
+
+#                 remaining -= alloc_len
+
+#         # 5) Shortage (if any)
+#         if remaining > 0:
+#             doc.append("table_roll_details", {
+#                 "roll_number": "",
+#                 "batch_number": "",
+#                 "shade": "",
+#                 "location": "",
+#                 "roll_length": 0,
+#                 "to_be_allocated": 0,
+#                 "balance_length": 0,
+#                 "status": "",
+#                 "remarks": f"Shortage of {remaining} (length units)",
+#                 "purchase_receipt": prs[0][0],  # tag first PR for traceability
+#             })
+#             frappe.msgprint(
+#                 _("⚠️ Not enough roll length across derived PR(s). Shortage: {0}").format(remaining),
+#                 alert=True
+#             )
+#             has_error = True
+
+#         # 6) Save
+#         doc.save(ignore_permissions=True)
+
+#         frappe.msgprint(
+#             _("✅ Fabric allocated from rolls successfully.")
+#             if not has_error else _("⚠️ Allocation completed with shortage."),
+#             alert=True
+#         )
+
+#     except Exception as e:
+#         frappe.log_error(
+#             f"Allocation failed for {docname}: {frappe.get_traceback()}",
+#             "Cut Docket - Roll Allocation Error",
+#         )
+#         frappe.throw(_("Failed to allocate fabric rolls: {0}").format(str(e)))
+
+
 @frappe.whitelist()
 def allocate_fabric_rolls(docname):
-    """
-    Allocate fabric rolls using ONLY `fabric_requirement_against_marker` (length units).
-    ALWAYS derive PRs via Sales Order -> MRP -> PO -> GRN -> PR (no PRs read from child rows).
-
-    Flow:
-      1) Validate `fabric_requirement_against_marker` > 0.
-      2) Collect unique Sales Orders from `table_size_ratio_qty` (order preserved).
-      3) For each SO, resolve PR via SO -> MRP -> PO -> GRN -> PR. Build PR list (order preserved).
-      4) For each PR, allocate by roll_number (ascending):
-            total_len(roll) = custom_fabric_length; if 0/None -> fallback to qty
-            available = total_len - (prev dockets' allocations + allocations in this run)
-         Keep appending allocation rows until requirement is satisfied or rolls exhausted.
-      5) Write `roll_length` from PR baseline and `balance_length` = remaining length.
-    Notes:
-      - `table_size_ratio_qty` is used ONLY to discover Sales Orders (not for quantities).
-      - Qty is NEVER used unless `custom_fabric_length` is 0/None (fallback only).
-    """
-    # ---------- helpers ----------
-    def get_pr_for_sales_order(so: str) -> str | None:
-        """Return PR via SO -> MRP -> PO -> GRN -> PR, or None with a warning."""
-        if not so:
-            return None
-
-        mrp_name = frappe.db.get_value(
-            "Material Requirement Plan Item",
-            {"sales_order": so, "docstatus": 1},
-            "parent",
-        )
-        if not mrp_name:
-            frappe.msgprint(_("No MRP found for SO {0}").format(so), alert=True)
-            return None
-
-        po = frappe.db.get_value(
-            "Purchase Order Item",
-            {"custom_reference_parent_id": mrp_name, "custom_reference_type": "MRP", "docstatus": 1},
-            "parent",
-        )
-        if not po:
-            frappe.msgprint(_("No PO for MRP {0} (SO {1})").format(mrp_name, so), alert=True)
-            return None
-
-        grn = frappe.db.get_value(
-            "Goods Receipt Note", {"purchase_order": po, "docstatus": 1}, "name"
-        )
-        if not grn:
-            frappe.msgprint(_("No GRN for PO {0} (SO {1})").format(po, so), alert=True)
-            return None
-
-        pr = frappe.db.get_value(
-            "Purchase Receipt", {"linked_grn": grn, "docstatus": 1}, "name"
-        )
-        if not pr:
-            frappe.msgprint(_("No PR for GRN {0} (SO {1})").format(grn, so), alert=True)
-            return None
-
-        return pr
-
-    def ensure_pr_state(pr: str, docname: str, cache: dict):
-        """
-        Build per-PR state once:
-          - roll_len: {roll_no: total length}   (custom_fabric_length; fallback to qty if length is 0/None)
-          - used:     {roll_no: length used}    (previous dockets for this PR)
-          - order:    [roll_no sorted asc]
-          - meta:     {roll_no: {batch_no, shade, warehouse, pr_item_name}}
-        """
-        if pr in cache:
-            return cache[pr]
-
-        items = frappe.get_all(
-            "Purchase Receipt Item",
-            filters={
-                "parent": pr,
-                "item_group": "Fabrics",
-                "custom_roll_no": ["is", "set"],
-            },
-            fields=[
-                "custom_roll_no as roll_no",
-                "custom_grn_batch_no as batch_no",
-                "custom_shade as shade",
-                "warehouse as warehouse",
-                "custom_fabric_length as roll_length",  # authoritative; fallback to qty if 0/None
-                "qty",                                   # fallback only
-                "name as pr_item_name",
-            ],
-            order_by="custom_roll_no asc",
-        )
-
-        roll_len, meta, roll_numbers = {}, {}, []
-        for it in items:
-            rn = (it.roll_no or "").strip()
-            if not rn:
-                continue
-            length = flt(it.roll_length)
-            if length <= 0:
-                length = flt(it.qty)  # fallback ONLY when length is not provided/zero
-            roll_len[rn] = roll_len.get(rn, 0.0) + length
-            roll_numbers.append(rn)
-            meta[rn] = {
-                "batch_no": it.batch_no,
-                "shade": it.shade,
-                "warehouse": it.warehouse,
-                "pr_item_name": it.pr_item_name,
-            }
-        frappe.msgprint(roll_len)
-        if not roll_len:
-            return None
-
-        # Sum previous allocations for this PR across other dockets
-        prev_rows = frappe.get_all(
-            "Cut Docket Roll Allocation",
-            filters={
-                "docstatus": ["<", 2],
-                "parent": ["!=", docname],
-                "purchase_receipt": pr,
-                "roll_number": ["in", list(roll_len.keys())],
-            },
-            fields=["roll_number", "to_be_allocated"],
-            limit_page_length=0,
-        )
-        used = {}
-        for r in prev_rows:
-            used[r.roll_number] = used.get(r.roll_number, 0.0) + flt(r.to_be_allocated)
-
-        cache[pr] = {
-            "roll_len": roll_len,
-            "used": used,
-            "order": sorted(set(roll_numbers), key=lambda x: x),  # strict roll_number order
-            "meta": meta,
-        }
-        return cache[pr]
-
     try:
         doc = frappe.get_doc("Cut Docket", docname)
+        doc.set("table_roll_details", [])
+        has_error = False
+        pr_cache = {}
+        remaining = flt(doc.get("fabric_requirement_against_marker"))
 
-        # 1) Validate requirement
-        requirement = flt(doc.get("fabric_requirement_against_marker"))
-        if requirement <= 0:
-            frappe.throw(_("Fabric Requirement Against Marker is empty or zero. Please enter a value before allocating."))
+        # 🔍 DEBUG: Log requirement
+        frappe.log_error(f"allocate_fabric_rolls: Starting for {docname}, Requirement: {remaining}", "Cut Docket - Debug")
 
-        # 2) Collect unique Sales Orders from table_size_ratio_qty (order preserved)
+        if remaining <= 0:
+            frappe.throw(_("Fabric Requirement Against Marker is zero. Please enter a value."))
+
+        # Get Sales Orders
         sos = []
         seen_sos = set()
         for row in (doc.get("table_size_ratio_qty") or []):
@@ -658,26 +785,23 @@ def allocate_fabric_rolls(docname):
                 seen_sos.add(so)
 
         if not sos:
-            frappe.throw(_("No Sales Orders found in Size Ratio table. Add at least one SO to resolve PR(s)."))
+            frappe.throw(_("No Sales Orders found in Size Ratio table."))
 
-        # 3) Resolve PRs via SO -> MRP -> PO -> GRN -> PR (order preserved, deduped)
+        # Resolve PRs
         prs = []
         seen_prs = set()
         for so in sos:
             pr = get_pr_for_sales_order(so)
             if pr and pr not in seen_prs:
-                prs.append((pr, so))  # keep SO for optional traceability on rows
+                prs.append((pr, so))
                 seen_prs.add(pr)
+                # 🔍 DEBUG: Found PR for SO
+                frappe.log_error(f"Found PR {pr} for SO {so}", "Cut Docket - PR Resolution")
 
         if not prs:
-            frappe.throw(_("Could not resolve any Purchase Receipts from the Sales Orders via MRP → PO → GRN → PR."))
+            frappe.throw(_("Could not resolve any Purchase Receipts."))
 
-        # 4) Clear table and allocate the single requirement across PRs
-        doc.set("table_roll_details", [])
-        has_error = False
-        pr_cache = {}
-        remaining = requirement
-
+        # Allocate
         for pr, so in prs:
             if remaining <= 0:
                 break
@@ -688,8 +812,9 @@ def allocate_fabric_rolls(docname):
                 has_error = True
                 continue
 
+            # Process rolls...
             roll_len = state["roll_len"]
-            used = state["used"]     # will be mutated as we allocate
+            used = state["used"]
             order = state["order"]
             meta = state["meta"]
 
@@ -713,18 +838,18 @@ def allocate_fabric_rolls(docname):
                     "batch_number": m.get("batch_no"),
                     "shade": m.get("shade"),
                     "location": m.get("warehouse"),
-                    "roll_length": total_len,          # baseline length (len or qty fallback)
-                    "to_be_allocated": alloc_len,      # allocated length
-                    "balance_length": balance_after,   # remaining length
+                    "roll_length": total_len,
+                    "to_be_allocated": alloc_len,
+                    "balance_length": balance_after,
                     "status": "System Generated",
                     "custom_pr_item": m.get("pr_item_name"),
                     "purchase_receipt": pr,
-                    "custom_source_so": so,            # optional traceability
+                    "custom_source_so": so,
                 })
 
                 remaining -= alloc_len
 
-        # 5) Shortage (if any)
+        # Handle shortage
         if remaining > 0:
             doc.append("table_roll_details", {
                 "roll_number": "",
@@ -736,26 +861,101 @@ def allocate_fabric_rolls(docname):
                 "balance_length": 0,
                 "status": "",
                 "remarks": f"Shortage of {remaining} (length units)",
-                "purchase_receipt": prs[0][0],  # tag first PR for traceability
+                "purchase_receipt": prs[0][0],
             })
-            frappe.msgprint(
-                _("⚠️ Not enough roll length across derived PR(s). Shortage: {0}").format(remaining),
-                alert=True
-            )
+            frappe.msgprint(_("⚠️ Shortage: {0}").format(remaining), alert=True)
             has_error = True
 
-        # 6) Save
         doc.save(ignore_permissions=True)
-
         frappe.msgprint(
-            _("✅ Fabric allocated from rolls successfully.")
-            if not has_error else _("⚠️ Allocation completed with shortage."),
+            _("✅ Fabric allocated successfully.") if not has_error else _("⚠️ With shortage."),
             alert=True
         )
 
     except Exception as e:
-        frappe.log_error(
-            f"Allocation failed for {docname}: {frappe.get_traceback()}",
-            "Cut Docket - Roll Allocation Error",
-        )
-        frappe.throw(_("Failed to allocate fabric rolls: {0}").format(str(e)))
+        frappe.log_error(f"Allocation failed for {docname}: {frappe.get_traceback()}", "Cut Docket - Roll Allocation Error")
+        frappe.throw(_("Failed: {0}").format(str(e)))
+
+
+# Helper functions below remain same, but we'll enhance `ensure_pr_state`
+
+def ensure_pr_state(pr: str, docname: str, cache: dict):
+    if pr in cache:
+        return cache[pr]
+
+    # 🔍 DEBUG: Start checking PR
+    frappe.log_error(f"ensure_pr_state: Checking PR {pr}", "Cut Docket - PR State")
+
+    items = frappe.get_all(
+        "Purchase Receipt Item",
+        filters={
+            "parent": pr,
+            "item_group": "Fabrics",
+            "custom_roll_no": ["is", "set"],
+        },
+        fields=[
+            "custom_roll_no as roll_no",
+            "custom_grn_batch_no as batch_no",
+            "custom_shade as shade",
+            "warehouse as warehouse",
+            "custom_fabric_length as roll_length",
+            "qty",
+            "name as pr_item_name",
+        ],
+        order_by="custom_roll_no asc",
+    )
+
+    # 🔍 DEBUG: Raw items fetched
+    frappe.log_error(f"Fetched {len(items)} items from PR {pr}: {items}", "Cut Docket - PR Items")
+
+    roll_len, meta, roll_numbers = {}, {}, []
+    for it in items:
+        rn = (it.roll_no or "").strip()
+        if not rn:
+            frappe.log_error(f"Skipping item: empty roll_no in PR {pr}", "Cut Docket - Invalid Roll No")
+            continue
+
+        length = flt(it.roll_length)
+        if length <= 0:
+            length = flt(it.qty)
+            frappe.log_error(f"Using qty={it.qty} as fallback for roll {rn} in PR {pr}", "Cut Docket - Fallback to Qty")
+
+        roll_len[rn] = roll_len.get(rn, 0.0) + length
+        roll_numbers.append(rn)
+        meta[rn] = {
+            "batch_no": it.batch_no,
+            "shade": it.shade,
+            "warehouse": it.warehouse,
+            "pr_item_name": it.pr_item_name,
+        }
+
+    if not roll_len:
+        frappe.log_error(f"No valid fabric rolls found in PR {pr}. Check: item_group='Fabrics', custom_roll_no set, roll_length/qty > 0", "Cut Docket - No Rolls Found")
+        return None
+
+    # Sum previous allocations
+    prev_rows = frappe.get_all(
+        "Cut Docket Roll Allocation",
+        filters={
+            "docstatus": ["<", 2],
+            "parent": ["!=", docname],
+            "purchase_receipt": pr,
+            "roll_number": ["in", list(roll_len.keys())],
+        },
+        fields=["roll_number", "to_be_allocated"],
+    )
+    used = {}
+    for r in prev_rows:
+        used[r.roll_number] = used.get(r.roll_number, 0.0) + flt(r.to_be_allocated)
+
+    cache[pr] = {
+        "roll_len": roll_len,
+        "used": used,
+        "order": sorted(set(roll_numbers)),
+        "meta": meta,
+    }
+
+    frappe.log_error(f"PR {pr} state built: {cache[pr]}", "Cut Docket - PR State Built")
+    return cache[pr]
+
+
