@@ -186,8 +186,10 @@ def generate_bundle_details(docname):
     if not fg_components:
         frappe.throw(f"No FG Components found for Item {doc.fg_item}")
 
-    company = frappe.defaults.get_user_default("Company", user=frappe.session.user) \
+    company = (
+        frappe.defaults.get_user_default("Company", user=frappe.session.user)
         or frappe.defaults.get_global_default("Company")
+    )
 
     if not company:
         frappe.throw(
@@ -195,13 +197,6 @@ def generate_bundle_details(docname):
             "Please set one in User Defaults or Global Defaults."
         )
 
-    company_abbr = frappe.db.get_value("Company", company, "abbr")
-    if not company_abbr:
-        frappe.throw(
-            f"Company '{frappe.utils.escape_html(company)}' has no abbreviation (abbr)."
-        )
-
-    # ✅ Now safely fetch abbreviation
     company_abbr = frappe.db.get_value("Company", company, "abbr")
     if not company_abbr:
         frappe.throw(
