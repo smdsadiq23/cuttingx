@@ -255,64 +255,64 @@ doc_events = {
 # }
 
 
-fixtures = [
-    {
-        "dt": "Custom Field",
-        "filters": [
-            [
-                "dt", "in", ["Sales Order"],
-            ],
-            [
-                "module", "=", "CuttingX"
-            ]
-        ]
-    },
-    {
-        "doctype": "Translation",
-        "filters": [
-            ["language", "=", "en"]
-        ],
-    },
-    {
-        "doctype": "Property Setter",
-        "filters": [
-            ["doc_type", "in", ["Can Cut", "Sales Order"]],
-            ["module", "=", 'CuttingX']
-        ],
-    },
-    {
-        "doctype": "Role",
-        "filters": [
-            [
-                "name",
-                "in",
-                [
-                "Factory Manager",
-                "Can Cut User",
-                "Can Cut Approver"
-                ]
-            ]
-        ]
-    },
-    {
-        "doctype": "Custom DocPerm",
-        "filters": [
-            [
-                "role",
-                "in",
-                [
-                "Factory Manager",
-                "Can Cut User",
-                "Can Cut Approver"
-                ]
-            ]
-        ]
-    },     
-    {
-        "doctype": "Kanban Board",
-        "filters": {
-            "reference_doctype": "Cut Docket",
-            "name": "Cutting Kanban Board"
-        }
-    }
-]
+# fixtures = [
+#     {
+#         "dt": "Custom Field",
+#         "filters": [
+#             [
+#                 "dt", "in", ["Sales Order"],
+#             ],
+#             [
+#                 "module", "=", "CuttingX"
+#             ]
+#         ]
+#     },
+#     {
+#         "doctype": "Translation",
+#         "filters": [
+#             ["language", "=", "en"]
+#         ],
+#     },
+#     {
+#         "doctype": "Property Setter",
+#         "filters": [
+#             ["doc_type", "in", ["Can Cut", "Sales Order"]],
+#             ["module", "=", 'CuttingX']
+#         ],
+#     },
+#     {
+#         "doctype": "Role",
+#         "filters": [
+#             [
+#                 "name",
+#                 "in",
+#                 [
+#                 "Factory Manager",
+#                 "Can Cut User",
+#                 "Can Cut Approver"
+#                 ]
+#             ]
+#         ]
+#     },
+#     {
+#         "doctype": "Custom DocPerm",
+#         "filters": [
+#             [
+#                 "role",
+#                 "in",
+#                 [
+#                 "Factory Manager",
+#                 "Can Cut User",
+#                 "Can Cut Approver"
+#                 ]
+#             ]
+#         ]
+#     },     
+#     {
+#         "doctype": "Kanban Board",
+#         "filters": {
+#             "reference_doctype": "Cut Docket",
+#             "name": "Cutting Kanban Board"
+#         }
+#     }
+# ]
