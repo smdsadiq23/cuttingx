@@ -95,7 +95,20 @@ def get_columns():
             "fieldname": "status",
             "fieldtype": "Data",
             "width": 120
-        }
+        },
+        {
+            "label": _("Approved By"),
+            "fieldname": "custom_approved_by",
+            "fieldtype": "Link",
+            "options": "User",
+            "width": 140
+        },
+        {
+            "label": _("Approved On"),
+            "fieldname": "custom_approved_on",
+            "fieldtype": "Datetime",
+            "width": 160
+        }        
     ]
 
 def get_data(filters):
@@ -153,6 +166,9 @@ def get_data(filters):
                 ), 0) - SUM(sod.custom_order_qty)) AS difference,
 
                 COALESCE(so.custom_consumption_status, 'Pending for Approval') AS status,
+
+                so.custom_approved_by,
+                so.custom_approved_on,                
 
                 ROW_NUMBER() OVER (PARTITION BY so.name ORDER BY sod.custom_color) AS rn
 

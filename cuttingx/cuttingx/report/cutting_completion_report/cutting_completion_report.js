@@ -126,6 +126,16 @@ frappe.query_reports["Cutting completion Report"] = {
 					$el.val($el.data("old-value"));
 					return;
 				}
+
+                // ✅ If valid, auto-set approved_by and approved_on
+                const args = {
+                    doctype: "Sales Order",
+                    name: docname,
+                    fieldname: "custom_consumption_status",
+                    value: "Approved",
+                    custom_approved_by: frappe.session.user,
+                    custom_approved_on: frappe.datetime.now_datetime()
+                };                
 			}
 
             $el.css("opacity", 0.6);
@@ -144,7 +154,7 @@ frappe.query_reports["Cutting completion Report"] = {
                     $el.css("opacity", 1);
                 }
             });
-        }.bind(this), 600);  // Bind `this` context
+        }.bind(this), 600);
 
         $wrap.on("focus", ".report-editable-field, .report-status-select", function () {
             $(this).data("old-value", $(this).val());
