@@ -612,7 +612,7 @@ def allocate_fabric_rolls(docname):
                 "warehouse": it.warehouse,
                 "pr_item_name": it.pr_item_name,
             }
-
+        frappe.msgprint(roll_len);
         if not roll_len:
             return None
 
