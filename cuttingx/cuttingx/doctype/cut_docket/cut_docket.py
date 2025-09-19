@@ -692,6 +692,24 @@ def allocate_fabric_rolls(docname):
             order_by="custom_roll_no asc"
         )
 
+        # 🔍 DEBUG: Log all fetched items to check warehouse
+        frappe.log_error({
+            "pr": pr,
+            "fabric_groups": fabric_groups,
+            "fetched_items": [
+                {
+                    "roll_no": it.roll_no,
+                    "batch_no": it.batch_no,
+                    "shade": it.shade,
+                    "location": it.location,  # warehouse
+                    "roll_length": it.roll_length,
+                    "qty": it.qty,
+                    "pr_item_name": it.pr_item_name
+                }
+                for it in items
+            ]
+        }, "Cut Docket - Fetched PR Items with Warehouse")        
+
         roll_len, meta, roll_numbers = {}, {}, []
         for it in items:
             rn = (it.roll_no or "").strip()
@@ -702,6 +720,12 @@ def allocate_fabric_rolls(docname):
                 length = flt(it.qty)  # fallback ONLY when length is not provided/zero
             roll_len[rn] = roll_len.get(rn, 0.0) + length
             roll_numbers.append(rn)
+
+            # 🔍 Check if warehouse is None
+            location = it.location or ""
+            if not it.location:
+                frappe.log_error(f"⚠️ Roll {rn} has empty warehouse in PR Item {it.pr_item_name}", "Cut Docket - Missing Warehouse")
+
             meta[rn] = {
                 "batch_no": it.batch_no,
                 "shade": it.shade,
