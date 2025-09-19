@@ -70,9 +70,10 @@
   {
    "columns": 2,
    "fieldname": "location",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Location"
+   "label": "Location",
+   "options": "Warehouse"
   },
   {
    "fieldname": "purchase_receipt",
@@ -86,7 +87,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-09-02 12:17:08.976973",
+ "modified": "2025-09-19 14:55:34.524678",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket Roll Allocation",
