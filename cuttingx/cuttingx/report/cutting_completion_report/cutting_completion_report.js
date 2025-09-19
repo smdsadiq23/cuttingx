@@ -138,7 +138,7 @@ frappe.query_reports["Cutting completion Report"] = {
                         // User clicked Yes
                         $el.css("opacity", 0.6);
                         frappe.call({
-                            method: "cuttingx.cuttingx.api.approve_consumption_status.approve_consumption_status.",
+                            method: "cuttingx.cuttingx.api.approve_consumption_status.approve_consumption_status",
                             args: {
                                 sales_order: docname
                             },
