@@ -577,22 +577,34 @@ def allocate_fabric_rolls(docname):
         if pr in cache:
             return cache[pr]
 
-        items = frappe.db.sql("""
-            SELECT 
-                custom_roll_no as roll_no,
-                custom_grn_batch_no as batch_no,
-                custom_shade as shade,
-                warehouse as location,
-                custom_fabric_length as roll_length,
-                qty,
-                name as pr_item_name
-            FROM `tabPurchase Receipt Item`
-            WHERE parent = %s
-            AND custom_roll_no IS NOT NULL
-            AND custom_roll_no != ''
-            AND item_group LIKE %s
-            ORDER BY custom_roll_no ASC
-        """, (pr, '%Fabrics%'), as_dict=1)
+        # Get all item groups under "Fabrics" (including nested ones)
+        fabric_groups = frappe.utils.nestedset.get_descendants_of("Item Group", "Fabrics")
+
+        # ✅ Include "Fabrics" itself (make it inclusive)
+        fabric_groups.append("Fabrics")
+
+        # Deduplicate and remove empties
+        fabric_groups = list(set(fabric_groups))
+
+        # Now fetch items
+        items = frappe.get_all(
+            "Purchase Receipt Item",
+            filters={
+                "parent": pr,
+                "custom_roll_no": ["is", "set"],
+                "item_group": ["in", fabric_groups]
+            },
+            fields=[
+                "custom_roll_no as roll_no",
+                "custom_grn_batch_no as batch_no",
+                "custom_shade as shade",
+                "warehouse as location",
+                "custom_fabric_length as roll_length",
+                "qty",
+                "name as pr_item_name"
+            ],
+            order_by="custom_roll_no asc"
+        )
 
         roll_len, meta, roll_numbers = {}, {}, []
         for it in items:
