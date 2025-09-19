@@ -681,7 +681,7 @@ def allocate_fabric_rolls(docname):
                 "custom_roll_no as roll_no",
                 "custom_grn_batch_no as batch_no",
                 "custom_shade as shade",
-                "warehouse as location",
+                "warehouse as location",           # ← This might be empty
                 "custom_fabric_length as roll_length",
                 "qty",
                 "name as pr_item_name"
@@ -689,20 +689,46 @@ def allocate_fabric_rolls(docname):
             order_by="custom_roll_no asc"
         )
 
+        # 🔍 DEBUG: Log all fetched items to check warehouse
+        frappe.log_error({
+            "pr": pr,
+            "fabric_groups": fabric_groups,
+            "fetched_items": [
+                {
+                    "roll_no": it.roll_no,
+                    "batch_no": it.batch_no,
+                    "shade": it.shade,
+                    "location": it.location,  # warehouse
+                    "roll_length": it.roll_length,
+                    "qty": it.qty,
+                    "pr_item_name": it.pr_item_name
+                }
+                for it in items
+            ]
+        }, "Cut Docket - Fetched PR Items with Warehouse")
+
         roll_len, meta, roll_numbers = {}, {}, []
         for it in items:
             rn = (it.roll_no or "").strip()
             if not rn:
                 continue
+
             length = flt(it.roll_length)
             if length <= 0:
-                length = flt(it.qty)  # fallback ONLY when length is not provided/zero
+                length = flt(it.qty)
+
             roll_len[rn] = roll_len.get(rn, 0.0) + length
             roll_numbers.append(rn)
+
+            # 🔍 Check if warehouse is None
+            location = it.location or ""
+            if not it.location:
+                frappe.log_error(f"⚠️ Roll {rn} has empty warehouse in PR Item {it.pr_item_name}", "Cut Docket - Missing Warehouse")
+
             meta[rn] = {
                 "batch_no": it.batch_no,
                 "shade": it.shade,
-                "warehouse": it.warehouse,
+                "location": location,  # could be empty
                 "pr_item_name": it.pr_item_name,
             }
 
@@ -806,13 +832,13 @@ def allocate_fabric_rolls(docname):
                     "batch_number": m.get("batch_no"),
                     "shade": m.get("shade"),
                     "location": m.get("warehouse"),
-                    "roll_length": total_len,          # baseline length (len or qty fallback)
-                    "to_be_allocated": alloc_len,      # allocated length
-                    "balance_length": balance_after,   # remaining length
+                    "roll_length": total_len,
+                    "to_be_allocated": alloc_len, 
+                    "balance_length": balance_after, 
                     "status": "System Generated",
                     "custom_pr_item": m.get("pr_item_name"),
                     "purchase_receipt": pr,
-                    "custom_source_so": so,            # optional traceability
+                    "custom_source_so": so,
                 })
 
                 remaining -= alloc_len
