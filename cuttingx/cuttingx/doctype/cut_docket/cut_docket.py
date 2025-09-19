@@ -189,8 +189,7 @@ class CutDocket(Document):
 
             
     def on_submit(self):
-        # ✅ Force save to capture any client-side changes in table_roll_details
-        self.save(ignore_permissions=True)      
+        # ✅ Force save to capture any client-side changes in table_roll_details   
 
         """
         Notify all users with "Stock User" role when Cut Docket is submitted
