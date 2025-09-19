@@ -1,3 +1,6 @@
+// Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
+// For license information, please see license.txt
+
 frappe.query_reports["Cutting completion Report"] = {
     hasRole(role) {
         if (frappe.user?.has_role) return frappe.user.has_role(role);
@@ -81,63 +84,89 @@ frappe.query_reports["Cutting completion Report"] = {
             const fieldname = $el.data("fieldname");
             const value = $el.val();
 
-			if (fieldname === "custom_consumption_status" && value === "Approved") {
-				const isAllowed = this.hasRole("Factory Manager");
-				if (!isAllowed) {
-					frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
-					$el.val($el.data("old-value"));
-					return;
-				}
+            // Handle Approval via Custom API
+            if (fieldname === "custom_consumption_status" && value === "Approved") {
+                const isAllowed = this.hasRole("Factory Manager");
+                if (!isAllowed) {
+                    frappe.msgprint(__("Only Factory Manager can set status to 'Approved'"));
+                    $el.val($el.data("old-value"));
+                    return;
+                }
 
-				// Get all rows for this OCN
-				const ocn = docname;
-				const relatedRows = report.data.filter(row => row.ocn === ocn);
+                // Get all rows for this OCN
+                const ocn = docname;
+                const relatedRows = report.data.filter(row => row.ocn === ocn);
 
-				// Define required fields and their human-readable labels
-				const requiredFields = [
-					{ key: "fabric_ordered", label: "Fabric Ordered" },
-					{ key: "fabric_issued", label: "Fabric Issued" },
-					{ key: "folding", label: "Folding" },
-					{ key: "end_bit", label: "End Bit" },
-					{ key: "file_consumption", label: "File Consumption" },
-					{ key: "actual_consumption", label: "Actual Consumption" }
-				];
+                // Define required fields
+                const requiredFields = [
+                    { key: "fabric_ordered", label: "Fabric Ordered" },
+                    { key: "fabric_issued", label: "Fabric Issued" },
+                    { key: "folding", label: "Folding" },
+                    { key: "end_bit", label: "End Bit" },
+                    { key: "file_consumption", label: "File Consumption" },
+                    { key: "actual_consumption", label: "Actual Consumption" }
+                ];
 
-				const missingFields = [];
+                const missingFields = [];
 
-				relatedRows.forEach(row => {
-					requiredFields.forEach(field => {
-						const val = row[field.key];
-						if (!val || String(val).trim() === "") {
-							if (!missingFields.includes(field.label)) {
-								missingFields.push(field.label);
-							}
-						}
-					});
-				});
+                relatedRows.forEach(row => {
+                    requiredFields.forEach(field => {
+                        const val = row[field.key];
+                        if (!val || String(val).trim() === "") {
+                            if (!missingFields.includes(field.label)) {
+                                missingFields.push(field.label);
+                            }
+                        }
+                    });
+                });
 
-				if (missingFields.length > 0) {
-					const message = `Cutting flow not completed. Cannot approve.<br><br>Missing: <b>${missingFields.join(", ")}</b>`;
-					frappe.msgprint({
-						title: __('Approval Blocked'),
-						indicator: 'red',
-						message: __(message)
-					});
-					$el.val($el.data("old-value"));
-					return;
-				}
+                if (missingFields.length > 0) {
+                    const message = `Cutting flow not completed. Cannot approve.<br><br>Missing: <b>${missingFields.join(", ")}</b>`;
+                    frappe.msgprint({
+                        title: __('Approval Blocked'),
+                        indicator: 'red',
+                        message: __(message)
+                    });
+                    $el.val($el.data("old-value"));
+                    return;
+                }
 
-                // ✅ If valid, auto-set approved_by and approved_on
-                const args = {
-                    doctype: "Sales Order",
-                    name: docname,
-                    fieldname: "custom_consumption_status",
-                    value: "Approved",
-                    custom_approved_by: frappe.session.user,
-                    custom_approved_on: frappe.datetime.now_datetime()
-                };                
-			}
+                // Show confirmation dialog
+                frappe.confirm(
+                    __("Approve this Sales Order? This will finalize the cutting status."),
+                    () => {
+                        // User clicked Yes
+                        $el.css("opacity", 0.6);
+                        frappe.call({
+                            method: "erpnext_trackerx_customization.api.approve_consumption_status",
+                            args: {
+                                sales_order: docname
+                            },
+                            callback: (r) => {
+                                if (!r.exc) {
+                                    frappe.show_alert({ message: __("Approved!"), indicator: "green" });
+                                    $el.data("old-value", "Approved");
+                                    report.refresh();  // Reload data to show approved_by/on
+                                } else {
+                                    // Show error from server
+                                    $el.val($el.data("old-value"));
+                                }
+                            },
+                            always: () => {
+                                $el.css("opacity", 1);
+                            }
+                        });
+                    },
+                    () => {
+                        // User clicked No / Cancel
+                        $el.val($el.data("old-value"));
+                    }
+                );
 
+                return;  // Prevent default save
+            }
+
+            // Default save for other fields (e.g., Folding, End Bit)
             $el.css("opacity", 0.6);
             frappe.call({
                 method: "frappe.client.set_value",
@@ -154,12 +183,14 @@ frappe.query_reports["Cutting completion Report"] = {
                     $el.css("opacity", 1);
                 }
             });
-        }.bind(this), 600);
+        }.bind(this), 600);  // Bind `this` for role check
 
+        // Track original value
         $wrap.on("focus", ".report-editable-field, .report-status-select", function () {
             $(this).data("old-value", $(this).val());
         });
 
+        // Save on blur (text areas) and change (dropdowns)
         $wrap.on("blur", ".report-editable-field", save);
         $wrap.on("change", ".report-status-select", save);
     }
