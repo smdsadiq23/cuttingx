@@ -692,20 +692,6 @@ def allocate_fabric_rolls(docname):
             order_by="custom_roll_no asc"
         )
 
-        # 🔍 DEBUG: Log all fetched items to check warehouse
-        frappe.log_error({
-            "pr": pr,
-            "fetched_items": [
-                {
-                    "roll_no": it.roll_no,
-                    "batch_no": it.batch_no,
-                    "shade": it.shade,
-                    "location": it.location,  # warehouse
-                }
-                for it in items
-            ]
-        }, "Cut Docket - Fetched PR Items with Warehouse")        
-
         roll_len, meta, roll_numbers = {}, {}, []
         for it in items:
             rn = (it.roll_no or "").strip()
@@ -720,7 +706,7 @@ def allocate_fabric_rolls(docname):
             meta[rn] = {
                 "batch_no": it.batch_no,
                 "shade": it.shade,
-                "warehouse": it.warehouse,
+                "warehouse": it.location,
                 "pr_item_name": it.pr_item_name,
             }
 
