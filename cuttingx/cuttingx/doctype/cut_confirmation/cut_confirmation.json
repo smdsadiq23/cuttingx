@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_copy": 1,
  "allow_rename": 1,
  "creation": "2025-07-29 13:12:45.220674",
  "doctype": "DocType",
@@ -92,7 +93,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-25 16:07:01.205581",
+ "modified": "2025-09-25 15:59:59.656119",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

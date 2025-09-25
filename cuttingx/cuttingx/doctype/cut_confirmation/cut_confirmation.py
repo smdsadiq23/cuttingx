@@ -5,6 +5,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
 
 
 class CutConfirmation(Document):
@@ -13,12 +14,43 @@ class CutConfirmation(Document):
 
 def validate(doc, method):
     """
-    Called on validate of Cut Confirmation
-    Recalculate all child rows
+    Validate that confirmed_quantity <= planned_quantity for each item.
     """
     for item in doc.table_cut_confirmation_item:
-        item.calculate_balance_to_confirm()  # Calls method from child class
-        item.calculate_total_reject()  # Calls method from child class
+        if flt(item.confirmed_quantity) > flt(item.planned_quantity):
+            frappe.throw(
+                _("Row #{0}: Confirmed Quantity ({1}) cannot be greater than Planned Quantity ({2}) for Work Order {3}, Size {4}").format(
+                    item.idx,
+                    item.confirmed_quantity,
+                    item.planned_quantity,
+                    item.work_order or "N/A",
+                    item.size or "N/A"
+                )
+            )
+        # Recalculate (optional, but safe)
+        item.calculate_balance_to_confirm()
+        item.calculate_total_reject()
+
+    # Validation 2: Prevent duplicate Cut Docket
+    if doc.cut_po_number:
+        # Check if this Cut Docket is already used in another **submitted or saved** Cut Confirmation
+        existing = frappe.db.exists(
+            "Cut Confirmation",
+            {
+                "cut_po_number": doc.cut_po_number,
+                "name": ("!=", doc.name),  # Exclude current doc
+                "docstatus": ("!=", 2)     # Exclude cancelled
+            }
+        )
+        if existing:
+            frappe.throw(
+                _("Cut Docket {0} has already been used in Cut Confirmation <a href='/app/cut-confirmation/{1}'>{1}</a>. "
+                  "Each Cut Docket can only be confirmed once.").format(
+                    frappe.bold(doc.cut_po_number),
+                    existing
+                ),
+                title=_("Duplicate Cut Docket")
+            )        
 
 
 @frappe.whitelist()
@@ -47,6 +79,48 @@ def get_items_from_cut_docket(cut_po_number):
             })
 
     return items
+
+
+@frappe.whitelist()
+def get_unused_cut_dockets(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
+    """
+    Return Cut Dockets that are:
+    - Submitted (docstatus = 1)
+    - NOT used in any non-cancelled Cut Confirmation
+    - Match search text
+    """
+    current_doc = filters.get("current_doc") or ""
+
+    # Get all used Cut Dockets (excluding current doc)
+    used_dockets = frappe.db.sql("""
+        SELECT DISTINCT cut_po_number
+        FROM `tabCut Confirmation`
+        WHERE cut_po_number IS NOT NULL
+          AND docstatus != 2
+          AND name != %s
+    """, (current_doc,), as_dict=False)
+
+    used_list = [d[0] for d in used_dockets if d[0]]
+
+    # Build NOT IN clause safely
+    unused_condition = ""
+    if used_list:
+        placeholders = ','.join(['%s'] * len(used_list))
+        unused_condition = f"AND name NOT IN ({placeholders})"
+
+    # Final query
+    query = f"""
+        SELECT name
+        FROM `tabCut Docket`
+        WHERE docstatus = 1
+          AND name LIKE %s
+          {unused_condition}
+        ORDER BY name
+        LIMIT %s OFFSET %s
+    """
+
+    params = ['%' + txt + '%'] + used_list + [page_len, start]
+    return frappe.db.sql(query, params)
 
 
 # @frappe.whitelist()

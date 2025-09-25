@@ -81,13 +81,14 @@ frappe.ui.form.on('Cut Confirmation', {
         // Fallback: after a short delay (if field not ready)
         setTimeout(() => focus_cut_po_field(frm), 300);
         setTimeout(() => focus_cut_po_field(frm), 800);     
-        // Set filter to exclude already used Cut Dockets
+
+        // Set dynamic query with real-time exclusion
         frm.set_query('cut_po_number', () => {
             return {
-                filters: [
-                    ['docstatus', '=', 1],  // Only submitted
-                    ['name', 'not in', get_already_used_dockets()]
-                ]
+                query: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_unused_cut_dockets',
+                filters: {
+                    current_doc: frm.doc.name || ''
+                }
             };
         });
     },
@@ -140,27 +141,27 @@ frappe.ui.form.on('Cut Confirmation', {
     }
 });
 
-// 🔍 Utility: Get already used Cut Dockets
-function get_already_used_dockets() {
-    let dockets = [];
-    frappe.call({
-        method: 'frappe.client.get_list',
-        async: false,
-        args: {
-            doctype: 'Cut Confirmation',
-            fields: ['cut_po_number'],
-            filters: {
-                docstatus: ['!=', 2],  // Exclude cancelled
-                cut_po_number: ['!=', null]
-            },
-            limit_page_length: 1000
-        },
-        callback: function(r) {
-            dockets = (r.message || []).map(row => row.cut_po_number);
-        }
-    });
-    return dockets;
-}
+// // 🔍 Utility: Get already used Cut Dockets
+// function get_already_used_dockets() {
+//     let dockets = [];
+//     frappe.call({
+//         method: 'frappe.client.get_list',
+//         async: false,
+//         args: {
+//             doctype: 'Cut Confirmation',
+//             fields: ['cut_po_number'],
+//             filters: {
+//                 docstatus: ['!=', 2],  // Exclude cancelled
+//                 cut_po_number: ['!=', null]
+//             },
+//             limit_page_length: 1000
+//         },
+//         callback: function(r) {
+//             dockets = (r.message || []).map(row => row.cut_po_number);
+//         }
+//     });
+//     return dockets;
+// }
 
 frappe.ui.form.on('Cut Confirmation Item', {
     
@@ -185,20 +186,26 @@ frappe.ui.form.on('Cut Confirmation Item', {
 function calculate_all(frm, cdt, cdn) {
     const d = locals[cdt][cdn];
 
-    // Log the row data
-    console.log("🔁 Calculating for row:", d);
-
     const planned = parseFloat(d.planned_quantity) || 0;
     const confirmed = parseFloat(d.confirmed_quantity) || 0;
     const full_panel = parseFloat(d.full_panel_reject) || 0;
     const other = parseFloat(d.other_reject) || 0;
 
+    // 🔒 Client-side validation: confirmed_quantity <= planned_quantity
+    if (confirmed > planned) {
+        frappe.show_alert({
+            message: __('Confirmed Quantity cannot exceed Planned Quantity ({0})', [planned]),
+            indicator: 'red'
+        }, 5);
+        // Reset to planned or 0 if invalid
+        frappe.model.set_value(cdt, cdn, 'confirmed_quantity', planned);
+        return; // Stop further calculation
+    }
+
     const balance_to_confirm = parseFloat((planned - confirmed).toFixed(2));
     const total_reject = parseFloat((full_panel + other).toFixed(2));
 
-    console.log("✅ Calculated:", { balance_to_confirm, total_reject });
-
-    // Set values
+    // Set calculated fields
     frappe.model.set_value(cdt, cdn, 'balance_to_confirm', balance_to_confirm);
     frappe.model.set_value(cdt, cdn, 'total_reject', total_reject);
 }
