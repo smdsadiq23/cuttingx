@@ -5,7 +5,13 @@ frappe.ui.form.on('Cut Docket', {
     onload: function(frm) {
         setup_work_order_filter(frm);
 
-        // ➕ Handle duplicated documents
+        // ➕ Clear roll details immediately on duplication (UX polish)
+        if (frm.doc.__islocal && frm.doc.table_roll_details?.length > 0) {
+            frm.doc.table_roll_details = [];
+            frm.refresh_field('table_roll_details');
+        }
+
+        /// Handle recalc for other tables...
         if (frm.doc.__islocal && (
             (frm.doc.table_size_ratio_qty?.length > 0) ||
             (frm.doc.work_order_details?.length > 0)
