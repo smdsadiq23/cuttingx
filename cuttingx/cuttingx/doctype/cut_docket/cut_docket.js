@@ -5,6 +5,25 @@ frappe.ui.form.on('Cut Docket', {
     onload: function(frm) {
         setup_work_order_filter(frm);
 
+        // ➕ Handle duplicated documents
+        if (frm.doc.__islocal && (
+            (frm.doc.table_size_ratio_qty?.length > 0) ||
+            (frm.doc.work_order_details?.length > 0)
+        )) {
+            // Recalculate both child tables
+            Promise.all([
+                recalculate_balance_client_side(frm),
+                recalculate_work_order_details_client_side(frm)
+            ]).then(() => {
+                // Now recalculate fabric requirement (depends on size table)
+                recalculate_fabric_requirement(frm);
+            }).catch(err => {
+                console.warn("Error during duplication recalc:", err);
+                // Still try to proceed
+                recalculate_fabric_requirement(frm);
+            });
+        }   
+
         if (frm.fields_dict.table_roll_details) {
             const grid = frm.fields_dict.table_roll_details.grid;
             grid.roll_details_button_added = false;
@@ -277,6 +296,84 @@ function fetch_size_details_for_work_order(frm, work_order) {
             frm.refresh_field('table_size_ratio_qty');
             recalculate_fabric_requirement(frm);
         }
+    });
+}
+
+function recalculate_work_order_details_client_side(frm) {
+    const promises = [];
+
+    (frm.doc.work_order_details || []).forEach(row => {
+        if (!row.work_order) return;
+
+        const cdt = "Cut Docket WO Details";
+        const cdn = row.name; // unique name of the child row
+
+        const promise = frappe.call({
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_already_cut_quantity",
+            args: {
+                work_order: row.work_order
+            },
+            callback: function(r) {
+                const already_cut = flt(r.message || 0);
+                frappe.model.set_value(cdt, cdn, 'already_cut_quantity', already_cut);
+
+                // Fetch Work Order quantity
+                frappe.db.get_value('Work Order', row.work_order, 'qty')
+                    .then(wo_data => {
+                        const wo_qty = flt(wo_data.message?.qty || 0);
+                        frappe.model.set_value(cdt, cdn, 'work_order_quantity', wo_qty);
+
+                        // Calculate & persist balance
+                        const balance = wo_qty - already_cut;
+                        frappe.model.set_value(cdt, cdn, 'balance_quantity', balance);
+                    });
+            }
+        });
+
+        promises.push(promise);
+    });
+
+    return Promise.all(promises).then(() => {
+        frm.refresh_field('work_order_details');
+    });
+}
+
+function recalculate_balance_client_side(frm) {
+    const promises = [];
+
+    (frm.doc.table_size_ratio_qty || []).forEach(row => {
+        if (!row.ref_work_order || !row.sales_order || !row.line_item_no || !row.size) {
+            // Reset incomplete rows
+            row.balance = flt(row.quantity);
+            row.already_cut = 0;
+            // Optionally: row.planned_cut_quantity = 0;
+            return;
+        }
+
+        const promise = frappe.call({
+            method: "cuttingx.cuttingx.doctype.cut_docket.cut_docket.get_already_cut_quantity_for_row",
+            args: {
+                ref_work_order: row.ref_work_order,
+                sales_order: row.sales_order,
+                line_item_no: row.line_item_no,
+                size: row.size
+            },
+            callback: function(r) {
+                const already_cut = flt(r.message || 0);
+                const planned = flt(row.planned_cut_quantity || 0);
+                const quantity = flt(row.quantity || 0);
+                row.balance = quantity - already_cut - planned;
+                row.already_cut = already_cut;
+            }
+        });
+
+        promises.push(promise);
+    });
+
+    // ✅ ALWAYS return a Promise, even if no calls were made
+    return Promise.all(promises).then(() => {
+        // Refresh UI after all calls finish
+        frm.refresh_field('table_size_ratio_qty');
     });
 }
 

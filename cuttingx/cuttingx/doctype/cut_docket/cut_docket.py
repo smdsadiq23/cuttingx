@@ -9,6 +9,23 @@ from frappe.utils import flt
 from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
 
 class CutDocket(Document):
+    def before_insert(self):
+        """
+        Called when a new Cut Docket is created (including duplication).
+        Clear derived child tables to avoid stale data.
+        """
+        # Clear roll allocations — they are specific to a document
+        self.set("table_roll_details", [])
+
+        # Optionally: clear size ratio table if it's meant to be re-fetched
+        # But usually, you want to keep WO references and recompute balance
+        # So we don't clear table_size_ratio_qty — we'll recalculate balance instead
+
+        # Clear barcode/QR if needed (optional)
+        self.barcode_image = None
+        self.qr_code_image = None
+
+
     def before_save(self):
         """Generate and store barcode & QR code if not already set"""
         if not self.barcode_image or not self.qr_code_image:
@@ -27,6 +44,8 @@ class CutDocket(Document):
         if self.style:
             self.set_bom_no_from_style()
             self.set_panel_type_from_bom()
+        # Always recalculate balance before validation
+        self.recalculate_balance_in_size_table()            
         self.calculate_fabric_requirement()
         self.calculate_fabric_requirement_against_marker()
         self.calculate_marker_efficiency()
@@ -176,6 +195,29 @@ class CutDocket(Document):
                 self.marker_efficiency = 0
         except Exception:
             self.marker_efficiency = 0
+
+
+    def recalculate_balance_in_size_table(self):
+        """Recalculate balance = quantity - (already_cut + planned_cut_quantity) using real-time data"""
+        for row in self.table_size_ratio_qty:
+            if not (row.ref_work_order and row.sales_order and row.line_item_no and row.size):
+                row.balance = flt(row.quantity)
+                continue
+
+            # Get total already cut across ALL other Cut Dockets (exclude current if saved)
+            already_cut = frappe.db.sql("""
+                SELECT COALESCE(SUM(planned_cut_quantity), 0)
+                FROM `tabCut Docket Item`
+                WHERE ref_work_order = %s
+                AND sales_order = %s
+                AND line_item_no = %s
+                AND size = %s
+                AND parent != %s
+                AND docstatus < 2
+            """, (row.ref_work_order, row.sales_order, row.line_item_no, row.size, self.name or ""), as_list=1)[0][0]
+
+            row.already_cut = flt(already_cut)  # store for reference (optional)
+            row.balance = flt(row.quantity) - flt(already_cut) - flt(row.planned_cut_quantity or 0)            
 
 
     def validate_no_negative_balance(self):
@@ -590,6 +632,37 @@ def get_cut_docket_items_from_work_orders(work_orders):
 def get_empty_work_order_list(doctype, txt, searchfield, start, page_len, filters):
     """Returns empty list - used to disable dropdown when no style is selected"""
     return []
+
+@frappe.whitelist()
+def get_already_cut_quantity_for_row(ref_work_order, sales_order, line_item_no, size, exclude_docket=None):
+    """
+    Get total planned_cut_quantity from other Cut Dockets for this specific row identity.
+    Used for client-side balance recalculation on duplication.
+    """
+    if not all([ref_work_order, sales_order, line_item_no, size]):
+        return 0
+
+    exclude_condition = "AND parent != %(exclude_docket)s" if exclude_docket else ""
+    exclude_values = {"exclude_docket": exclude_docket} if exclude_docket else {}
+
+    total = frappe.db.sql(f"""
+        SELECT COALESCE(SUM(planned_cut_quantity), 0)
+        FROM `tabCut Docket Item`
+        WHERE ref_work_order = %(ref_work_order)s
+          AND sales_order = %(sales_order)s
+          AND line_item_no = %(line_item_no)s
+          AND size = %(size)s
+          AND docstatus < 2
+          {exclude_condition}
+    """, {
+        "ref_work_order": ref_work_order,
+        "sales_order": sales_order,
+        "line_item_no": line_item_no,
+        "size": size,
+        **exclude_values
+    })
+
+    return flt(total[0][0])
 
 
 @frappe.whitelist()
