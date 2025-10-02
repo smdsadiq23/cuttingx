@@ -458,6 +458,12 @@ function setup_work_order_filter(frm) {
 }
 
 function allocateRolls(frm) {
+  if (!frm.doc.panel_code) {
+    frappe.msgprint(__('Please select a Panel Type so Panel Code is set before allocating.'));
+    frm.scroll_to_field('panel_type');
+    return;
+  }
+      
   frappe.call({
     method: 'cuttingx.cuttingx.doctype.cut_docket.cut_docket.allocate_fabric_rolls',
     args: { docname: frm.doc.name },
