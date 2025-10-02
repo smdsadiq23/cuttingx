@@ -725,23 +725,34 @@ def allocate_fabric_rolls(docname):
         return pr
 
     def ensure_pr_state(pr: str, docname: str, cache: dict):
+        """
+        Build per-PR state once:
+          - roll_len: {roll_no: total length}   (custom_fabric_length; fallback to qty if length is 0/None)
+          - used:     {roll_no: length used}    (previous dockets for this PR)
+          - order:    [roll_no sorted asc]
+          - meta:     {roll_no: {batch_no, shade, warehouse, pr_item_name}}
+        """
         if pr in cache:
             return cache[pr]
 
-        # Get all fabric items in PR, ordered by idx (line number)
+        # Get all item groups under "Fabrics" (including nested ones)
         fabric_groups = frappe.utils.nestedset.get_descendants_of("Item Group", "Fabrics")
+
+        # ✅ Include "Fabrics" itself (make it inclusive)
         fabric_groups.append("Fabrics")
+
+        # Deduplicate and remove empties
         fabric_groups = list(set(fabric_groups))
 
+        # Now fetch items
         items = frappe.get_all(
             "Purchase Receipt Item",
             filters={
                 "parent": pr,
-                "custom_roll_no": ["is", "set"],  # still require a roll number for display
+                "custom_roll_no": ["is", "set"],
                 "item_group": ["in", fabric_groups]
             },
             fields=[
-                "idx",
                 "custom_roll_no as roll_no",
                 "custom_grn_batch_no as batch_no",
                 "custom_shade as shade",
@@ -750,59 +761,51 @@ def allocate_fabric_rolls(docname):
                 "qty",
                 "name as pr_item_name"
             ],
-            order_by="idx asc"  # critical: use line order
+            order_by="custom_roll_no asc"
         )
 
-        # Now: each item is a unique roll (no grouping!)
-        roll_entries = []  # list of unique roll-like entries
-        meta = {}          # keyed by pr_item_name (unique per line)
-
+        roll_len, meta, roll_numbers = {}, {}, []
         for it in items:
-            rn_display = (it.roll_no or "").strip()
-            if not rn_display:
-                continue  # skip if no roll number (even though we filtered, double-check)
-
+            rn = (it.roll_no or "").strip()
+            if not rn:
+                continue
             length = flt(it.roll_length)
             if length <= 0:
-                length = flt(it.qty)  # fallback only if length missing/zero
-
-            # Use pr_item_name as the unique key (since idx can repeat across saves, but name is stable)
-            key = it.pr_item_name
-
-            meta[key] = {
-                "roll_no_display": rn_display,   # what user sees
+                length = flt(it.qty)  # fallback ONLY when length is not provided/zero
+            roll_len[rn] = roll_len.get(rn, 0.0) + length
+            roll_numbers.append(rn)
+            
+            meta[rn] = {
                 "batch_no": it.batch_no,
                 "shade": it.shade,
                 "warehouse": it.location,
-                "roll_length": length,           # total length of this roll (from this line only)
-                "idx": it.idx,
+                "pr_item_name": it.pr_item_name,
             }
-            roll_entries.append(key)
 
-        if not roll_entries:
+        if not roll_len:
             return None
 
-        # Get previous allocations — now keyed by pr_item_name (not roll_no!)
-        prev_allocations = frappe.get_all(
+        # Sum previous allocations for this PR across other dockets
+        prev_rows = frappe.get_all(
             "Cut Docket Roll Allocation",
             filters={
                 "docstatus": ["<", 2],
                 "parent": ["!=", docname],
                 "purchase_receipt": pr,
-                "custom_pr_item": ["in", roll_entries],  # link via pr_item_name
+                "roll_number": ["in", list(roll_len.keys())],
             },
-            fields=["custom_pr_item", "to_be_allocated"],
+            fields=["roll_number", "to_be_allocated"],
             limit_page_length=0,
         )
-
         used = {}
-        for alloc in prev_allocations:
-            used[alloc.custom_pr_item] = used.get(alloc.custom_pr_item, 0.0) + flt(alloc.to_be_allocated)
+        for r in prev_rows:
+            used[r.roll_number] = used.get(r.roll_number, 0.0) + flt(r.to_be_allocated)
 
         cache[pr] = {
-            "roll_entries": roll_entries,  # list of pr_item_name in idx order
-            "meta": meta,                  # details per pr_item_name
-            "used": used,                  # previous usage per pr_item_name
+            "roll_len": roll_len,
+            "used": used,
+            "order": sorted(set(roll_numbers), key=lambda x: x),  # strict roll_number order
+            "meta": meta,
         }
         return cache[pr]
 
@@ -850,39 +853,40 @@ def allocate_fabric_rolls(docname):
 
             state = ensure_pr_state(pr, docname, pr_cache)
             if not state:
-                frappe.msgprint(_("No fabric rolls found in PR {0}").format(pr), alert=True)
+                frappe.msgprint(_("No fabric rolls found in Purchase Receipt {0}. Skipping.").format(pr), alert=True)
                 has_error = True
                 continue
 
-            roll_entries = state["roll_entries"]
+            roll_len = state["roll_len"]
+            used = state["used"]     # will be mutated as we allocate
+            order = state["order"]
             meta = state["meta"]
-            used = state["used"]  # will be updated during allocation
 
-            for key in roll_entries:  # key = pr_item_name
+            for rn in order:
                 if remaining <= 0:
                     break
 
-                total_len = flt(meta[key]["roll_length"])
-                already = flt(used.get(key, 0.0))
+                total_len = flt(roll_len.get(rn, 0.0))
+                already = flt(used.get(rn, 0.0))
                 available = max(0.0, total_len - already)
                 if available <= 0:
                     continue
 
                 alloc_len = min(available, remaining)
-                used[key] = already + alloc_len
-                balance_after = max(0.0, total_len - used[key])
+                used[rn] = already + alloc_len
+                balance_after = max(0.0, total_len - used[rn])
 
-                m = meta[key]
+                m = meta.get(rn, {})
                 doc.append("table_roll_details", {
-                    "roll_number": m["roll_no_display"],      # ← still show custom_roll_no!
-                    "batch_number": m["batch_no"],
-                    "shade": m["shade"],
-                    "location": m["warehouse"],
+                    "roll_number": rn,
+                    "batch_number": m.get("batch_no"),
+                    "shade": m.get("shade"),
+                    "location": m.get("warehouse"),
                     "roll_length": total_len,
-                    "to_be_allocated": alloc_len,
-                    "balance_length": balance_after,
+                    "to_be_allocated": alloc_len, 
+                    "balance_length": balance_after, 
                     "status": "System Generated",
-                    "custom_pr_item": key,                   # ← link back to PR item
+                    "custom_pr_item": m.get("pr_item_name"),
                     "purchase_receipt": pr,
                     "custom_source_so": so,
                 })
