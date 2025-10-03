@@ -147,7 +147,6 @@ frappe.ui.form.on('Can Cut', {
 
     sales_order: function(frm) {
         if (!frm.doc.sales_order) {
-            frm.set_value('order_quantity', 0);
             frm.set_value('colour', '');
             frm.set_value('style', '');
             frm.trigger('recalculate');
@@ -157,6 +156,16 @@ frappe.ui.form.on('Can Cut', {
         // Clear dependent fields
         frm.set_value('colour', '');
         frm.set_value('style', '');
+
+        // Set query for Work Order
+        frm.set_query('work_order', function() {
+            return {
+                filters: {
+                    'sales_order': frm.doc.sales_order,
+                    'docstatus': 1
+                }
+            };
+        });        
 
         frappe.call({
             method: 'frappe.client.get',
@@ -175,7 +184,7 @@ frappe.ui.form.on('Can Cut', {
                     }, 0);
 
                     // Set in Can Cut
-                    frm.set_value('order_quantity', total_order_qty);
+                    //frm.set_value('order_quantity', total_order_qty);
 
                     // Extract unique colors
                     const colors = [...new Set(
@@ -187,23 +196,76 @@ frappe.ui.form.on('Can Cut', {
                     // Set as options in Colour field
                     frm.set_df_property('colour', 'options', colors);
                     frm.refresh_field('colour');
-
-                    // Trigger recalculate
-                    frm.trigger('recalculate');
                 }
             }
         });
-
-        // Set query for Work Order
-        frm.set_query('work_order', function() {
-            return {
-                filters: {
-                    'sales_order': frm.doc.sales_order,
-                    'docstatus': 1
-                }
-            };
-        });
     },
+
+    work_order: function(frm) {
+        if (!frm.doc.work_order) {
+            frm.set_value('order_quantity', 0);
+            frm.set_value('colour', '');
+            frm.set_value('style', '');
+            frm.trigger('recalculate');
+            return;
+        }
+
+        // Fetch Work Order details
+        frappe.call({
+            method: 'frappe.client.get',
+            args: {
+                doctype: 'Work Order',
+                name: frm.doc.work_order,
+                fields: ['qty', 'production_item']
+            },
+            callback: function(r) {
+                if (r.message) {
+                    const wo = r.message;
+                    const qty = flt(wo.qty);
+                    const item_code = wo.production_item;
+
+                    // Set order quantity
+                    frm.set_value('order_quantity', qty);
+
+                    // Clear previous values
+                    frm.set_value('colour', '');
+                    frm.set_value('style', '');
+
+                    if (item_code) {
+                        // Fetch Item details: custom_colour_name and custom_style_master
+                        frappe.call({
+                            method: 'frappe.client.get_value',
+                            args: {
+                                doctype: 'Item',
+                                filters: { 'name': item_code },
+                                fieldname: ['custom_colour_name', 'custom_style_master']
+                            },
+                            callback: function(res) {
+                                if (res.message) {
+                                    const item = res.message;
+
+                                    // Set colour from custom_colour_name
+                                    if (item.custom_colour_name) {
+                                        frm.set_value('colour', item.custom_colour_name);
+                                    }
+
+                                    // Set style
+                                    if (item.custom_style_master) {
+                                        frm.set_value('style', item.custom_style_master);
+                                    }
+                                }
+
+                                // Always trigger recalculate after updates
+                                frm.trigger('recalculate');
+                            }
+                        });
+                    } else {
+                        frm.trigger('recalculate');
+                    }
+                }
+            }
+        });
+    },  
 
     colour: function(frm) {
         if (!frm.doc.sales_order || !frm.doc.colour) {
