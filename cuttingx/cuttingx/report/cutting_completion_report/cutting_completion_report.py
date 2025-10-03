@@ -149,11 +149,10 @@ def get_data(filters):
                     FROM `tabCut Confirmation Item` cci
                     INNER JOIN `tabCut Confirmation` con ON con.name = cci.parent
                     INNER JOIN `tabCut Docket` cd ON cd.name = con.cut_po_number
-                    INNER JOIN `tabCut Docket Item` cdi ON cdi.parent = cd.name AND cdi.sales_order = cci.sales_order
                     WHERE cci.sales_order = so.name
                     AND cd.color = sod.custom_color
                     AND cci.docstatus = 1
-                ), 0) AS cut_qty_actual,
+                ), 0) AS cut_qty_actual
 
                 (COALESCE((
                     SELECT SUM(cci.confirmed_quantity)
