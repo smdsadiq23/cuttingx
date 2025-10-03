@@ -101,7 +101,7 @@ def get_eligible_cut_dockets():
     # Step 1: Get all Cut Dockets used in submitted Bundle Creation
     used_in_bundle = frappe.get_all(
         'Bundle Creation',
-        filters={'docstatus': 1},
+        # filters={'docstatus': 1},
         fields=['cut_docket_id']
     )
     used_docket_ids = {d['cut_docket_id'] for d in used_in_bundle if d['cut_docket_id']}
