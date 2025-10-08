@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-07 16:50:15.244158",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_a1ka",
+  "amended_from",
+  "cut_bundle_order",
+  "fg_item",
+  "order_method",
+  "cut_kit_qty",
+  "process_order_no",
+  "column_break_ldkr",
+  "work_order",
+  "style",
+  "supplier",
+  "physical_cell",
+  "column_break_txfp",
+  "sales_order",
+  "colour",
+  "included_components",
+  "section_break_yine",
+  "table_ckp_bundle_details",
+  "table_ckp_bundle_summary"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_a1ka",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Cut Kit Plan",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "cut_bundle_order",
+   "fieldtype": "Link",
+   "label": "Cut Bundle Order",
+   "options": "Bundle Creation"
+  },
+  {
+   "fetch_from": "cut_bundle_order.fg_item",
+   "fieldname": "fg_item",
+   "fieldtype": "Link",
+   "label": "FG Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Supplier",
+   "options": "Supplier",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cut_kit_qty",
+   "fieldtype": "Int",
+   "label": "Cut Kit Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "process_order_no",
+   "fieldtype": "Data",
+   "label": "Process Order No"
+  },
+  {
+   "fieldname": "column_break_ldkr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order"
+  },
+  {
+   "fieldname": "style",
+   "fieldtype": "Link",
+   "label": "Style",
+   "options": "Style Master"
+  },
+  {
+   "fieldname": "order_method",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Order Method",
+   "options": "Order Method",
+   "reqd": 1
+  },
+  {
+   "fieldname": "physical_cell",
+   "fieldtype": "Link",
+   "label": "Physical Cell",
+   "options": "Physical Cell"
+  },
+  {
+   "fieldname": "column_break_txfp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order"
+  },
+  {
+   "fieldname": "colour",
+   "fieldtype": "Data",
+   "label": "Colour"
+  },
+  {
+   "fieldname": "section_break_yine",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_ckp_bundle_details",
+   "fieldtype": "Table",
+   "label": "Bundle Details",
+   "options": "Cut Kit Plan Bundle Details"
+  },
+  {
+   "fieldname": "table_ckp_bundle_summary",
+   "fieldtype": "Table",
+   "label": "Bundle Summary",
+   "options": "Cut Kit Plan Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "included_components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Cut Kit Plan Components"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-10-08 11:52:21.378054",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Cut Kit Plan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

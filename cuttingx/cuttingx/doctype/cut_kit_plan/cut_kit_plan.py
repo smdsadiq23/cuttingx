@@ -1,0 +1,140 @@
+# Copyright (c) 2025, Cognitonx Logic India Private Limited and contributors
+# For license information, please see license.txt
+
+import frappe
+from frappe.model.document import Document
+
+
+class CutKitPlan(Document):
+    def before_save(self):
+        if not self.fg_item:
+            return
+
+        if not self.style or not self.colour:
+            item_doc = frappe.get_cached_doc("Item", self.fg_item)
+            if not self.style:
+                self.style = item_doc.get("custom_style_master") or ""
+            if not self.colour:
+                self.colour = item_doc.get("custom_colour_name") or ""
+                
+                
+@frappe.whitelist()
+def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters):
+    """
+    Return Bundle Creation records for the Link field:
+    - Must be submitted (docstatus = 1)
+    - Must not already be used by another Cut Kit Plan
+    - If editing, allow the bundle already set on this document to appear
+
+    Args follow Frappe link query signature.
+    """
+    current_docname = (filters or {}).get("current_docname")
+
+    args = {
+        "txt_like": f"%{txt or ''}%",
+        "current_docname": current_docname,
+        "limit": int(page_len or 20),
+        "offset": int(start or 0),
+    }
+
+    # NOT EXISTS keeps it simple and fast; allows re-selecting the current doc's bundle
+    query = """
+        SELECT bc.name, bc.fg_item
+        FROM `tabBundle Creation` bc
+        WHERE bc.docstatus = 1
+          AND (%(txt_like)s = '%%' OR bc.name LIKE %(txt_like)s)
+          AND NOT EXISTS (
+                SELECT 1
+                FROM `tabCut Kit Plan` ckp
+                WHERE ckp.cut_bundle_order = bc.name
+                  AND (%(current_docname)s IS NULL OR ckp.name != %(current_docname)s)
+          )
+        ORDER BY bc.creation DESC
+        LIMIT %(limit)s OFFSET %(offset)s
+    """
+    return frappe.db.sql(query, args)
+
+
+@frappe.whitelist()
+def get_auto_fill_data(fg_item):
+    if not fg_item:
+        return {}
+
+    try:
+        item_doc = frappe.get_cached_doc("Item", fg_item)
+        style = item_doc.get("custom_style_master") or ""
+        colour = item_doc.get("custom_colour_name") or ""
+    except Exception:
+        style = ""
+        colour = ""
+
+    bundle_info = frappe.db.sql("""
+        SELECT bi.sales_order, bi.work_order
+        FROM `tabBundle Creation Item` bi
+        INNER JOIN `tabBundle Creation` b ON bi.parent = b.name
+        WHERE b.fg_item = %s
+        ORDER BY b.creation DESC
+        LIMIT 1
+    """, fg_item, as_dict=True)
+
+    sales_order = bundle_info[0].sales_order if bundle_info else None
+    work_order = bundle_info[0].work_order if bundle_info else None
+
+    return {
+        "sales_order": sales_order,
+        "work_order": work_order,
+        "style": style,
+        "colour": colour
+    }
+
+
+@frappe.whitelist()
+def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len, filters):
+    order_method = filters.get("order_method")
+    if not order_method:
+        return []
+
+    suppliers = frappe.db.sql("""
+        SELECT DISTINCT sfg.supplier, sup.supplier_name
+        FROM `tabBOM Order Method Cost` omc
+        INNER JOIN `tabSupplier FG Items` sfg ON omc.parent = sfg.name
+        INNER JOIN `tabSupplier` sup ON sfg.supplier = sup.name
+        WHERE 
+            omc.omc_order_method = %s
+            AND sfg.supplier IS NOT NULL
+            AND (sup.name LIKE %s OR sup.supplier_name LIKE %s)
+        LIMIT %s OFFSET %s
+    """, (
+        order_method,
+        "%" + txt + "%",
+        "%" + txt + "%",
+        int(page_len),
+        int(start)
+    ))
+
+    return [(row[1] or row[0], row[0]) for row in suppliers if row[0]]
+
+
+# NEW: Single method to fetch both bundle details and unique components
+@frappe.whitelist()
+def get_bundle_details_with_components(bundle_creation_name):
+    if not bundle_creation_name:
+        return {"bundle_details": [], "unique_components": []}
+
+    bundle_details = frappe.db.sql("""
+        SELECT 
+            bundle_id,
+            size,
+            component,
+            unitsbundle AS bundle_qty
+        FROM `tabBundle Details`
+        WHERE parent = %s AND parenttype = 'Bundle Creation'
+    """, bundle_creation_name, as_dict=True)
+
+    unique_components = list({row.component for row in bundle_details if row.component})
+    unique_components.sort()  # Optional: sort alphabetically
+
+    return {
+        "bundle_details": bundle_details,
+        "unique_components": unique_components
+    }
