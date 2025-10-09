@@ -17,6 +17,7 @@
   "style",
   "supplier",
   "physical_cell",
+  "operation_map",
   "column_break_txfp",
   "sales_order",
   "colour",
@@ -139,13 +140,20 @@
    "fieldtype": "Table",
    "label": "Components",
    "options": "Cut Kit Plan Components"
+  },
+  {
+   "fieldname": "operation_map",
+   "fieldtype": "Link",
+   "label": "Operation Map",
+   "options": "Operation Map",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-08 11:52:21.378054",
+ "modified": "2025-10-09 09:38:39.434324",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
