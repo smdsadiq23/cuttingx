@@ -10,6 +10,7 @@
   "status",
   "naming_series",
   "sales_order",
+  "fob",
   "work_order",
   "colour",
   "style",
@@ -32,6 +33,8 @@
   "can_cut_percent",
   "remarks",
   "approval_section",
+  "profit_loss_value",
+  "deviation_under",
   "approval_card_html",
   "section_break_jisc",
   "folding",
@@ -224,12 +227,33 @@
    "hidden": 1,
    "label": "End Bit ",
    "read_only": 1
+  },
+  {
+   "fieldname": "deviation_under",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Deviation Under",
+   "options": "\nFabric\nProduction\nMerchant",
+   "read_only": 1
+  },
+  {
+   "fieldname": "fob",
+   "fieldtype": "Currency",
+   "label": "FOB",
+   "read_only": 1
+  },
+  {
+   "fieldname": "profit_loss_value",
+   "fieldtype": "Float",
+   "hidden": 1,
+   "label": "Profit/Loss Value",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-09-16 14:04:56.421598",
+ "modified": "2025-10-10 14:06:45.909612",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

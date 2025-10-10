@@ -17,6 +17,7 @@ class CanCut(Document):
         self.calculate_fabric_balance()
         self.calculate_can_cut_quantity()
         self.calculate_can_cut_percent()
+        self.calculate_profit_loss_value() 
 
 
     def on_update(self):
@@ -47,6 +48,10 @@ class CanCut(Document):
         else:
             self.can_cut_percent = 0
 
+    def calculate_profit_loss_value(self):
+        qty_diff = flt(self.can_cut_quantity) - flt(self.order_quantity)
+        fob_rate = flt(self.fob)  # Now comes from Can Cut's own field
+        self.profit_loss_value = qty_diff * fob_rate
 
     def notify_approvers(self):
         """Notify all Can Cut Approvers that approval is pending."""
