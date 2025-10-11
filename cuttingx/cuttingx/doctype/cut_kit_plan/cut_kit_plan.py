@@ -138,3 +138,13 @@ def get_bundle_details_with_components(bundle_creation_name):
         "bundle_details": bundle_details,
         "unique_components": unique_components
     }
+
+ 
+# SELECT pi.production_item_number, tbc.shade, tbc.size, tc.component_name AS 'component', tbc.bundle_quantity
+# 	FROM `tabProduction Item` pi
+# 	INNER JOIN`tabTracking Order Bundle Configuration` tbc ON pi.`bundle_configuration` = tbc.name
+# 	INNER JOIN `tabTracking Order` tor ON tbc.parent = tor.name
+# 	INNER JOIN `tabTracking Component` tc ON tc.parent = tor.name AND tbc.component = tc.name
+# 	WHERE tor.`reference_order_number` = '20250925-002' AND tbc.source='Activation' AND tbc.activation_status = 'Completed'
+# 	ORDER BY pi.production_item_number
+ 

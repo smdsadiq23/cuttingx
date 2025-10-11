@@ -36,9 +36,9 @@ frappe.ui.form.on('Can Cut', {
         // 2. Can Cut Qty = Fabric Issued / (Actual Consumption)
         let can_cut_quantity = 0;
         if (flt(d.actual_consumption) > 0) {
-            can_cut_quantity = flt(d.fabric_issued) / flt(d.actual_consumption);
+            can_cut_quantity = Math.floor(flt(d.fabric_issued) / flt(d.actual_consumption));
         }
-        frm.set_value('can_cut_quantity', Math.floor(can_cut_quantity));
+        frm.set_value('can_cut_quantity', can_cut_quantity);
 
         // 3. Can Cut % = (Can Cut Qty / Order Quantity) * 100
         let can_cut_percent = 0;
@@ -50,7 +50,7 @@ frappe.ui.form.on('Can Cut', {
         // ✅ Profit/Loss Value (using local fob field)
         const qty_diff = flt(can_cut_quantity) - flt(d.order_quantity);
         const fob = flt(d.fob);
-        const profit_loss_value = qty_diff * fob;
+        const profit_loss_value = qty_diff * (fob * 0.7);
 
         frm.set_value('profit_loss_value', profit_loss_value);
 

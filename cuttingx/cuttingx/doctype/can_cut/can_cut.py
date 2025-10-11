@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt,  get_url_to_form
+import math 
 
 
 class CanCut(Document):
@@ -37,7 +38,7 @@ class CanCut(Document):
     def calculate_can_cut_quantity(self):
         # ✅ Use flt() to handle None
         if flt(self.actual_consumption) > 0:
-            self.can_cut_quantity = flt(self.fabric_issued) / (flt(self.actual_consumption))
+            self.can_cut_quantity = math.ceil(flt(self.fabric_issued) / (flt(self.actual_consumption)))
         else:
             self.can_cut_quantity = 0
 
@@ -51,7 +52,7 @@ class CanCut(Document):
     def calculate_profit_loss_value(self):
         qty_diff = flt(self.can_cut_quantity) - flt(self.order_quantity)
         fob_rate = flt(self.fob)  # Now comes from Can Cut's own field
-        self.profit_loss_value = qty_diff * fob_rate
+        self.profit_loss_value = qty_diff * (fob_rate * 0.7)
 
     def notify_approvers(self):
         """Notify all Can Cut Approvers that approval is pending."""
