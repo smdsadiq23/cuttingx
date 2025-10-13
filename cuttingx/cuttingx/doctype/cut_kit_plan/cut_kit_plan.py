@@ -21,38 +21,90 @@ class CutKitPlan(Document):
 @frappe.whitelist()
 def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters):
     """
-    Return Bundle Creation records for the Link field:
-    - Must be submitted (docstatus = 1)
-    - Must not already be used by another Cut Kit Plan
-    - If editing, allow the bundle already set on this document to appear
-
-    Args follow Frappe link query signature.
+    Return available Bundle Creation records:
+    - Submitted (docstatus = 1)
+    - Match search text
+    - Have at least one unused production_item_number (not in Cut Kit Plan Bundle Details)
+    - OR is the currently selected bundle (to allow editing)
     """
-    current_docname = (filters or {}).get("current_docname")
+    from frappe.utils import cint
 
-    args = {
-        "txt_like": f"%{txt or ''}%",
-        "current_docname": current_docname,
-        "limit": int(page_len or 20),
-        "offset": int(start or 0),
-    }
+    current_bundle = (filters or {}).get("current_bundle")
+    txt = txt or ""
+    start = cint(start)
+    page_len = cint(page_len) or 20
 
-    # NOT EXISTS keeps it simple and fast; allows re-selecting the current doc's bundle
-    query = """
-        SELECT bc.name, bc.fg_item
-        FROM `tabBundle Creation` bc
-        WHERE bc.docstatus = 1
-          AND (%(txt_like)s = '%%' OR bc.name LIKE %(txt_like)s)
-          AND NOT EXISTS (
-                SELECT 1
-                FROM `tabCut Kit Plan` ckp
-                WHERE ckp.cut_bundle_order = bc.name
-                  AND (%(current_docname)s IS NULL OR ckp.name != %(current_docname)s)
-          )
-        ORDER BY bc.creation DESC
-        LIMIT %(limit)s OFFSET %(offset)s
-    """
-    return frappe.db.sql(query, args)
+    # Step 1: Get all submitted bundles matching search (minimal SQL)
+    bundles = frappe.db.sql("""
+        SELECT name, fg_item
+        FROM `tabBundle Creation`
+        WHERE docstatus = 1
+          AND (%(txt)s = '' OR name LIKE %(like_txt)s)
+        ORDER BY creation DESC
+    """, {
+        "txt": txt,
+        "like_txt": f"%{txt}%"
+    }, as_dict=True)
+
+    if not bundles:
+        return []
+
+    bundle_names = [b.name for b in bundles]
+
+    # Step 2: Get all production_item_number -> bundle mapping for these bundles
+    # (Only for 'Activation' & 'Completed' lines)
+    bundle_to_items = frappe.db.sql("""
+        SELECT 
+            pi.production_item_number,
+            tor.reference_order_number AS bundle_name
+        FROM `tabProduction Item` pi
+        INNER JOIN `tabTracking Order Bundle Configuration` tbc 
+            ON pi.bundle_configuration = tbc.name
+        INNER JOIN `tabTracking Order` tor 
+            ON tbc.parent = tor.name
+        WHERE tor.reference_order_number IN %(bundle_names)s
+          AND tbc.source = 'Activation'
+          AND tbc.activation_status = 'Completed'
+    """, {"bundle_names": bundle_names}, as_dict=True)
+
+    # Step 3: Get all already-used production_item_number
+    used_items = set(frappe.db.sql_list("""
+        SELECT DISTINCT production_item_number
+        FROM `tabCut Kit Plan Bundle Details`
+        WHERE production_item_number IS NOT NULL
+    """))
+
+    # Step 4: For each bundle, check if it has ANY unused item
+    available_bundles = []
+    bundle_has_unused = {}
+
+    # Group items by bundle
+    from collections import defaultdict
+    items_by_bundle = defaultdict(list)
+    for row in bundle_to_items:
+        items_by_bundle[row.bundle_name].append(row.production_item_number)
+
+    for bundle in bundles:
+        name = bundle.name
+
+        # Always include current bundle (even if fully used)
+        if name == current_bundle:
+            available_bundles.append((name, bundle.fg_item))
+            continue
+
+        items = items_by_bundle.get(name, [])
+        if not items:
+            continue  # no valid bundle lines
+
+        # Check if ANY item is unused
+        has_unused = any(item not in used_items for item in items)
+        if has_unused:
+            available_bundles.append((name, bundle.fg_item))
+
+    # Step 5: Apply pagination (start, page_len)
+    paginated = available_bundles[start : start + page_len]
+
+    return paginated
 
 
 @frappe.whitelist()
