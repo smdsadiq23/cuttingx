@@ -128,7 +128,7 @@ def get_bundle_details_with_components(bundle_creation_name):
             tbc.shade, 
             tbc.size, 
             tc.component_name AS 'component', 
-            tbc.bundle_quantity
+            tbc.bundle_qty
         FROM `tabProduction Item` pi
         INNER JOIN `tabTracking Order Bundle Configuration` tbc 
             ON pi.`bundle_configuration` = tbc.name

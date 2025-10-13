@@ -175,6 +175,7 @@ function apply_included_components_filter(frm) {
     filtered.forEach(row => {
         let c = frm.add_child("table_ckp_bundle_details");
         c.production_item_number = row.production_item_number;
+        c.shade = row.shade;
         c.size = row.size;
         c.component = row.component;
         c.bundle_qty = row.bundle_qty;
