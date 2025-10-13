@@ -6,42 +6,54 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "bundle_id",
+  "production_item_number",
+  "shade",
   "size",
   "component",
   "bundle_qty"
  ],
  "fields": [
   {
-   "fieldname": "bundle_id",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Bundle Id"
-  },
-  {
    "fieldname": "size",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Size"
+   "label": "Size",
+   "read_only": 1
   },
   {
    "fieldname": "component",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Component"
+   "label": "Component",
+   "read_only": 1
   },
   {
    "fieldname": "bundle_qty",
    "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "Bundle Qty"
+   "label": "Bundle Qty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "shade",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Shade",
+   "read_only": 1
+  },
+  {
+   "fieldname": "production_item_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Production Item Number",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-07 17:21:03.896633",
+ "modified": "2025-10-13 15:28:54.413405",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan Bundle Details",

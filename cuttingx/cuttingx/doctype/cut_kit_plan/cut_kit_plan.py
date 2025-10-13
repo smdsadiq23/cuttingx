@@ -121,30 +121,52 @@ def get_bundle_details_with_components(bundle_creation_name):
     if not bundle_creation_name:
         return {"bundle_details": [], "unique_components": []}
 
+    # Step 1: Get all bundle details (without exclusion)
     bundle_details = frappe.db.sql("""
         SELECT 
-            bundle_id,
-            size,
-            component,
-            unitsbundle AS bundle_qty
-        FROM `tabBundle Details`
-        WHERE parent = %s AND parenttype = 'Bundle Creation'
+            pi.production_item_number, 
+            tbc.shade, 
+            tbc.size, 
+            tc.component_name AS 'component', 
+            tbc.bundle_quantity
+        FROM `tabProduction Item` pi
+        INNER JOIN `tabTracking Order Bundle Configuration` tbc 
+            ON pi.`bundle_configuration` = tbc.name
+        INNER JOIN `tabTracking Order` tor 
+            ON tbc.parent = tor.name
+        INNER JOIN `tabTracking Component` tc 
+            ON tc.parent = tor.name AND tbc.component = tc.name
+        WHERE tor.`reference_order_number` = %s 
+          AND tbc.source = 'Activation' 
+          AND tbc.activation_status = 'Completed'
+        ORDER BY pi.production_item_number
     """, bundle_creation_name, as_dict=True)
 
-    unique_components = list({row.component for row in bundle_details if row.component})
-    unique_components.sort()  # Optional: sort alphabetically
+    if not bundle_details:
+        return {"bundle_details": [], "unique_components": []}
+
+    # Step 2: Get all production_item_numbers already in Cut Kit Plan Bundle Details
+    existing_items = set(
+        frappe.db.sql_list("""
+            SELECT DISTINCT production_item_number 
+            FROM `tabCut Kit Plan Bundle Details`
+            WHERE production_item_number IS NOT NULL
+        """)
+    )
+
+    # Step 3: Filter out items that are already in Cut Kit Plan
+    filtered_bundle_details = [
+        row for row in bundle_details
+        if row.production_item_number not in existing_items
+    ]
+
+    # Step 4: Extract and sort unique components
+    unique_components = sorted({
+        row.component for row in filtered_bundle_details if row.component
+    })
 
     return {
-        "bundle_details": bundle_details,
+        "bundle_details": filtered_bundle_details,
         "unique_components": unique_components
     }
-
- 
-# SELECT pi.production_item_number, tbc.shade, tbc.size, tc.component_name AS 'component', tbc.bundle_quantity
-# 	FROM `tabProduction Item` pi
-# 	INNER JOIN`tabTracking Order Bundle Configuration` tbc ON pi.`bundle_configuration` = tbc.name
-# 	INNER JOIN `tabTracking Order` tor ON tbc.parent = tor.name
-# 	INNER JOIN `tabTracking Component` tc ON tc.parent = tor.name AND tbc.component = tc.name
-# 	WHERE tor.`reference_order_number` = '20250925-002' AND tbc.source='Activation' AND tbc.activation_status = 'Completed'
-# 	ORDER BY pi.production_item_number
  
