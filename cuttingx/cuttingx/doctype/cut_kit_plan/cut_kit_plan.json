@@ -23,7 +23,7 @@
   "included_components",
   "operrations_section",
   "operation_map",
-  "table_cut_kit_opetaions",
+  "table_cut_kit_operations",
   "section_break_yine",
   "table_ckp_bundle_details",
   "table_ckp_bundle_summary"
@@ -156,22 +156,22 @@
    "reqd": 1
   },
   {
-   "fieldname": "table_cut_kit_opetaions",
-   "fieldtype": "Table",
-   "label": "Operations",
-   "options": "Cut Kit Operations"
-  },
-  {
    "fieldname": "operrations_section",
    "fieldtype": "Section Break",
    "label": "Operrations"
+  },
+  {
+   "fieldname": "table_cut_kit_operations",
+   "fieldtype": "Table",
+   "label": "Operations",
+   "options": "Cut Kit Operations"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-15 15:15:45.457849",
+ "modified": "2025-10-15 15:40:04.614595",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",

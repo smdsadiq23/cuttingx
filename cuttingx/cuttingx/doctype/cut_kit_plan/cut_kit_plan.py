@@ -169,36 +169,44 @@ def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len,
 
 @frappe.whitelist()
 def get_operations_from_process_map(process_map_name):
-    """
-    Fetches the 'notes' field from a 'Process Map' document,
-    parses it as JSON, and returns a list of 'label' values
-    for nodes where type == 'operationProcess'.
-    """
     if not process_map_name:
         return []
 
-    # Fetch the Process Map doc
-    process_map_doc = frappe.get_doc("Process Map", process_map_name)
-    notes = process_map_doc.get("notes")
-
-    if not notes:
-        return []
-
     try:
-        data = frappe.parse_json(notes)
-        if not isinstance(data, list):
-            return []
-
-        operations = [
-            item.get("label")
-            for item in data
-            if item.get("type") == "operationProcess" and item.get("label")
-        ]
-        return operations
-
-    except Exception as e:
-        frappe.log_error(f"Error parsing Process Map notes: {str(e)}", "Process Map Parsing Error")
+        doc = frappe.get_doc("Process Map", process_map_name)
+    except Exception:
+        frappe.log_error(f"Process Map not found: {process_map_name}")
         return []
+
+    nodes = doc.get("nodes")
+    if not nodes:
+        frappe.log_error(f"'nodes' field is empty in Process Map: {process_map_name}")
+        return []
+
+    # Handle both string (JSON) and already-parsed list
+    try:
+        if isinstance(nodes, str):
+            data = frappe.parse_json(nodes)
+        else:
+            data = nodes  # Already a dict/list (e.g., from JSON field type)
+    except Exception as e:
+        frappe.log_error(f"Failed to parse nodes as JSON: {str(e)} | Raw: {nodes}")
+        return []
+
+    if not isinstance(data, list):
+        frappe.log_error(f"'nodes' is not a list. Type: {type(data)}, Value: {data}")
+        return []
+
+    operations = [
+        node.get("label")
+        for node in data
+        if isinstance(node, dict)
+        and node.get("type") == "operationProcess"
+        and node.get("label")
+    ]
+
+    frappe.log_error(f"Extracted operations: {operations}")  # DEBUG
+    return operations
     
 
 # NEW: Single method to fetch both bundle details and unique components

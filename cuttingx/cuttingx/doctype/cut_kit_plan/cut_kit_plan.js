@@ -33,8 +33,8 @@ frappe.ui.form.on('Cut Kit Plan', {
 
     operation_map: function(frm) {
         if (!frm.doc.operation_map) {
-            frm.clear_table("cut_kit_operations");
-            frm.refresh_field("cut_kit_operations");
+            frm.clear_table("table_cut_kit_operations");
+            frm.refresh_field("table_cut_kit_operations");
             return;
         }
 
@@ -45,23 +45,24 @@ frappe.ui.form.on('Cut Kit Plan', {
             },
             callback: function(r) {
                 if (r.message && Array.isArray(r.message)) {
-                    frm.clear_table("cut_kit_operations");
+                    frm.clear_table("table_cut_kit_operations");
                     r.message.forEach(label => {
-                        let row = frm.add_child("cut_kit_operations");
+                        let row = frm.add_child("table_cut_kit_operations");
+                        console.log(label)
                         row.operation = label; // Ensure fieldname matches your child table
                     });
-                    frm.refresh_field("cut_kit_operations");
+                    frm.refresh_field("table_cut_kit_operations");
                     // Optional: Show success message
                     // frappe.show_alert(`Loaded ${r.message.length} operations.`);
                 } else {
-                    frm.clear_table("cut_kit_operations");
-                    frm.refresh_field("cut_kit_operations");
+                    frm.clear_table("table_cut_kit_operations");
+                    frm.refresh_field("table_cut_kit_operations");
                     frappe.msgprint(__("No valid operations found in the selected Process Map."));
                 }
             },
             error: function() {
-                frm.clear_table("cut_kit_operations");
-                frm.refresh_field("cut_kit_operations");
+                frm.clear_table("table_cut_kit_operations");
+                frm.refresh_field("table_cut_kit_operations");
                 frappe.msgprint(__("Failed to load operations from Process Map."));
             }
         });
