@@ -11,17 +11,19 @@
   "fg_item",
   "order_method",
   "cut_kit_qty",
-  "process_order_no",
   "column_break_ldkr",
+  "process_order_no",
   "work_order",
-  "style",
-  "supplier",
-  "physical_cell",
-  "operation_map",
-  "column_break_txfp",
   "sales_order",
+  "supplier",
+  "column_break_txfp",
+  "style",
   "colour",
+  "physical_cell",
   "included_components",
+  "operrations_section",
+  "operation_map",
+  "table_cut_kit_opetaions",
   "section_break_yine",
   "table_ckp_bundle_details",
   "table_ckp_bundle_summary"
@@ -81,13 +83,15 @@
    "fieldname": "work_order",
    "fieldtype": "Link",
    "label": "Work Order",
-   "options": "Work Order"
+   "options": "Work Order",
+   "read_only": 1
   },
   {
    "fieldname": "style",
    "fieldtype": "Link",
    "label": "Style",
-   "options": "Style Master"
+   "options": "Style Master",
+   "read_only": 1
   },
   {
    "fieldname": "order_method",
@@ -111,12 +115,14 @@
    "fieldname": "sales_order",
    "fieldtype": "Link",
    "label": "Sales Order",
-   "options": "Sales Order"
+   "options": "Sales Order",
+   "read_only": 1
   },
   {
    "fieldname": "colour",
    "fieldtype": "Data",
-   "label": "Colour"
+   "label": "Colour",
+   "read_only": 1
   },
   {
    "fieldname": "section_break_yine",
@@ -138,6 +144,7 @@
   {
    "fieldname": "included_components",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Components",
    "options": "Cut Kit Plan Components"
   },
@@ -147,13 +154,24 @@
    "label": "Operation Map",
    "options": "Process Map",
    "reqd": 1
+  },
+  {
+   "fieldname": "table_cut_kit_opetaions",
+   "fieldtype": "Table",
+   "label": "Operations",
+   "options": "Cut Kit Operations"
+  },
+  {
+   "fieldname": "operrations_section",
+   "fieldtype": "Section Break",
+   "label": "Operrations"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-09 14:16:01.774696",
+ "modified": "2025-10-15 14:16:43.383927",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",

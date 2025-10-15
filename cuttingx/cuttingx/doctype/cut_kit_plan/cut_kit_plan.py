@@ -167,6 +167,40 @@ def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len,
     return [(row[1] or row[0], row[0]) for row in suppliers if row[0]]
 
 
+@frappe.whitelist()
+def get_operations_from_process_map(process_map_name):
+    """
+    Fetches the 'notes' field from a 'tabProcess Map' document,
+    parses it as JSON, and returns a list of 'label' values
+    for nodes where type == 'operationProcess'.
+    """
+    if not process_map_name:
+        return []
+
+    # Fetch the Process Map doc
+    process_map_doc = frappe.get_doc("tabProcess Map", process_map_name)
+    notes = process_map_doc.get("notes")
+
+    if not notes:
+        return []
+
+    try:
+        data = frappe.parse_json(notes)
+        if not isinstance(data, list):
+            return []
+
+        operations = [
+            item.get("label")
+            for item in data
+            if item.get("type") == "operationProcess" and item.get("label")
+        ]
+        return operations
+
+    except Exception as e:
+        frappe.log_error(f"Error parsing Process Map notes: {str(e)}", "Process Map Parsing Error")
+        return []
+    
+
 # NEW: Single method to fetch both bundle details and unique components
 @frappe.whitelist()
 def get_bundle_details_with_components(bundle_creation_name):
