@@ -144,9 +144,9 @@
   {
    "fieldname": "included_components",
    "fieldtype": "Table",
-   "hidden": 1,
    "label": "Components",
-   "options": "Cut Kit Plan Components"
+   "options": "Cut Kit Plan Components",
+   "read_only": 1
   },
   {
    "fieldname": "operation_map",
@@ -171,7 +171,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-15 14:16:43.383927",
+ "modified": "2025-10-15 15:15:45.457849",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
