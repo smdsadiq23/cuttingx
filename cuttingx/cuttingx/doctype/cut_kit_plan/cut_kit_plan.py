@@ -169,32 +169,41 @@ def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len,
 
 @frappe.whitelist()
 def get_operations_from_process_map(process_map_name):
+    """
+    Fetches operation labels from the 'nodes' field of a 'Process Map' DocType.
+    Handles both JSON string and pre-parsed list (if field type is JSON).
+    Returns a list of operation labels where node type is 'operationProcess'.
+    """
     if not process_map_name:
         return []
 
     try:
         doc = frappe.get_doc("Process Map", process_map_name)
-    except Exception:
-        frappe.log_error(f"Process Map not found: {process_map_name}")
+    except frappe.DoesNotExistError:
+        frappe.log_error(
+            title="Process Map Not Found",
+            message=f"Process Map '{process_map_name}' does not exist."
+        )
         return []
 
     nodes = doc.get("nodes")
     if not nodes:
-        frappe.log_error(f"'nodes' field is empty in Process Map: {process_map_name}")
         return []
 
-    # Handle both string (JSON) and already-parsed list
+    # Safely handle both string (Text/Code field) and parsed (JSON field) data
     try:
         if isinstance(nodes, str):
             data = frappe.parse_json(nodes)
         else:
-            data = nodes  # Already a dict/list (e.g., from JSON field type)
+            data = nodes  # Already a list (e.g., from JSON field type)
     except Exception as e:
-        frappe.log_error(f"Failed to parse nodes as JSON: {str(e)} | Raw: {nodes}")
+        frappe.log_error(
+            title="Process Map Parse Error",
+            message=f"Invalid JSON in 'nodes' of Process Map '{process_map_name}': {str(e)}"
+        )
         return []
 
     if not isinstance(data, list):
-        frappe.log_error(f"'nodes' is not a list. Type: {type(data)}, Value: {data}")
         return []
 
     operations = [
@@ -205,7 +214,6 @@ def get_operations_from_process_map(process_map_name):
         and node.get("label")
     ]
 
-    frappe.log_error(f"Extracted operations: {operations}")  # DEBUG
     return operations
     
 
