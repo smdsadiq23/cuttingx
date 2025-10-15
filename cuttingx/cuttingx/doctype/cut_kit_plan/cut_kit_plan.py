@@ -167,12 +167,22 @@ def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len,
     return [(row[1] or row[0], row[0]) for row in suppliers if row[0]]
 
 
+import frappe
+from frappe import _
+
+# Define operations to IGNORE (case-sensitive)
+IGNORED_OPERATIONS = {
+    "Activation",
+    "UnLink Link",
+    "Unlink",
+    "Switch"
+}
+
 @frappe.whitelist()
 def get_operations_from_process_map(process_map_name):
     """
-    Fetches operation labels from the 'nodes' field of a 'Process Map' DocType.
-    Handles both JSON string and pre-parsed list (if field type is JSON).
-    Returns a list of operation labels where node type is 'operationProcess'.
+    Fetches operation labels from 'nodes' in Process Map,
+    excluding blacklisted operations.
     """
     if not process_map_name:
         return []
@@ -190,12 +200,11 @@ def get_operations_from_process_map(process_map_name):
     if not nodes:
         return []
 
-    # Safely handle both string (Text/Code field) and parsed (JSON field) data
     try:
         if isinstance(nodes, str):
             data = frappe.parse_json(nodes)
         else:
-            data = nodes  # Already a list (e.g., from JSON field type)
+            data = nodes
     except Exception as e:
         frappe.log_error(
             title="Process Map Parse Error",
@@ -209,9 +218,12 @@ def get_operations_from_process_map(process_map_name):
     operations = [
         node.get("label")
         for node in data
-        if isinstance(node, dict)
-        and node.get("type") == "operationProcess"
-        and node.get("label")
+        if (
+            isinstance(node, dict)
+            and node.get("type") == "operationProcess"
+            and node.get("label")
+            and node.get("label") not in IGNORED_OPERATIONS  # ← FILTER HERE
+        )
     ]
 
     return operations

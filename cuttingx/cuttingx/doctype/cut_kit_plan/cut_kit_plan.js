@@ -67,6 +67,29 @@ frappe.ui.form.on('Cut Kit Plan', {
             }
         });
     },       
+
+    production_type: function(frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+        let supplier_field = frappe.meta.get_docfield(cdt, "supplier", cdn);
+
+        if (row.production_type === "Outsourced") {
+            // Make Supplier mandatory
+            supplier_field.reqd = 1;
+            frappe.refresh_field("supplier", null, cdt, cdn);
+        } else {
+            // Make Supplier optional
+            supplier_field.reqd = 0;
+            frappe.refresh_field("supplier", null, cdt, cdn);
+        }
+    },
+
+    // Optional: Also validate on form save
+    validate: function(frm, cdt, cdn) {
+        let row = locals[cdt][cdn];
+        if (row.production_type === "Outsourced" && !row.supplier) {
+            frappe.throw(__("Supplier is required for Outsourced operations."));
+        }
+    },   
     
     cut_bundle_order: function(frm) {
         if (!frm.doc.cut_bundle_order) {
