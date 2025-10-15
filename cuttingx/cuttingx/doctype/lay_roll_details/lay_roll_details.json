@@ -1,0 +1,68 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-14 12:56:02.265403",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "grn_item_reference",
+  "roll_weight",
+  "width",
+  "dia",
+  "no_of_lays"
+ ],
+ "fields": [
+  {
+   "fieldname": "roll_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Roll Weight",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "dia",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Dia",
+   "precision": "2"
+  },
+  {
+   "fieldname": "no_of_lays",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "No of Lays",
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "grn_item_reference",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "GRN Item Reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "width",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Width",
+   "precision": "2"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-10-14 19:36:01.177877",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Lay Roll Details",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
