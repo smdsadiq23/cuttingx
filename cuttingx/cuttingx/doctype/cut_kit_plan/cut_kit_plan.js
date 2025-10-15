@@ -69,27 +69,23 @@ frappe.ui.form.on('Cut Kit Plan', {
     },       
 
     production_type: function(frm, cdt, cdn) {
-        let row = locals[cdt][cdn];
-        let supplier_field = frappe.meta.get_docfield(cdt, "supplier", cdn);
+        const row = locals[cdt][cdn];
+        const supplier_df = frappe.meta.get_docfield(cdt, "supplier", cdn);
 
-        if (row.production_type === "Outsourced") {
-            // Make Supplier mandatory
-            supplier_field.reqd = 1;
-            frappe.refresh_field("supplier", null, cdt, cdn);
-        } else {
-            // Make Supplier optional
-            supplier_field.reqd = 0;
-            frappe.refresh_field("supplier", null, cdt, cdn);
+        if (supplier_df) {
+            // Make Supplier mandatory ONLY if Production Type is "Outsourced"
+            supplier_df.reqd = row.production_type === "Outsourced" ? 1 : 0;
+            frappe.refresh_field("supplier", cdn, cdt);
         }
     },
 
-    // Optional: Also validate on form save
+    // Optional but recommended: Validate on row save (e.g., before saving parent form)
     validate: function(frm, cdt, cdn) {
-        let row = locals[cdt][cdn];
+        const row = locals[cdt][cdn];
         if (row.production_type === "Outsourced" && !row.supplier) {
-            frappe.throw(__("Supplier is required for Outsourced operations."));
+            frappe.throw(__("Supplier is mandatory for 'Outsourced' operations in row: {0}", [row.idx]));
         }
-    },   
+    }, 
     
     cut_bundle_order: function(frm) {
         if (!frm.doc.cut_bundle_order) {
