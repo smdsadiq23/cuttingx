@@ -141,6 +141,7 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
     grn_items = frappe.db.sql("""
         SELECT 
             gri.name AS grn_item_reference,
+            gri.roll_no AS roll_no,            
             gri.received_quantity AS roll_weight,
             gri.fabric_width AS width,
             gri.dia AS dia

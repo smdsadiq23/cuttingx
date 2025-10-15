@@ -39,10 +39,12 @@ frappe.ui.form.on('Cutting Lay Record', {
 
     ocn: function(frm) {
         frm.set_value('style', '');
-        frm.set_value('colour', '');   
+        frm.set_value('colour', '');
 
         if (!frm.doc.ocn) {
-            frm.set_query('style', () => ({}));
+            frm.set_query('style', () => ({
+                filters: { name: ['in', []] } // empty by default
+            }));
             return;
         }
 
@@ -60,7 +62,10 @@ frappe.ui.form.on('Cutting Lay Record', {
                         return { filters: { name: ['in', styles] } };
                     });
                 } else {
-                    frm.set_query('style', () => ({}));
+                    // 👇 FIX: Show NO styles (not all styles)
+                    frm.set_query('style', () => {
+                        return { filters: { name: ['in', []] } };
+                    });
                     frappe.msgprint(__('No styles found for this Sales Order.'));
                 }
             }
@@ -172,12 +177,14 @@ frappe.ui.form.on('Cutting Lay Record', {
                         grn_items.forEach(grn => {
                             let row = frm.add_child('table_lay_roll_details');
                             row.grn_item_reference = grn.grn_item_reference;
+                            row.roll_no = grn.roll_no; 
                             row.roll_weight = grn.roll_weight;
                             row.width = grn.width;
                             row.dia = grn.dia;
                         });
                         frm.refresh_field('table_lay_roll_details');
-                        update_roll_totals(frm); // 👈 critical: recalculate after auto-fill
+                        update_roll_totals(frm);
+                        update_average_consumption(frm);
                     }
                 }
             });
@@ -220,6 +227,7 @@ function update_total_ratio_qty(frm) {
         });
     }
     frm.set_value('total_ratio_qty', total);
+    update_average_consumption(frm);
 }
 
 function update_roll_totals(frm) {
@@ -231,10 +239,25 @@ function update_roll_totals(frm) {
         frm.doc.table_lay_roll_details.forEach(row => {
             total_weight += flt(row.roll_weight);
             total_lays += flt(row.no_of_lays);
-            console.log(row.roll_weight);
         });
     }
 
     frm.set_value('total_roll_weight', total_weight);
     frm.set_value('total_no_of_lays', total_lays);
+    update_average_consumption(frm);
+}
+
+function update_average_consumption(frm) {
+    const total_roll_weight = flt(frm.doc.total_roll_weight);
+    const total_no_of_lays = flt(frm.doc.total_no_of_lays);
+    const total_ratio_qty = flt(frm.doc.total_ratio_qty);
+
+    let avg_consumption = 0;
+
+    // Avoid division by zero
+    if (total_no_of_lays > 0 && total_ratio_qty > 0) {
+        avg_consumption = total_roll_weight / (total_no_of_lays * total_ratio_qty);
+    }
+
+    frm.set_value('average_consumption', avg_consumption);
 }
