@@ -170,7 +170,7 @@ def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len,
 @frappe.whitelist()
 def get_operations_from_process_map(process_map_name):
     """
-    Fetches the 'notes' field from a 'tabProcess Map' document,
+    Fetches the 'notes' field from a 'Process Map' document,
     parses it as JSON, and returns a list of 'label' values
     for nodes where type == 'operationProcess'.
     """
@@ -178,7 +178,7 @@ def get_operations_from_process_map(process_map_name):
         return []
 
     # Fetch the Process Map doc
-    process_map_doc = frappe.get_doc("tabProcess Map", process_map_name)
+    process_map_doc = frappe.get_doc("Process Map", process_map_name)
     notes = process_map_doc.get("notes")
 
     if not notes:
