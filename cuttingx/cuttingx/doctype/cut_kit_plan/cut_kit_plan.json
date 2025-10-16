@@ -15,7 +15,6 @@
   "process_order_no",
   "work_order",
   "sales_order",
-  "supplier",
   "column_break_txfp",
   "style",
   "colour",
@@ -56,13 +55,6 @@
    "fieldtype": "Link",
    "label": "FG Item",
    "options": "Item"
-  },
-  {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Supplier",
-   "options": "Supplier"
   },
   {
    "fieldname": "cut_kit_qty",
@@ -177,7 +169,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 17:36:37.255739",
+ "modified": "2025-10-16 17:37:28.715397",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
