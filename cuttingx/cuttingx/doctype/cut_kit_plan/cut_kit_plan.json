@@ -161,15 +161,17 @@
   {
    "fieldname": "table_operation_map",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Operation Map",
-   "options": "Operation Map"
+   "options": "Operation Map",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 17:37:28.715397",
+ "modified": "2025-10-16 17:43:39.910362",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
