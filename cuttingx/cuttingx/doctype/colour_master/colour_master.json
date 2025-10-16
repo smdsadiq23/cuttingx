@@ -1,0 +1,73 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:colour_code",
+ "creation": "2025-10-16 10:24:45.105183",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "colour_code",
+  "colour_name",
+  "hex",
+  "rgb"
+ ],
+ "fields": [
+  {
+   "fieldname": "colour_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Colour Code",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "colour_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Colour Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "hex",
+   "fieldtype": "Color",
+   "in_list_view": 1,
+   "label": "HEX",
+   "reqd": 1
+  },
+  {
+   "fieldname": "rgb",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "RGB",
+   "read_only": 1,
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-10-16 10:33:59.596208",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Colour Master",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
