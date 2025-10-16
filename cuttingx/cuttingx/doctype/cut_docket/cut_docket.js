@@ -216,16 +216,23 @@ frappe.ui.form.on('Cut Docket', {
 frappe.ui.form.on('Cut Docket Item', {
     planned_cut_quantity: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
-
         const quantity = flt(row.quantity || 0);
         const already_cut = flt(row.already_cut || 0);
         const planned = flt(row.planned_cut_quantity || 0);
 
         row.balance = quantity - already_cut - planned;
-
         frm.refresh_field('table_size_ratio_qty');
         recalculate_fabric_requirement(frm);
-    }
+    },
+
+    refresh: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        // Only auto-fill if planned_cut_quantity hasn't been set by user yet
+        if (row && !row.planned_cut_quantity && row.balance > 0) {
+            // Set planned = balance → balance becomes 0
+            frappe.model.set_value(cdt, cdn, 'planned_cut_quantity', flt(row.balance));
+        }
+    }    
 });
 
 // Child table: Cut Docket WO Details
@@ -296,6 +303,16 @@ function fetch_size_details_for_work_order(frm, work_order) {
                 if (!existing.includes(key)) {
                     const row = frm.add_child('table_size_ratio_qty');
                     Object.assign(row, item);
+
+                    // ✅ AUTO-FILL: Set planned_cut_quantity = balance (if not already set)
+                    if (!row.planned_cut_quantity && row.balance > 0) {
+                        frappe.model.set_value(
+                            row.doctype,
+                            row.name,
+                            'planned_cut_quantity',
+                            flt(row.balance)
+                        );
+                    }
                 }
             });
 
@@ -349,10 +366,13 @@ function recalculate_balance_client_side(frm) {
 
     (frm.doc.table_size_ratio_qty || []).forEach(row => {
         if (!row.ref_work_order || !row.sales_order || !row.line_item_no || !row.size) {
-            // Reset incomplete rows
             row.balance = flt(row.quantity);
             row.already_cut = 0;
-            // Optionally: row.planned_cut_quantity = 0;
+            // Auto-fill planned only if not set
+            if (!row.planned_cut_quantity) {
+                row.planned_cut_quantity = row.balance;
+                row.balance = 0;
+            }
             return;
         }
 
@@ -366,19 +386,29 @@ function recalculate_balance_client_side(frm) {
             },
             callback: function(r) {
                 const already_cut = flt(r.message || 0);
-                const planned = flt(row.planned_cut_quantity || 0);
                 const quantity = flt(row.quantity || 0);
-                row.balance = quantity - already_cut - planned;
+                const planned = flt(row.planned_cut_quantity || 0);
+                const balance = quantity - already_cut - planned;
+
+                // Update fields
                 row.already_cut = already_cut;
+                row.balance = balance;
+
+                // ➕ Auto-fill planned_cut_quantity if not set
+                if (!row.planned_cut_quantity && balance > 0) {
+                    row.planned_cut_quantity = balance;
+                    row.balance = 0;
+                }
+
+                frm.refresh_field('table_size_ratio_qty');
+                recalculate_fabric_requirement(frm);
             }
         });
 
         promises.push(promise);
     });
 
-    // ✅ ALWAYS return a Promise, even if no calls were made
     return Promise.all(promises).then(() => {
-        // Refresh UI after all calls finish
         frm.refresh_field('table_size_ratio_qty');
     });
 }

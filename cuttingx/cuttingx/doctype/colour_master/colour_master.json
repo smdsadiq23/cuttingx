@@ -46,7 +46,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-16 10:33:59.596208",
+ "modified": "2025-10-16 10:56:18.177976",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Colour Master",
@@ -67,7 +67,9 @@
   }
  ],
  "row_format": "Dynamic",
+ "show_title_field_in_link": 1,
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "colour_name"
 }

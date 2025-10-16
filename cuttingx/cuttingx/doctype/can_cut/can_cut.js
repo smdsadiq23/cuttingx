@@ -256,6 +256,7 @@ frappe.ui.form.on('Can Cut', {
     work_order: function(frm) {
         if (!frm.doc.work_order) {
             frm.set_value('order_quantity', 0);
+            frm.set_value('fabric_ordered', 0);
             frm.set_value('colour', '');
             frm.set_value('style', '');
             frm.trigger('recalculate');
@@ -268,7 +269,7 @@ frappe.ui.form.on('Can Cut', {
             args: {
                 doctype: 'Work Order',
                 name: frm.doc.work_order,
-                fields: ['qty', 'production_item']
+                fields: ['qty', 'production_item', 'bom_no']
             },
             callback: function(r) {
                 if (r.message) {
@@ -295,29 +296,45 @@ frappe.ui.form.on('Can Cut', {
                             callback: function(res) {
                                 if (res.message) {
                                     const item = res.message;
-
-                                    // Set colour from custom_colour_name
                                     if (item.custom_colour_name) {
                                         frm.set_value('colour', item.custom_colour_name);
                                     }
-
-                                    // Set style
                                     if (item.custom_style_master) {
                                         frm.set_value('style', item.custom_style_master);
                                     }
                                 }
 
-                                // Always trigger recalculate after updates
-                                frm.trigger('recalculate');
+                                // ✅ Fetch all auto-fill data
+                                frappe.call({
+                                    method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.get_auto_fill_data_from_work_order',
+                                    args: { work_order: frm.doc.work_order },
+                                    callback: function(r) {
+                                        const data = r.message || {};
+                                        frm.set_value('fabric_ordered', flt(data.fabric_ordered || 0));
+                                        frm.set_value('file_consumption', flt(data.file_consumption || 0));
+                                        frm.set_value('file_gsm', flt(data.file_gsm || 0));
+                                        frm.set_value('file_fabric_width', flt(data.file_fabric_width || 0));
+                                        frm.set_value('file_dia', flt(data.file_dia || 0));                                        
+                                        frm.trigger('recalculate');
+                                    }
+                                });
                             }
                         });
                     } else {
-                        frm.trigger('recalculate');
+                        // Still try to calculate fabric_ordered (unlikely, but safe)
+                        frappe.call({
+                            method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.get_fabric_ordered_from_work_order',
+                            args: { work_order: frm.doc.work_order },
+                            callback: function(r) {
+                                frm.set_value('fabric_ordered', flt(r.message || 0));
+                                frm.trigger('recalculate');
+                            }
+                        });
                     }
                 }
             }
         });
-    },  
+    }, 
 
     colour: function(frm) {
         if (!frm.doc.sales_order || !frm.doc.colour) {
@@ -423,6 +440,8 @@ function get_approval_card_html(frm) {
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Can Cut Qty</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">File Fabric Width</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Actual Fabric Width</td>
+                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">File Dia</td>
+                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Actual Dia</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">File GSM</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Actual GSM</td>
                     </tr>
@@ -433,6 +452,8 @@ function get_approval_card_html(frm) {
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.can_cut_quantity)} pcs</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.file_fabric_width)} cm</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.actual_fabric_width)} cm</td>
+                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.file_dia)} cm</td>
+                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.actual_dia)} cm</td>                        
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.file_gsm)}</td>
                         <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.actual_gsm)}</td>
                     </tr>

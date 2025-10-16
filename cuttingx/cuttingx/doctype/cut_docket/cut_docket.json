@@ -27,6 +27,7 @@
   "season",
   "garment_way",
   "plant_code",
+  "vendor",
   "work_center",
   "section",
   "column_break_vksb",
@@ -97,6 +98,7 @@
   {
    "fieldname": "work_center",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Work Center"
   },
   {
@@ -114,6 +116,7 @@
   {
    "fieldname": "section",
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Section"
   },
   {
@@ -145,27 +148,28 @@
   {
    "fieldname": "marker_length_meters",
    "fieldtype": "Float",
+   "hidden": 1,
    "in_list_view": 1,
-   "label": "Marker Length (meters)",
-   "reqd": 1
+   "label": "Marker Length (meters)"
   },
   {
    "fieldname": "marker_width_meters",
    "fieldtype": "Float",
+   "hidden": 1,
    "in_list_view": 1,
-   "label": "Marker Width (meters)",
-   "reqd": 1
+   "label": "Marker Width (meters)"
   },
   {
    "fieldname": "no_of_plies",
    "fieldtype": "Int",
+   "hidden": 1,
    "in_list_view": 1,
-   "label": "No of Plies",
-   "reqd": 1
+   "label": "No of Plies"
   },
   {
    "fieldname": "marker_efficiency",
    "fieldtype": "Percent",
+   "hidden": 1,
    "label": "Marker Efficiency",
    "precision": "2",
    "read_only": 1
@@ -173,6 +177,7 @@
   {
    "fieldname": "marker_image",
    "fieldtype": "Attach Image",
+   "hidden": 1,
    "label": "Marker image"
   },
   {
@@ -187,7 +192,8 @@
   },
   {
    "fieldname": "section_break_vifx",
-   "fieldtype": "Section Break"
+   "fieldtype": "Section Break",
+   "hidden": 1
   },
   {
    "fieldname": "bom_no",
@@ -305,13 +311,20 @@
    "fieldname": "lay_cut_inspection",
    "fieldtype": "Check",
    "label": "Lay Cut inspection"
+  },
+  {
+   "fieldname": "vendor",
+   "fieldtype": "Link",
+   "label": "Vendor",
+   "options": "Supplier",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-02 16:07:08.599993",
+ "modified": "2025-10-16 12:07:31.667591",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

@@ -44,8 +44,17 @@ class CutDocket(Document):
         if self.style:
             self.set_bom_no_from_style()
             self.set_panel_type_from_bom()
-        # Always recalculate balance before validation
-        self.recalculate_balance_in_size_table()            
+
+        # Step 1: Recalculate already_cut and balance from DB (most accurate)
+        self.recalculate_balance_in_size_table()
+
+        # Step 2: Auto-fill planned_cut_quantity ONLY if it's zero
+        for row in self.table_size_ratio_qty:
+            if flt(row.planned_cut_quantity) == 0:
+                # Set planned = current balance (which is quantity - real already_cut)
+                row.planned_cut_quantity = flt(row.balance)
+                row.balance = 0  # now balance becomes zero
+
         self.calculate_fabric_requirement()
         self.calculate_fabric_requirement_against_marker()
         self.calculate_marker_efficiency()

@@ -26,7 +26,7 @@
   "total_no_of_lays",
   "column_break_woid",
   "average_consumption",
-  "nbt_quantity"
+  "end_bit_quantity"
  ],
  "fields": [
   {
@@ -144,12 +144,6 @@
    "reqd": 1
   },
   {
-   "fieldname": "nbt_quantity",
-   "fieldtype": "Float",
-   "label": "NBT Quantity",
-   "reqd": 1
-  },
-  {
    "fieldname": "column_break_wfxn",
    "fieldtype": "Column Break"
   },
@@ -162,13 +156,19 @@
    "fieldtype": "Table",
    "label": "Roll Details",
    "options": "Lay Roll Details"
+  },
+  {
+   "fieldname": "end_bit_quantity",
+   "fieldtype": "Float",
+   "label": "End Bit Quantity",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-15 13:27:17.812469",
+ "modified": "2025-10-16 16:23:34.367617",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",

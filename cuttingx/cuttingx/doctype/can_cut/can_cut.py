@@ -119,6 +119,116 @@ class CanCut(Document):
         )
 
 
+@frappe.whitelist()
+def get_auto_fill_data_from_work_order(work_order):
+    if not work_order:
+        return {}
+
+    wo_doc = frappe.get_doc("Work Order", work_order)
+    bom_no = wo_doc.bom_no
+    if not bom_no:
+        frappe.throw(_("Work Order {0} has no BOM.").format(work_order))
+
+    try:
+        bom = frappe.get_doc("BOM", bom_no)
+    except frappe.DoesNotExistError:
+        frappe.throw(_("BOM {0} not found").format(bom_no))
+
+    fabric_items = [
+        item for item in (bom.custom_fabrics_items or [])
+        if item.custom_fg_link == "Cut Main"
+    ]
+
+    if not fabric_items:
+        frappe.msgprint(_("No fabric items found in BOM {0} with custom_fg_link='Cut Main'").format(bom_no))
+        return {
+            "fabric_ordered": 0,
+            "file_consumption": 0,
+            "file_gsm": 0,
+            "file_fabric_width": 0
+        }
+
+    wo_line_items = wo_doc.get("custom_work_order_line_items") or []
+    matched_qtys = []  # ← Collect qtys of ACTUALLY MATCHED BOM items
+    total_fabric = 0.0
+
+    # === Primary: size-by-size match ===
+    for line in wo_line_items:
+        size = (line.size or "").strip().lower()
+        allocated_qty = flt(line.work_order_allocated_qty)
+        if not size or allocated_qty <= 0:
+            continue
+
+        matched_item = next(
+            (item for item in fabric_items if (item.custom_size or "").strip().lower() == size),
+            None
+        )
+        if matched_item:
+            qty_val = flt(matched_item.qty)
+            total_fabric += qty_val * allocated_qty
+            matched_qtys.append(qty_val)
+
+    # === Fallback: no size match → use single no-size item ===
+    if total_fabric == 0:
+        no_size_items = [item for item in fabric_items if not (item.custom_size or "").strip()]
+        if len(no_size_items) == 1:
+            qty_val = flt(no_size_items[0].qty)
+            total_allocated = sum(flt(line.work_order_allocated_qty) for line in wo_line_items)
+            total_fabric = qty_val * total_allocated
+            # For consumption, we use this single qty (not averaged)
+            matched_qtys = [qty_val]
+
+    # === file_consumption = average of matched qtys ===
+    file_consumption = sum(matched_qtys) / len(matched_qtys) if matched_qtys else 0
+
+    # === Get GSM & Width from first matched fabric item's Item doc ===
+    file_gsm = 0
+    file_fabric_width = 0
+
+    # Try to get item_code from first matched BOM item
+    source_item_code = None
+    if matched_qtys:
+        # Reuse matching logic to get the first matched item
+        for line in wo_line_items:
+            size = (line.size or "").strip().lower()
+            if not size or flt(line.work_order_allocated_qty) <= 0:
+                continue
+            matched = next(
+                (item for item in fabric_items if (item.custom_size or "").strip().lower() == size),
+                None
+            )
+            if matched and matched.item_code:
+                source_item_code = matched.item_code
+                break
+        # Fallback: use first no-size or first fabric item
+        if not source_item_code:
+            fallback = next((item for item in fabric_items if item.item_code), None)
+            if fallback:
+                source_item_code = fallback.item_code
+
+    if source_item_code:
+        item = frappe.db.get_value(
+            "Item",
+            source_item_code,
+            ["custom_gsm", "custom_width", "custom_dia"],
+            as_dict=True
+        )
+        # frappe.msgprint(item.name)
+        if item:
+            file_gsm = flt(item.custom_gsm or 0)
+            file_fabric_width = flt(item.custom_width or 0)
+            file_dia = flt(item.custom_dia or 0)
+
+
+    return {
+        "fabric_ordered": total_fabric,
+        "file_consumption": file_consumption,
+        "file_gsm": file_gsm,
+        "file_fabric_width": file_fabric_width,
+        "file_dia": file_dia
+    }
+
+
 # ✅ Whitelisted Methods (Top-Level)
 @frappe.whitelist()
 def approve(docname):

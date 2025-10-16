@@ -80,12 +80,15 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Fabric Ordered (Kg)",
+   "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "fabric_balance",
    "fieldtype": "Float",
    "label": "Fabric Balance (Kg)",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -98,6 +101,8 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "File Consumption (Kg / Pcs)",
+   "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -105,42 +110,52 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "File Fabric Width (Cm)",
+   "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "file_dia",
    "fieldtype": "Float",
    "label": "File Dia",
+   "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "file_gsm",
    "fieldtype": "Float",
    "label": "File GSM",
+   "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "actual_consumption",
    "fieldtype": "Float",
    "label": "Actual Consumption (Kg / Pcs)",
+   "precision": "2",
    "reqd": 1
   },
   {
    "fieldname": "actual_fabric_width",
    "fieldtype": "Float",
    "label": "Actual Fabric Width (Cm)",
+   "precision": "2",
    "reqd": 1
   },
   {
    "fieldname": "actual_dia",
    "fieldtype": "Float",
    "label": "Actual Dia",
+   "precision": "2",
    "reqd": 1
   },
   {
    "fieldname": "actual_gsm",
    "fieldtype": "Float",
    "label": "Actual GSM",
+   "precision": "2",
    "reqd": 1
   },
   {
@@ -150,19 +165,21 @@
   },
   {
    "fieldname": "order_quantity",
-   "fieldtype": "Float",
+   "fieldtype": "Int",
    "label": "Order Quantity (Pcs)",
+   "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "can_cut_quantity",
-   "fieldtype": "Float",
+   "fieldtype": "Int",
    "label": "Can Cut Quantity (Pcs)",
+   "precision": "2",
    "read_only": 1
   },
   {
    "fieldname": "can_cut_percent",
-   "fieldtype": "Float",
+   "fieldtype": "Percent",
    "label": "Can Cut %",
    "precision": "2",
    "read_only": 1
@@ -177,6 +194,7 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "Fabric Issued (Kg)",
+   "precision": "2",
    "reqd": 1
   },
   {
@@ -239,6 +257,7 @@
   {
    "fieldname": "fob",
    "fieldtype": "Currency",
+   "hidden": 1,
    "label": "FOB",
    "read_only": 1
   },
@@ -253,7 +272,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-10 14:06:45.909612",
+ "modified": "2025-10-16 16:22:10.883586",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
