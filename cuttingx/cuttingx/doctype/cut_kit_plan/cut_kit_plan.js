@@ -145,11 +145,31 @@ frappe.ui.form.on("Cut Kit Operations", {
         }
     },
 
-    // Optional but recommended: Validate on row save (e.g., before saving parent form)
+    // ✅ NEW: Enforce Production Type = "Outsourced" if Supplier is set
+    supplier: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
+        if (row.supplier && row.production_type !== "Outsourced") {
+            // Auto-correct or warn? We'll auto-set to "Outsourced" for better UX
+            frappe.model.set_value(cdt, cdn, "production_type", "Outsourced");
+            frappe.show_alert({
+                message: __("Production Type set to 'Outsourced' because a Supplier is selected."),
+                indicator: "orange"
+            });
+        }
+    },
+
+    // Enhanced validation
     validate: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
+        
+        // Case 1: Outsourced → Supplier required
         if (row.production_type === "Outsourced" && !row.supplier) {
             frappe.throw(__("Supplier is mandatory for 'Outsourced' operations in row: {0}", [row.idx]));
+        }
+        
+        // Case 2: Supplier selected → Must be Outsourced
+        if (row.supplier && row.production_type !== "Outsourced") {
+            frappe.throw(__("If a Supplier is selected, Production Type must be 'Outsourced' (Row {0})", [row.idx]));
         }
     }
 });
