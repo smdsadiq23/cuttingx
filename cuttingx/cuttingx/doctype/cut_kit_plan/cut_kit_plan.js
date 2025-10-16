@@ -27,9 +27,9 @@ frappe.ui.form.on('Cut Kit Plan', {
         });
     },
 
-    order_method: function(frm) {
-        set_supplier_query(frm);
-    },
+    // order_method: function(frm) {
+    //     set_supplier_query(frm);
+    // },
 
     operation_map: function(frm) {
         if (!frm.doc.operation_map) {
@@ -195,18 +195,18 @@ frappe.ui.form.on('Cut Kit Plan Bundle Details', {
 });
 
 
-function set_supplier_query(frm) {
-    if (frm.doc.order_method) {
-        frm.set_query("supplier", function() {
-            return {
-                query: "cuttingx.cuttingx.doctype.cut_kit_plan.cut_kit_plan.filter_suppliers_by_order_method",
-                filters: { order_method: frm.doc.order_method }
-            };
-        });
-    } else {
-        frm.set_query("supplier", {});
-    }
-}
+// function set_supplier_query(frm) {
+//     if (frm.doc.order_method) {
+//         frm.set_query("supplier", function() {
+//             return {
+//                 query: "cuttingx.cuttingx.doctype.cut_kit_plan.cut_kit_plan.filter_suppliers_by_order_method",
+//                 filters: { order_method: frm.doc.order_method }
+//             };
+//         });
+//     } else {
+//         frm.set_query("supplier", {});
+//     }
+// }
 
 
 // Helper: Get CURRENT selected components (works during add/remove events)

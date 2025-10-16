@@ -139,35 +139,32 @@ def get_auto_fill_data(fg_item):
     }
 
 
-@frappe.whitelist()
-def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len, filters):
-    order_method = filters.get("order_method")
-    if not order_method:
-        return []
+# @frappe.whitelist()
+# def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len, filters):
+#     order_method = filters.get("order_method")
+#     if not order_method:
+#         return []
 
-    suppliers = frappe.db.sql("""
-        SELECT DISTINCT sfg.supplier, sup.supplier_name
-        FROM `tabBOM Order Method Cost` omc
-        INNER JOIN `tabSupplier FG Items` sfg ON omc.parent = sfg.name
-        INNER JOIN `tabSupplier` sup ON sfg.supplier = sup.name
-        WHERE 
-            omc.omc_order_method = %s
-            AND sfg.supplier IS NOT NULL
-            AND (sup.name LIKE %s OR sup.supplier_name LIKE %s)
-        LIMIT %s OFFSET %s
-    """, (
-        order_method,
-        "%" + txt + "%",
-        "%" + txt + "%",
-        int(page_len),
-        int(start)
-    ))
+#     suppliers = frappe.db.sql("""
+#         SELECT DISTINCT sfg.supplier, sup.supplier_name
+#         FROM `tabBOM Order Method Cost` omc
+#         INNER JOIN `tabSupplier FG Items` sfg ON omc.parent = sfg.name
+#         INNER JOIN `tabSupplier` sup ON sfg.supplier = sup.name
+#         WHERE 
+#             omc.omc_order_method = %s
+#             AND sfg.supplier IS NOT NULL
+#             AND (sup.name LIKE %s OR sup.supplier_name LIKE %s)
+#         LIMIT %s OFFSET %s
+#     """, (
+#         order_method,
+#         "%" + txt + "%",
+#         "%" + txt + "%",
+#         int(page_len),
+#         int(start)
+#     ))
 
-    return [(row[1] or row[0], row[0]) for row in suppliers if row[0]]
+#     return [(row[1] or row[0], row[0]) for row in suppliers if row[0]]
 
-
-import frappe
-from frappe import _
 
 # Define operations to IGNORE (case-sensitive)
 IGNORED_OPERATIONS = {
