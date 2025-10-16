@@ -61,8 +61,7 @@
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Supplier",
-   "options": "Supplier",
-   "reqd": 1
+   "options": "Supplier"
   },
   {
    "fieldname": "cut_kit_qty",
@@ -171,7 +170,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-15 15:40:04.614595",
+ "modified": "2025-10-16 17:23:00.193892",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
