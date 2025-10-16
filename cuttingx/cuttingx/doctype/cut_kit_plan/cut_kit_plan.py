@@ -64,7 +64,6 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
             ON tbc.parent = tor.name
         WHERE tor.reference_order_number IN %(bundle_names)s
           AND tbc.source = 'Activation'
-          AND tbc.activation_status = 'Completed'
     """, {"bundle_names": bundle_names}, as_dict=True)
 
     # Step 3: Get all already-used production_item_number
