@@ -37,8 +37,7 @@
   "deviation_under",
   "approval_card_html",
   "section_break_jisc",
-  "folding",
-  "end_bit"
+  "folding"
  ],
  "fields": [
   {
@@ -240,13 +239,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "end_bit",
-   "fieldtype": "Data",
-   "hidden": 1,
-   "label": "End Bit ",
-   "read_only": 1
-  },
-  {
    "fieldname": "deviation_under",
    "fieldtype": "Select",
    "hidden": 1,
@@ -272,7 +264,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-16 16:22:10.883586",
+ "modified": "2025-10-16 18:31:58.057620",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
