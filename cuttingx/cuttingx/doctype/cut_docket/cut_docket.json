@@ -141,6 +141,7 @@
   {
    "fieldname": "fabric_requirement_against_marker",
    "fieldtype": "Float",
+   "hidden": 1,
    "label": "Fabric Requirement against Marker",
    "precision": "2",
    "read_only": 1
@@ -324,7 +325,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 12:07:31.667591",
+ "modified": "2025-10-17 09:59:45.087822",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",

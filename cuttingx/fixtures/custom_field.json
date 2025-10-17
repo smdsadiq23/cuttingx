@@ -95,7 +95,7 @@
   "name": "Sales Order-custom_consumption_status",
   "no_copy": 0,
   "non_negative": 0,
-  "options": "Pending for Approval\nApproved",
+  "options": "Prepared\nVerified\nPending for Approval\nApproved",
   "permlevel": 0,
   "placeholder": null,
   "precision": "",

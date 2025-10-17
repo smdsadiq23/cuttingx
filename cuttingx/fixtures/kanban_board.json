@@ -4,7 +4,7 @@
    {
     "column_name": "Created",
     "indicator": "Gray",
-    "order": "[]",
+    "order": "[\n \"20251016-00001\",\n \"20251002-00001\",\n \"20250925-00002\",\n \"20250925-00007\",\n \"20250925-00006\",\n \"20250925-00005\",\n \"20250925-00004\",\n \"20250925-00003\",\n \"20250925-00001\",\n \"20250919-00001\"\n]",
     "parent": "Cutting Kanban Board",
     "parentfield": "columns",
     "parenttype": "Kanban Board",
