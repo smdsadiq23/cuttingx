@@ -1,0 +1,196 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-16 10:49:50.067788",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_makx",
+  "amended_from",
+  "style_no",
+  "column_break_otpl",
+  "date",
+  "section_break_qjig",
+  "machine_no",
+  "gauge",
+  "order_name",
+  "file_name",
+  "column_break_myfx",
+  "description",
+  "notes",
+  "section_break_xbnl",
+  "sampling_status_items",
+  "section_break_cjnh",
+  "table_sampling_status_consumption",
+  "total_consumption_weight",
+  "column_break_dubk",
+  "table_sampling_status_panels",
+  "total_panel_weight",
+  "total_knitting_time",
+  "section_break_amxb",
+  "table_yarn_consumption_shade"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_makx",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Sampling Status",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "style_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Style No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_otpl",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_break_qjig",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "machine_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Machine No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "gauge",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Gauge",
+   "reqd": 1
+  },
+  {
+   "fieldname": "order_name",
+   "fieldtype": "Data",
+   "label": "Order Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "file_name",
+   "fieldtype": "Data",
+   "label": "File Name"
+  },
+  {
+   "fieldname": "column_break_myfx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "section_break_xbnl",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "sampling_status_items",
+   "fieldtype": "Table",
+   "label": "Sampling Status Items",
+   "options": "Sampling Status Item"
+  },
+  {
+   "fieldname": "section_break_cjnh",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "column_break_dubk",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "table_sampling_status_consumption",
+   "fieldtype": "Table",
+   "label": "Consumption",
+   "options": "Sampling Status Consumption"
+  },
+  {
+   "fieldname": "table_sampling_status_panels",
+   "fieldtype": "Table",
+   "label": "Panels",
+   "options": "Sampling Status Panels"
+  },
+  {
+   "fieldname": "total_consumption_weight",
+   "fieldtype": "Float",
+   "label": "Total Consumption Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_panel_weight",
+   "fieldtype": "Float",
+   "label": "Total Panel Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_knitting_time",
+   "fieldtype": "Data",
+   "label": "Total Knitting Time (mm:ss)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_break_amxb",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "table_yarn_consumption_shade",
+   "fieldtype": "Table",
+   "label": "Yarn Consumption Shade",
+   "options": "Yarn Consumption Shade"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-10-17 11:55:44.737892",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Sampling Status",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

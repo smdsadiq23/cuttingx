@@ -1,0 +1,51 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-10-17 11:08:41.831183",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "panel",
+  "weight",
+  "knitting_time"
+ ],
+ "fields": [
+  {
+   "fieldname": "panel",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Panel",
+   "reqd": 1
+  },
+  {
+   "fieldname": "weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Weight (gms)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "knitting_time",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Knitting Time (mm:ss)",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-10-17 11:51:58.112160",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Sampling Status Panels",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
