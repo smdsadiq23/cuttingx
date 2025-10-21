@@ -12,23 +12,55 @@ class KnittingYarnRequest(Document):
         
 
 @frappe.whitelist()
-def get_bom_consumption_for_yarn(yarn_code):
+def get_yarns_from_work_order_bom(work_order):
     """
-    Fetch bom_consumption (qty) from BOM Item where:
-    - item_code = yarn_code
-    - parentfield = 'custom_yarns_items'
-    
-    Returns qty as float. Assumes at most one match exists.
+    Fetch yarn_code, bom_consumption, and yarn_count for all yarns in the BOM's custom_yarns_items.
     """
-    if not yarn_code:
-        return 0.0
+    if not work_order:
+        return []
 
-    result = frappe.db.get_value(
+    production_item = frappe.db.get_value("Work Order", work_order, "production_item")
+    if not production_item:
+        return []
+
+    bom = frappe.db.get_value("Item", production_item, "default_bom")
+    if not bom:
+        return []
+
+    # Get all yarn items from BOM
+    bom_yarns = frappe.db.get_all(
         "BOM Item",
         filters={
-            "item_code": yarn_code,
+            "parent": bom,
             "parentfield": "custom_yarns_items"
         },
-        fieldname="qty"
+        fields=["item_code AS yarn_code", "custom_yarn_shade AS yarn_shade", "qty AS bom_consumption"]
     )
-    return flt(result or 0.0)
+
+    if not bom_yarns:
+        return []
+
+    # Extract all yarn codes
+    yarn_codes = [y.get("yarn_code") for y in bom_yarns if y.get("yarn_code")]
+
+    # Fetch custom_yarn_count for all yarns in one query
+    yarn_items = frappe.db.get_all(
+        "Item",
+        filters={"name": ["in", yarn_codes]},
+        fields=["name AS yarn_code", "custom_yarn_count AS yarn_count"]
+    )
+
+    # Create a map: yarn_code → yarn_count
+    yarn_count_map = {item["yarn_code"]: item.get("yarn_count") or "" for item in yarn_items}
+
+    # Enrich BOM yarns with yarn_count
+    result = []
+    for yarn in bom_yarns:
+        result.append({
+            "yarn_code": yarn["yarn_code"],
+            "yarn_shade": yarn["yarn_shade"],
+            "bom_consumption": yarn["bom_consumption"],
+            "yarn_count": yarn_count_map.get(yarn["yarn_code"], "")
+        })
+
+    return result

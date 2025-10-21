@@ -17,7 +17,8 @@ frappe.ui.form.on('Knitting Yarn Request', {
             frm.set_value('total_garment_qty', '');
             frm.clear_table('table_yarn_size_distribution');
             frm.refresh_field('table_yarn_size_distribution');
-            // Clear totals
+            frm.clear_table('table_yarn_shade_distribution');
+            frm.refresh_field('table_yarn_shade_distribution');
             frm.set_value('total_bom_consumption', 0);
             frm.set_value('total_yarn_requirement', 0);
             return;
@@ -63,8 +64,26 @@ frappe.ui.form.on('Knitting Yarn Request', {
                     frm.refresh_field('table_yarn_size_distribution');
                 }
 
-                // 5. Recalculate yarn shade table (in case total_garment_qty changed)
-                recalculate_yarn_shade_table(frm);
+                // ✅ 5. AUTO-FILL YARN SHADE DISTRIBUTION FROM BOM
+                frappe.call({
+                    method: 'cuttingx.cuttingx.doctype.knitting_yarn_request.knitting_yarn_request.get_yarns_from_work_order_bom',
+                    args: { work_order: frm.doc.work_order },
+                    callback: function(r) {
+                        frm.clear_table('table_yarn_shade_distribution');
+                        if (r.message && Array.isArray(r.message)) {
+                            r.message.forEach(yarn => {
+                                let row = frm.add_child('table_yarn_shade_distribution');
+                                row.yarn_code = yarn.yarn_code;
+                                row.yarn_shade = yarn.yarn_shade;
+                                row.yarn_count = yarn.yarn_count;
+                                row.bom_consumption = flt(yarn.bom_consumption);
+                            });
+                        }
+                        frm.refresh_field('table_yarn_shade_distribution');
+                        // Trigger recalc of yarn_required and totals
+                        setTimeout(() => recalculate_yarn_shade_table(frm), 100);
+                    }
+                });
             })
             .catch(err => {
                 console.warn('Failed to fetch Work Order:', frm.doc.work_order, err);
@@ -80,47 +99,51 @@ frappe.ui.form.on('Knitting Yarn Request', {
 
     total_garment_qty: function(frm) {
         recalculate_yarn_shade_table(frm);
+    },
+
+    before_submit: function(frm) {
+        frm.set_value('status', 'Issued');
     }
 });
 
-// Yarn Shade Distribution child table handlers
-frappe.ui.form.on('Yarn Shade Distribution', {
-    yarn_code: function(frm, cdt, cdn) {
-        const yarn_item = locals[cdt][cdn].yarn_code;
+// // Yarn Shade Distribution child table handlers
+// frappe.ui.form.on('Yarn Shade Distribution', {
+//     yarn_code: function(frm, cdt, cdn) {
+//         const yarn_item = locals[cdt][cdn].yarn_code;
 
-        if (!yarn_item) {
-            frappe.model.set_value(cdt, cdn, 'bom_consumption', 0);
-            return;
-        }
+//         if (!yarn_item) {
+//             frappe.model.set_value(cdt, cdn, 'bom_consumption', 0);
+//             return;
+//         }
 
-        frappe.call({
-            method: 'cuttingx.cuttingx.doctype.knitting_yarn_request.knitting_yarn_request.get_bom_consumption_for_yarn',
-            args: { yarn_code: yarn_item },
-            callback: function(r) {
-                const qty = flt(r.message || 0);
-                frappe.model.set_value(cdt, cdn, 'bom_consumption', qty);
-            }
-        });
-    },
+//         frappe.call({
+//             method: 'cuttingx.cuttingx.doctype.knitting_yarn_request.knitting_yarn_request.get_bom_consumption_for_yarn',
+//             args: { yarn_code: yarn_item },
+//             callback: function(r) {
+//                 const qty = flt(r.message || 0);
+//                 frappe.model.set_value(cdt, cdn, 'bom_consumption', qty);
+//             }
+//         });
+//     },
 
-    bom_consumption: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        const total_qty = flt(frm.doc.total_garment_qty);
-        const consumption = flt(row.bom_consumption);
-        frappe.model.set_value(cdt, cdn, 'yarn_required', consumption * total_qty)
-            .then(() => {
-                update_yarn_shade_totals(frm);
-            });
-    },
+//     bom_consumption: function(frm, cdt, cdn) {
+//         const row = locals[cdt][cdn];
+//         const total_qty = flt(frm.doc.total_garment_qty);
+//         const consumption = flt(row.bom_consumption);
+//         frappe.model.set_value(cdt, cdn, 'yarn_required', consumption * total_qty)
+//             .then(() => {
+//                 update_yarn_shade_totals(frm);
+//             });
+//     },
 
-    table_yarn_shade_distribution_add: function(frm) {
-        setTimeout(() => recalculate_yarn_shade_table(frm), 100);
-    },
+//     table_yarn_shade_distribution_add: function(frm) {
+//         setTimeout(() => recalculate_yarn_shade_table(frm), 100);
+//     },
 
-    table_yarn_shade_distribution_remove: function(frm) {
-        update_yarn_shade_totals(frm);
-    }
-});
+//     table_yarn_shade_distribution_remove: function(frm) {
+//         update_yarn_shade_totals(frm);
+//     }
+// });
 
 // ✅ Safe query setter (won't mark doc as dirty)
 function set_yarn_code_query_safely(frm) {
