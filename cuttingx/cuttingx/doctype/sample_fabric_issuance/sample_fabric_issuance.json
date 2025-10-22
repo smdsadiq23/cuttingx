@@ -1,0 +1,212 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-10-22 14:57:36.226435",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_hqjz",
+  "amended_from",
+  "naming_series",
+  "request_id",
+  "ocn",
+  "item_code",
+  "colour",
+  "fabric_composition",
+  "gsm",
+  "required_quantity",
+  "uom",
+  "purpose",
+  "request_by",
+  "requested_on",
+  "issued_quantity",
+  "grn",
+  "roll",
+  "issued_by",
+  "issued_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_hqjz",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Sample Fabric Issuance",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "SI.-.{ocn}.-.{colour}.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "in_list_view": 1,
+   "label": "Naming Series",
+   "options": "SI.-.{ocn}.-.{colour}.-.#####"
+  },
+  {
+   "fieldname": "request_id",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Request Id",
+   "options": "Sample Fabric Request",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.ocn",
+   "fieldname": "ocn",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "OCN",
+   "options": "Sales Order",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.item_code",
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "options": "Item",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.colour",
+   "fieldname": "colour",
+   "fieldtype": "Data",
+   "label": "Colour",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.fabric_composition",
+   "fieldname": "fabric_composition",
+   "fieldtype": "Data",
+   "label": "Fabric Composition",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.gsm",
+   "fieldname": "gsm",
+   "fieldtype": "Data",
+   "label": "GSM",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.required_quantity",
+   "fieldname": "required_quantity",
+   "fieldtype": "Float",
+   "label": "Required Quantity",
+   "precision": "2",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.uom",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "request_id.purpose",
+   "fieldname": "purpose",
+   "fieldtype": "Select",
+   "label": "Purpose",
+   "options": "\nFit\nPP Sample\nTest\nLab Dip",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.requested_by",
+   "fieldname": "request_by",
+   "fieldtype": "Link",
+   "label": "Request By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.requested_on",
+   "fieldname": "requested_on",
+   "fieldtype": "Datetime",
+   "label": "Requested On",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "request_id.required_quantity",
+   "fieldname": "issued_quantity",
+   "fieldtype": "Float",
+   "label": "Issued Quantity",
+   "non_negative": 1,
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "fieldname": "roll",
+   "fieldtype": "Select",
+   "label": "Roll",
+   "reqd": 1
+  },
+  {
+   "fieldname": "issued_by",
+   "fieldtype": "Link",
+   "label": "Issued By",
+   "options": "User",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "now",
+   "fieldname": "issued_on",
+   "fieldtype": "Datetime",
+   "label": "Issued On",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "grn",
+   "fieldtype": "Link",
+   "label": "GRN",
+   "options": "Goods Receipt Note",
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-10-22 16:57:05.433511",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Sample Fabric Issuance",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

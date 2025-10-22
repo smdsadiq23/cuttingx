@@ -1,0 +1,155 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "naming_series:",
+ "creation": "2025-10-22 13:45:21.245023",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_break_zcsq",
+  "amended_from",
+  "naming_series",
+  "ocn",
+  "item_code",
+  "colour",
+  "fabric_composition",
+  "gsm",
+  "required_quantity",
+  "uom",
+  "purpose",
+  "requested_by",
+  "requested_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_break_zcsq",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Sample Fabric Request",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "SR.-.{ocn}.-.{colour}.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Naming Series",
+   "options": "SR.-.{ocn}.-.{colour}.-.#####"
+  },
+  {
+   "fieldname": "ocn",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "OCN",
+   "options": "Sales Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Item Code",
+   "options": "Item",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.custom_colour_name",
+   "fieldname": "colour",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Colour",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "item_code.custom_material_composition",
+   "fieldname": "fabric_composition",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Fabric Composition",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "item_code.custom_gsm",
+   "fieldname": "gsm",
+   "fieldtype": "Data",
+   "label": "GSM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "required_quantity",
+   "fieldtype": "Float",
+   "label": "Required Quantity",
+   "non_negative": 1,
+   "precision": "2",
+   "reqd": 1
+  },
+  {
+   "default": "Kg",
+   "fieldname": "uom",
+   "fieldtype": "Link",
+   "label": "UOM",
+   "options": "UOM",
+   "reqd": 1
+  },
+  {
+   "fieldname": "purpose",
+   "fieldtype": "Select",
+   "label": "Purpose",
+   "options": "\nFit\nPP Sample\nTest\nLab Dip",
+   "reqd": 1
+  },
+  {
+   "fieldname": "requested_by",
+   "fieldtype": "Link",
+   "label": "Requested By",
+   "options": "User",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "now",
+   "fieldname": "requested_on",
+   "fieldtype": "Datetime",
+   "label": "Requested On",
+   "read_only": 1,
+   "reqd": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2025-10-22 15:19:41.835443",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Sample Fabric Request",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

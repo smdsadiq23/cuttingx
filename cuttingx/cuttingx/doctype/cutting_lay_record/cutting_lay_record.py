@@ -117,15 +117,15 @@ def get_next_cut_no(buyer, ocn, style, colour):
 @frappe.whitelist()
 def get_grn_items_for_style_colour(sales_order, style, colour):
     """
-    Return GRN Items where:
-    - item_code matches Sales Order Item with given style
-    - color matches given colour
-    - NOT used in ANY Cutting Lay Record (globally)
+    Return GRN Items with net available quantity after deducting:
+    - Quantity issued via Sample Fabric Issuance (by grn + roll)
+    - Quantity used in Cutting Lay Records (by grn_item_reference)
+    Uses separate queries + Python aggregation for clarity.
     """
     if not (sales_order and style and colour):
         return []
 
-    # Get item_codes from Sales Order Items matching style
+    # 1. Get item codes from Sales Order
     item_codes = frappe.db.sql_list("""
         SELECT DISTINCT soi.item_code
         FROM `tabSales Order Item` soi
@@ -137,33 +137,93 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
     if not item_codes:
         return []
 
-    # Fetch GRN items that are NOT used in any Cutting Lay Record
+    # 2. Get all relevant GRN Items (submitted GRNs only)
     grn_items = frappe.db.sql("""
         SELECT 
             gri.name AS grn_item_reference,
-            gri.roll_no AS roll_no,            
-            gri.received_quantity AS roll_weight,
+            gri.parent AS grn,
+            gri.roll_no,
+            gri.received_quantity,
             gri.fabric_width AS width,
-            gri.dia AS dia
+            gri.dia
         FROM `tabGoods Receipt Item` gri
-        INNER JOIN `tabGoods Receipt Note` grn ON gri.parent = grn.name 
+        INNER JOIN `tabGoods Receipt Note` grn ON gri.parent = grn.name
         WHERE 
-            grn.ocn = %(ocn)s           
+            grn.ocn = %s
             AND grn.docstatus = 1
-            AND gri.item_code IN %(item_codes)s
-            AND gri.color = %(colour)s
-            AND gri.name NOT IN (
-                SELECT DISTINCT lr.grn_item_reference
-                FROM `tabLay Roll Details` lr
-                INNER JOIN `tabCutting Lay Record` clr ON lr.parent = clr.name
-                WHERE clr.docstatus < 2  -- Draft + Submitted
-                  AND lr.grn_item_reference IS NOT NULL
-            )
-        ORDER BY gri.creation DESC
-    """, {
-        "ocn": sales_order,
-        "item_codes": tuple(item_codes),
-        "colour": colour
-    }, as_dict=1)
+            AND gri.item_code IN %s
+            AND gri.color = %s
+            AND gri.roll_no IS NOT NULL
+            AND gri.received_quantity > 0
+    """, (sales_order, tuple(item_codes), colour), as_dict=1)
 
-    return grn_items
+    if not grn_items:
+        return []
+
+    # Extract keys for lookups
+    grn_item_refs = [g["grn_item_reference"] for g in grn_items]
+    grn_roll_pairs = [(g["grn"], g["roll_no"]) for g in grn_items]
+
+    # 3. Get total ISSUED quantity per (grn, roll) from Sample Fabric Issuance
+    issued_data = frappe.db.sql("""
+        SELECT 
+            grn, 
+            roll, 
+            SUM(issued_quantity) AS total_issued
+        FROM `tabSample Fabric Issuance`
+        WHERE 
+            docstatus = 1
+            AND grn IS NOT NULL
+            AND roll IS NOT NULL
+            AND (grn, roll) IN %s
+        GROUP BY grn, roll
+    """, (tuple(grn_roll_pairs),), as_dict=1)
+
+    # Convert to dict: {(grn, roll): total_issued}
+    issued_map = {
+        (d["grn"], d["roll"]): d["total_issued"]
+        for d in issued_data
+    }
+
+    # 4. Get total USED quantity per grn_item_reference from Cutting Lay Records
+    used_data = frappe.db.sql("""
+        SELECT 
+            lr.grn_item_reference,
+            SUM(lr.roll_weight) AS total_used
+        FROM `tabLay Roll Details` lr
+        INNER JOIN `tabCutting Lay Record` clr ON lr.parent = clr.name
+        WHERE 
+            clr.docstatus < 2
+            AND lr.grn_item_reference IN %s
+        GROUP BY lr.grn_item_reference
+    """, (tuple(grn_item_refs),), as_dict=1)
+
+    # Convert to dict: {grn_item_reference: total_used}
+    used_map = {
+        d["grn_item_reference"]: d["total_used"]
+        for d in used_data
+    }
+
+    # 5. Compute net quantity in Python
+    result = []
+    for item in grn_items:
+        issued_qty = issued_map.get((item["grn"], item["roll_no"]), 0.0)
+        used_qty = used_map.get(item["grn_item_reference"], 0.0)
+        net_qty = item["received_quantity"] - issued_qty - used_qty
+
+        if net_qty > 0:
+            result.append({
+                "grn_item_reference": item["grn_item_reference"],
+                "roll_no": item["roll_no"],
+                "roll_weight": net_qty,  # <-- net available quantity
+                "width": item["width"],
+                "dia": item["dia"],
+                # Optional: include breakdown for debugging
+                # "original_received": item["received_quantity"],
+                # "issued_quantity": issued_qty,
+                # "used_in_lay": used_qty
+            })
+
+    # Sort by creation (descending) — mimic original behavior
+    # Note: We lost gri.creation; if needed, add it to first query
+    return sorted(result, key=lambda x: x["grn_item_reference"], reverse=True)
