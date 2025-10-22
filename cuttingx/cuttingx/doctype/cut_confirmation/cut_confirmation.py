@@ -54,34 +54,6 @@ def validate(doc, method):
 
 
 @frappe.whitelist()
-def get_items_from_cut_docket(cut_po_number):
-    """
-    Fetch data from Cut Docket Item child table based on given docket number.
-    Returns: List of dicts with fields for Cut Confirmation Item.
-    """
-    if not cut_po_number:
-        return []
-
-    try:
-        docket_doc = frappe.get_doc("Cut Docket", cut_po_number)
-    except frappe.DoesNotExistError:
-        frappe.throw(_("Cut Docket {0} not found").format(cut_po_number))
-
-    items = []
-    for item in docket_doc.get("table_size_ratio_qty") or []:
-        if item.ref_work_order and item.size:
-            items.append({
-                "work_order": item.ref_work_order,
-                "sales_order": item.sales_order,
-                "line_item_no": item.line_item_no,
-                "size": item.size,
-                "planned_quantity": item.planned_cut_quantity
-            })
-
-    return items
-
-
-@frappe.whitelist()
 def get_unused_cut_dockets(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
     """
     Return Cut Dockets that are:
@@ -121,6 +93,36 @@ def get_unused_cut_dockets(doctype, txt, searchfield, start, page_len, filters, 
 
     params = ['%' + txt + '%'] + used_list + [page_len, start]
     return frappe.db.sql(query, params)
+
+
+@frappe.whitelist()
+def get_items_from_cut_docket(cut_po_number):
+    """
+    Fetch data from Cut Docket Item child table based on given docket number.
+    Returns: List of dicts with fields for Cut Confirmation Item.
+    """
+    if not cut_po_number:
+        return []
+
+    try:
+        docket_doc = frappe.get_doc("Cut Docket", cut_po_number)
+    except frappe.DoesNotExistError:
+        frappe.throw(_("Cut Docket {0} not found").format(cut_po_number))
+
+    items = []
+    for item in docket_doc.get("table_size_ratio_qty") or []:
+        if item.ref_work_order and item.size:
+            items.append({
+                "work_order": item.ref_work_order,
+                "sales_order": item.sales_order,
+                "line_item_no": item.line_item_no,
+                "size": item.size,
+                "planned_quantity": item.planned_cut_quantity,
+                "confirmed_quantity": item.planned_cut_quantity
+            })
+
+    return items
+
 
 
 # @frappe.whitelist()

@@ -111,6 +111,7 @@ frappe.ui.form.on('Cut Confirmation', {
                         child.line_item_no = row.line_item_no;
                         child.size = row.size;
                         child.planned_quantity = row.planned_quantity;
+                        child.confirmed_quantity = row.planned_quantity;
 
                         if (typeof calculate_all === "function") {
                             calculate_all(frm, child.doctype, child.name);
