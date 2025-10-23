@@ -94,8 +94,7 @@
    "fetch_from": "cut_docket_id.no_of_plies",
    "fieldname": "no_of_plies",
    "fieldtype": "Int",
-   "label": "No of Plies",
-   "read_only": 1
+   "label": "No of Plies"
   },
   {
    "default": "0",
@@ -116,7 +115,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-01 18:50:46.957408",
+ "modified": "2025-10-23 17:46:04.491935",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",
