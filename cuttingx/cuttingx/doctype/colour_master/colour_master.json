@@ -31,8 +31,7 @@
    "fieldname": "hex",
    "fieldtype": "Color",
    "in_list_view": 1,
-   "label": "HEX",
-   "reqd": 1
+   "label": "HEX"
   },
   {
    "fieldname": "rgb",
@@ -46,7 +45,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-16 10:56:18.177976",
+ "modified": "2025-10-23 10:02:31.125549",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Colour Master",
