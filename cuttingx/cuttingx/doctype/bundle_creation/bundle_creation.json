@@ -10,6 +10,8 @@
   "cut_docket_id",
   "fg_item",
   "style_number",
+  "table_bundle_creation_components",
+  "column_break_hedx",
   "color",
   "no_of_plies",
   "cut_bundle_inspection",
@@ -109,13 +111,23 @@
    "label": "Tracking Tech",
    "options": "\nRFID\nBarcode\nQR Code\nNot Applicable",
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_hedx",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "table_bundle_creation_components",
+   "fieldtype": "Table",
+   "label": "Components",
+   "options": "Bundle Creation Components"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-23 17:46:04.491935",
+ "modified": "2025-10-27 11:53:07.104339",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

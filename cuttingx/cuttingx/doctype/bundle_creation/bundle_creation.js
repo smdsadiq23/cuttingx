@@ -68,8 +68,71 @@ frappe.ui.form.on('Bundle Creation', {
                 [total, no_of_plies]
             ));
         }
+    },
+
+    style_number: function(frm) {
+        // Clear existing components
+        frm.clear_table('table_bundle_creation_components');
+
+        if (frm.doc.style_number) {
+            // Fetch Style Master
+            frappe.call({
+                method: 'frappe.client.get',
+                args: {
+                    doctype: 'Style Master',
+                    name: frm.doc.style_number
+                },
+                callback: function(r) {
+                    if (r.message && r.message.style_group) {
+                        const style_group = r.message.style_group;                        
+
+                        // Fetch Style Group
+                        frappe.call({
+                            method: 'frappe.client.get',
+                            args: {
+                                doctype: 'Style Group',
+                                name: style_group
+                            },
+                            callback: function(res) {
+                                if (res.message) {
+                                    const style_group_doc = res.message;
+                                    const component_table = style_group_doc.components || []; 
+
+                                    // Add rows to table_bundle_creation_components
+                                    component_table.forEach(row => {
+                                        const child = frm.add_child('table_bundle_creation_components'); 
+                                        child.component_name = row.component_name;                                        
+                                    });
+
+                                    frm.refresh_field('table_bundle_creation_components');
+                                }
+                            }
+                        });
+                    }
+                }
+            });
+        }
     }
 });
+
+frappe.ui.form.on('Bundle Creation Components', {
+    table_bundle_creation_components_remove: function(frm) {
+        console.log("🔥 Component removed via child doctype handler");
+        const current_components = (frm.doc.table_bundle_creation_components || [])
+            .map(r => r.component_name)
+            .filter(Boolean);
+
+        const before = frm.doc.table_bundle_details || [];
+        const after = before.filter(r => current_components.includes(r.component));
+
+        if (after.length !== before.length) {
+            frm.doc.table_bundle_details = after;
+            frm.refresh_field('table_bundle_details');
+            frappe.show_alert(__('Removed bundle details for deleted component(s)'));
+        }
+    }
+});
+
 
 // ✅ Inject "Fetch from Cut Docket" button into Bundle Creation Item grid
 function inject_fetch_button(frm) {

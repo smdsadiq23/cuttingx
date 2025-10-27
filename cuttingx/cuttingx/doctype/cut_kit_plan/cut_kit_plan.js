@@ -262,6 +262,7 @@ function apply_included_components_filter(frm) {
     frm.refresh_field("table_ckp_bundle_details");
     update_summary_table(frm);
 }
+
 function update_summary_table(frm) {
     let total_qty = 0;
     let summary = {};

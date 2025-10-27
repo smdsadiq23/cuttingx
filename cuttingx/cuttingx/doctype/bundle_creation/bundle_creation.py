@@ -9,6 +9,39 @@ from frappe.model.naming import make_autoname
 
 
 class BundleCreation(Document):
+    def before_save(self):
+        """Remove bundle details when component is deleted before saving"""
+        old_doc = self.get_doc_before_save()
+        if not old_doc:
+            return
+
+        # Sets of components
+        current_components = {
+            row.component_name.strip()
+            for row in self.table_bundle_creation_components
+            if row.component_name
+        }
+        old_components = {
+            row.component_name.strip()
+            for row in old_doc.table_bundle_creation_components
+            if row.component_name
+        }
+
+        deleted_components = old_components - current_components
+        if deleted_components:
+            frappe.db.delete(
+                "Bundle Details",
+                {
+                    "parent": self.name,
+                    "parenttype": "Bundle Creation",
+                    "component": ["in", list(deleted_components)]
+                }
+            )
+            frappe.msgprint(
+                f"Removed {len(deleted_components)} component(s) from bundle details: {', '.join(deleted_components)}",
+                alert=True
+            )
+
     def on_submit(self):
         # ✅ Validate bundles are generated
         if not self.table_bundle_details or len(self.table_bundle_details) == 0:
@@ -294,11 +327,8 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
 def generate_bundle_details(docname):
     """
     Generate bundle rows with barcode/QR for a given Bundle Creation document.
-    Each bundle generates one row per FG Component.
+    Each bundle generates one row per component in table_bundle_creation_components.
     Series numbering is continuous across all rows (does NOT restart per size/shade).
-    Example:
-      Bundle 1 (Size S) → FR-00001, BK-00001
-      Bundle 2 (Size M) → FR-00002, BK-00002
     """
     import re
     doc = frappe.get_doc("Bundle Creation", docname)
@@ -310,14 +340,10 @@ def generate_bundle_details(docname):
     if not doc.fg_item:
         frappe.throw("Please select FG Item to generate bundles.")
 
-    try:
-        item_doc = frappe.get_doc("Item", doc.fg_item)
-    except frappe.DoesNotExistError:
-        frappe.throw(f"Item {doc.fg_item} not found")
-
-    fg_components = item_doc.get("custom_fg_components") or []
-    if not fg_components:
-        frappe.throw(f"No FG Components found for Item {doc.fg_item}")
+    # ✅ EARLY VALIDATION: Use components from Bundle Creation child table
+    bundle_components = doc.get("table_bundle_creation_components") or []
+    if not bundle_components:
+        frappe.throw("No components found in 'Bundle Creation Components'. Please check Style Master and Style Group Link.")
 
     company = (
         frappe.defaults.get_user_default("Company", user=frappe.session.user)
@@ -352,15 +378,17 @@ def generate_bundle_details(docname):
         if units_per_bundle <= 0:
             frappe.throw(f"Units per bundle must be greater than 0 in row {item.idx}")
 
-    # ✅ Prepare component codes and shared counters (global across all rows)
+    # ✅ Prepare component codes from Bundle Creation Components (not from Item)
     comp_codes = []
-    for comp in fg_components:
-        component_name = comp.get("component_name") or "XX"
-        code = (component_name.strip()[:2].upper() if len(component_name.strip()) >= 2
-                else (component_name + "X")[:2].upper())
+    for row in bundle_components:
+        component_name = (row.get("component_name") or "").strip()
+        if not component_name:
+            frappe.throw(f"Component name is missing in Bundle Creation Components row {row.idx}")
+        
+        code = component_name[:2].upper() if len(component_name) >= 2 else (component_name + "X")[:2].upper()
         comp_codes.append((code, component_name))
 
-    # One counter per component code — starts at 0, increments globally
+    # One counter per component code — global across all bundles
     shared_counters = {comp_code: 0 for comp_code, _ in comp_codes}
 
     total_created = 0
@@ -378,26 +406,21 @@ def generate_bundle_details(docname):
         if not work_order:
             frappe.throw(f"Work Order is missing in row {item.idx}")
 
-        # Ceil division: number of bundles
         total_bundles = (total_qty + units_per_bundle - 1) // units_per_bundle
         safe_wo = safe_series_name(work_order)
 
-        # Generate bundles for this cut line
         for bundle_idx in range(total_bundles):
             for comp_code, component_name in comp_codes:
-                # ✅ Increment global counter — series starts only once
                 shared_counters[comp_code] += 1
                 counter = shared_counters[comp_code]
 
                 bundle_id = f"BDL-{company_abbr}-MFG-{safe_wo}-{comp_code}-{counter:05d}"
 
-                # Calculate actual quantity for this bundle
                 if bundle_idx == total_bundles - 1:
                     bundle_qty = total_qty - units_per_bundle * (total_bundles - 1)
                 else:
                     bundle_qty = units_per_bundle
 
-                # Generate barcode & QR
                 barcode_b64 = generate_barcode_base64(bundle_id)
                 qrcode_b64 = generate_qrcode_base64(bundle_id)
 
