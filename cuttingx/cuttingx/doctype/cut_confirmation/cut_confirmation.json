@@ -34,7 +34,7 @@
   {
    "fieldname": "cut_po_number",
    "fieldtype": "Link",
-   "label": "Cut PO Number",
+   "label": "Cut Kanban No",
    "options": "Cut Docket"
   },
   {
@@ -93,7 +93,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-09-25 15:59:59.656119",
+ "modified": "2025-10-29 20:45:39.830616",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

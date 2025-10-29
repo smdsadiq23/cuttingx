@@ -7,8 +7,9 @@
  "field_order": [
   "section_break_4zxg",
   "amended_from",
-  "buyer",
+  "cut_kanban_no",
   "ocn",
+  "buyer",
   "style",
   "colour",
   "column_break_ifvb",
@@ -44,11 +45,13 @@
    "search_index": 1
   },
   {
+   "fetch_from": "ocn.customer",
    "fieldname": "buyer",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Buyer",
    "options": "Customer",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -57,21 +60,26 @@
    "in_list_view": 1,
    "label": "OCN",
    "options": "Sales Order",
+   "read_only": 1,
    "reqd": 1
   },
   {
+   "fetch_from": "cut_kanban_no.style_no",
    "fieldname": "style",
    "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Style",
    "options": "Style Master",
+   "read_only": 1,
    "reqd": 1
   },
   {
+   "fetch_from": "cut_kanban_no.color",
    "fieldname": "colour",
-   "fieldtype": "Select",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Colour",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -162,13 +170,19 @@
    "fieldtype": "Float",
    "label": "End Bit Quantity",
    "reqd": 1
+  },
+  {
+   "fieldname": "cut_kanban_no",
+   "fieldtype": "Link",
+   "label": "Cut Kanban No",
+   "options": "Cut Docket"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 16:23:34.367617",
+ "modified": "2025-10-29 19:49:10.381641",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",

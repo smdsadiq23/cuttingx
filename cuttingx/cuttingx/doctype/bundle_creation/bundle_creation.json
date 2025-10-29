@@ -26,7 +26,7 @@
   {
    "fieldname": "cut_docket_id",
    "fieldtype": "Link",
-   "label": "Cut Docket Id",
+   "label": "Cut Kanban No",
    "options": "Cut Docket"
   },
   {
@@ -127,7 +127,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-27 11:53:07.104339",
+ "modified": "2025-10-29 20:46:03.436169",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

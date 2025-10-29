@@ -9,31 +9,42 @@ from frappe.utils import cint  # Ensure this is imported
 class CuttingLayRecord(Document):
 	pass
 
-
 @frappe.whitelist()
-def sales_order_query_by_byyer(doctype, txt, searchfield, start, page_len, filters):
-    # Ensure filters is a dict
-    if isinstance(filters, str):
-        filters = frappe.parse_json(filters)
+def get_cut_docket_details(cut_kanban_no):
+    """
+    Returns: {
+        "ocn": "...",
+        "style": "...",
+        "colour": "..."
+    }
+    """
+    if not cut_kanban_no or not frappe.db.exists("Cut Docket", cut_kanban_no):
+        return None
 
-    customer = filters.get("customer")
-    if not customer:
-        return []
+    # Get parent fields: style, colour
+    cut_docket = frappe.db.get_value(
+        "Cut Docket",
+        cut_kanban_no,
+        ["style_no", "color"],
+        as_dict=1
+    )
 
-    return frappe.db.sql("""
-        SELECT name, customer, transaction_date
-        FROM `tabSales Order`
-        WHERE docstatus = 1
-          AND customer = %(customer)s
-          AND name LIKE %(txt)s
-        ORDER BY transaction_date DESC
-        LIMIT %(start)s, %(page_len)s
-    """, {
-        "customer": customer,
-        "txt": "%" + txt + "%",
-        "start": int(start),
-        "page_len": int(page_len)
-    })
+    if not cut_docket:
+        return None
+
+    # Get FIRST ocn (sales_order) from child table
+    ocn = frappe.db.get_value(
+        "Cut Docket Item",
+        {"parent": cut_kanban_no, "parenttype": "Cut Docket"},
+        "sales_order",
+        order_by="idx"
+    )
+
+    return {
+        "ocn": ocn,
+        "style": cut_docket.style_no,
+        "colour": cut_docket.color
+    }
 
 
 @frappe.whitelist()
@@ -93,20 +104,19 @@ def get_sizes_for_ocn(sales_order, style, colour):
 
 
 @frappe.whitelist()
-def get_next_cut_no(buyer, ocn, style, colour):
-    if not (buyer and ocn and style and colour):
+def get_next_cut_no(ocn, style, colour):
+    if not (ocn and style and colour):
         return 1
 
     max_cut_no = frappe.db.sql("""
         SELECT MAX(cut_no) 
         FROM `tabCutting Lay Record`
         WHERE 
-            buyer = %s
-            AND ocn = %s
+            ocn = %s
             AND style = %s
             AND colour = %s
             AND docstatus < 2
-    """, (buyer, ocn, style, colour), as_list=1)
+    """, (ocn, style, colour), as_list=1)
 
     # Handle case where no rows exist → MAX() returns [(None,)]
     current_max = max_cut_no[0][0] if max_cut_no and max_cut_no[0][0] is not None else 0
