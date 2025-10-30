@@ -53,7 +53,7 @@ frappe.ui.form.on('Cutting Lay Record', {
             frappe.call({
                 method: 'cuttingx.cuttingx.doctype.cutting_lay_record.cutting_lay_record.get_next_cut_no',
                 args: {
-                    buyer: frm.doc.buyer,
+                    cut_kanban_no: frm.doc.cut_kanban_no,
                     ocn: frm.doc.ocn,
                     style: frm.doc.style,
                     colour: frm.doc.colour

@@ -104,19 +104,20 @@ def get_sizes_for_ocn(sales_order, style, colour):
 
 
 @frappe.whitelist()
-def get_next_cut_no(ocn, style, colour):
-    if not (ocn and style and colour):
+def get_next_cut_no(cut_kanban_no, ocn, style, colour):
+    if not (cut_kanban_no and ocn and style and colour):
         return 1
 
     max_cut_no = frappe.db.sql("""
         SELECT MAX(cut_no) 
         FROM `tabCutting Lay Record`
         WHERE 
-            ocn = %s
+            cut_kanban_no = %s
+            AND ocn = %s
             AND style = %s
             AND colour = %s
             AND docstatus < 2
-    """, (ocn, style, colour), as_list=1)
+    """, (cut_kanban_no, ocn, style, colour), as_list=1)
 
     # Handle case where no rows exist → MAX() returns [(None,)]
     current_max = max_cut_no[0][0] if max_cut_no and max_cut_no[0][0] is not None else 0
