@@ -205,6 +205,7 @@ frappe.ui.form.on('Cut Kit Plan Components', {
 /* --------------------------- Helpers ---------------------------------- */
 
 frappe.ui.form.on('Cut Kit Plan Bundle Details', {
+    production_item_id: function(frm) { update_summary_table(frm); },
     production_item_number: function(frm) { update_summary_table(frm); },
     shade: function(frm) { update_summary_table(frm); },
     size: function(frm) { update_summary_table(frm); },
@@ -252,6 +253,7 @@ function apply_included_components_filter(frm) {
 
     filtered.forEach(row => {
         let c = frm.add_child("table_ckp_bundle_details");
+        c.production_item_id = row.production_item_id;
         c.production_item_number = row.production_item_number;
         c.shade = row.shade;
         c.size = row.size;

@@ -290,6 +290,13 @@ frappe.ui.form.on('Bundle Creation Item', {
         } else {
             calculate_bundles(frm, cdt, cdn);
         }
+
+        frappe.after_ajax(() => {
+        clean_and_recreate_balance_row(frm, cdt, cdn);
+        });      
+    },
+    no_of_bundles(frm, cdt, cdn) {
+        clean_and_recreate_balance_row(frm, cdt, cdn);
     },
     'Bundle Creation Item': function(frm, cdt, cdn) {
         hide_add_delete_buttons(frm);
@@ -355,13 +362,137 @@ function validate_and_correct_ply_count(frm, cdt, cdn) {
     return true;
 }
 
-// ✅ Calculate no_of_bundles from cut_quantity and unitsbundle
+// ✅ Calculate no_of_bundles based on remaining shade quantity
+//    (shade_cut_quantity - allocations from previous rows of same group)
 function calculate_bundles(frm, cdt, cdn) {
-    const row = locals[cdt][cdn];
-    const qty = row.shade_cut_quantity || 0;
-    const units = row.unitsbundle || 1;
-    const no_of_bundles = Math.ceil(qty / units);
-    frappe.model.set_value(cdt, cdn, 'no_of_bundles', no_of_bundles);
+  const row = locals[cdt][cdn];
+  const table = frm.doc.table_bundle_creation_item || [];
+
+  if (!row.shade_cut_quantity || !row.unitsbundle) return;
+
+  const key = [
+    row.work_order,
+    row.sales_order,
+    row.line_item_no,
+    row.size,
+    row.shade,
+  ].join("|");
+
+  // Step 1: Calculate total allocated units from all *earlier* rows in same group
+  let allocated_before = 0;
+  table.forEach((r) => {
+    if (
+      [r.work_order, r.sales_order, r.line_item_no, r.size, r.shade].join("|") === key &&
+      r.idx < row.idx
+    ) {
+      allocated_before += (r.unitsbundle || 0) * (r.no_of_bundles || 0);
+    }
+  });
+
+  // Step 2: Compute remaining quantity
+  const shade_cut_qty = row.shade_cut_quantity || 0;
+  const remaining_qty = Math.max(shade_cut_qty - allocated_before, 0);
+
+  // Step 3: Determine how many full bundles can be made from the remaining qty
+  const units = row.unitsbundle || 1;
+  const no_of_bundles = Math.floor(remaining_qty / units);
+
+  // Step 4: Always have at least 1 bundle if there's any remainder
+  const final_bundles = no_of_bundles > 0 ? no_of_bundles : (remaining_qty > 0 ? 1 : 0);
+
+  frappe.model.set_value(cdt, cdn, "no_of_bundles", final_bundles);
+}
+
+function clean_and_recreate_balance_row(frm, cdt, cdn) {
+  const row = locals[cdt][cdn];
+  const table = frm.doc.table_bundle_creation_item || [];
+
+  if (!row.shade_cut_quantity || !row.unitsbundle || !row.no_of_bundles) return;
+
+  const key = [
+    row.work_order,
+    row.sales_order,
+    row.line_item_no,
+    row.size,
+    row.shade,
+  ].join("|");
+
+  // ✅ Step 1: Delete all duplicate rows (same combo) with greater idx
+  const currentIdx = row.idx;
+  const to_delete = table.filter(
+    (r) =>
+      r.idx > currentIdx &&
+      [r.work_order, r.sales_order, r.line_item_no, r.size, r.shade].join("|") === key
+  );
+
+  if (to_delete.length > 0) {
+    to_delete.forEach((r) => {
+      frappe.model.clear_doc(r.doctype, r.name);
+    });
+    frm.refresh_field("table_bundle_creation_item");
+  }
+
+  // ✅ Step 2: Calculate total allocated (remaining rows)
+  const related = (frm.doc.table_bundle_creation_item || []).filter(
+    (r) =>
+      [r.work_order, r.sales_order, r.line_item_no, r.size, r.shade].join("|") === key
+  );
+
+  let total_allocated = 0;
+  let shade_cut_qty = 0;
+
+  related.forEach((r) => {
+    const allocated = (r.unitsbundle || 0) * (r.no_of_bundles || 0);
+    total_allocated += allocated;
+    shade_cut_qty = r.shade_cut_quantity || shade_cut_qty;
+  });
+
+  const balance = shade_cut_qty - total_allocated;
+
+  // ✅ Step 3: Create new balance row if needed
+  if (balance > 0 && balance < shade_cut_qty) {
+    const currentIndex = frm.doc.table_bundle_creation_item.findIndex(
+      (r) => r.name === row.name
+    );
+
+    const new_row = frappe.model.add_child(
+      frm.doc,
+      "Bundle Creation Item",
+      "table_bundle_creation_item"
+    );
+
+    // Insert directly below
+    frm.doc.table_bundle_creation_item.splice(
+      currentIndex + 1,
+      0,
+      frm.doc.table_bundle_creation_item.pop()
+    );
+
+    // Copy identifying fields
+    new_row.work_order = row.work_order;
+    new_row.sales_order = row.sales_order;
+    new_row.line_item_no = row.line_item_no;
+    new_row.size = row.size;
+    new_row.shade = row.shade;
+    new_row.ply = row.ply;
+    new_row.shade_cut_quantity = shade_cut_qty;
+
+    // Assign balance as units per bundle and set 1 bundle
+    new_row.unitsbundle = balance;
+    new_row.no_of_bundles = 1;
+
+    // ✅ Renumber idx after deletion & insertion
+    frm.doc.table_bundle_creation_item.forEach((r, i) => {
+      r.idx = i + 1;
+    });
+
+    frm.refresh_field("table_bundle_creation_item");
+
+    // frappe.show_alert({
+    //   message: `Reallocated balance (${balance} units, 1 bundle) after cleaning duplicates.`,
+    //   indicator: "green",
+    // });
+  }
 }
 
 // ✅ Generate bundles

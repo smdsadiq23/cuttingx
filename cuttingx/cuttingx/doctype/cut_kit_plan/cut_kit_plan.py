@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
+from frappe.utils import cint
 
 
 class CutKitPlan(Document):
@@ -27,8 +28,6 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
     - Have at least one unused production_item_number (not in Cut Kit Plan Bundle Details)
     - OR is the currently selected bundle (to allow editing)
     """
-    from frappe.utils import cint
-
     current_bundle = (filters or {}).get("current_bundle")
     txt = txt or ""
     start = cint(start)
@@ -234,6 +233,7 @@ def get_bundle_details_with_components(bundle_creation_name):
     # Step 1: Get all bundle details (without exclusion)
     bundle_details = frappe.db.sql("""
         SELECT 
+            pi.name AS 'production_item_id',  
             pi.production_item_number, 
             tbc.shade, 
             tbc.size, 

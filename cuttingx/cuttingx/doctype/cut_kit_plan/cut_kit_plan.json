@@ -150,7 +150,7 @@
   {
    "fieldname": "operrations_section",
    "fieldtype": "Section Break",
-   "label": "Operrations"
+   "label": "Operations"
   },
   {
    "fieldname": "table_cut_kit_operations",
@@ -172,7 +172,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-16 18:05:09.659430",
+ "modified": "2025-10-30 13:15:38.011548",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
