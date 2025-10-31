@@ -439,11 +439,13 @@ function clean_and_recreate_balance_row(frm, cdt, cdn) {
   );
 
   let total_allocated = 0;
+  let cut_quantity = 0;
   let shade_cut_qty = 0;
 
   related.forEach((r) => {
     const allocated = (r.unitsbundle || 0) * (r.no_of_bundles || 0);
     total_allocated += allocated;
+    cut_quantity = r.cut_quantity || cut_quantity;
     shade_cut_qty = r.shade_cut_quantity || shade_cut_qty;
   });
 
@@ -473,6 +475,7 @@ function clean_and_recreate_balance_row(frm, cdt, cdn) {
     new_row.sales_order = row.sales_order;
     new_row.line_item_no = row.line_item_no;
     new_row.size = row.size;
+    new_row.cut_quantity = row.cut_quantity;
     new_row.shade = row.shade;
     new_row.ply = row.ply;
     new_row.shade_cut_quantity = shade_cut_qty;

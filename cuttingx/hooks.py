@@ -314,5 +314,22 @@ doc_events = {
 #             "reference_doctype": "Cut Docket",
 #             "name": "Cutting Kanban Board"
 #         }
+#     },
+#     {
+#         "doctype": "Print Format",
+#         "filters": [
+#             [
+#                 "name",              
+#                 "in", 
+#                 [
+#                     "Bundle Details - Barcode",
+#                     "Bundle Details - QR Code",
+#                     "Iridescent - Bundle Details - Barcode",
+#                     "Iridescent - Bundle Details - QR Code",
+#                     "Cutting Kanban Print Format",
+#                     "Factory OCR Report"
+#                 ]
+#              ]
+#         ]
 #     }
 # ]
