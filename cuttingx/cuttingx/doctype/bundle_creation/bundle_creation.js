@@ -3,8 +3,6 @@
 
 frappe.ui.form.on("Bundle Creation", {
 	onload: function (frm) {
-		toggle_cut_flow_fields(frm);
-
 		// Set filter for cut_docket_id
 		frm.set_query("cut_docket_id", () => {
 			return {
@@ -17,15 +15,12 @@ frappe.ui.form.on("Bundle Creation", {
 			return {
 				filters: { name: ["in", get_eligible_yarn_requests()] },
 			};
-		});
-
-		// Inject buttons
-		inject_fetch_button(frm);
+		});		
 	},
 
 	refresh: function (frm) {
+		toggle_cut_flow_fields(frm);
 		protect_child_table(frm);
-		inject_fetch_button(frm);
 
 		// Add "Create Bundles" button
 		if (!frm.custom_bundle_button_added) {
@@ -65,6 +60,9 @@ frappe.ui.form.on("Bundle Creation", {
 
 		frm.set_value("yarn_request_no", "");
 
+		// Inject buttons
+		inject_fetch_button(frm);		
+
 		frappe.call({
 			method: "frappe.client.get",
 			args: {
@@ -98,7 +96,7 @@ frappe.ui.form.on("Bundle Creation", {
 
 	yarn_request_no: function (frm) {
 		toggle_cut_flow_fields(frm);
-		
+
 		if (frm.doc.yarn_request_no) {
 			frm.set_value("cut_docket_id", "");
 
@@ -272,35 +270,46 @@ function toggle_cut_flow_fields(frm) {
     frm.toggle_display("table_shade_and_ply", should_show_cut_fields);
 
     // --- Child table: Bundle Creation Item ---
-    const item_grid = frm.fields_dict.table_bundle_creation_item?.grid;
-    if (item_grid) {
-        const item_fields = ["shade", "shade_cut_quantity", "ply"];
-        item_fields.forEach((f) => {
-            const grid_field = item_grid.get_field(f);
-            if (grid_field && grid_field.df) {
-                grid_field.df.hidden = !should_show_cut_fields;
-            }
-        });
-        item_grid.refresh();
-    }
+    updateChildTableColumns(frm, "table_bundle_creation_item", ["shade", "shade_cut_quantity", "ply"], should_show_cut_fields);
 
     // --- Child table: Bundle Details ---
-    const detail_grid = frm.fields_dict.table_bundle_details?.grid;
-    if (detail_grid) {
-        const detail_fields = ["shade", "ply"];
-        detail_fields.forEach((f) => {
-            const grid_field = detail_grid.get_field(f);
-            if (grid_field && grid_field.df) {
-                grid_field.df.hidden = !should_show_cut_fields;
-            }
-        });
-        detail_grid.refresh();
-    }
+    updateChildTableColumns(frm, "table_bundle_details", ["shade", "ply"], should_show_cut_fields);
+}
 
-    // --- Refresh affected fields ---
-    frm.refresh_field("table_bundle_creation_item");
-    frm.refresh_field("table_bundle_details");
-    frm.refresh_field("table_shade_and_ply");
+// Helper function to update and refresh child table columns
+function updateChildTableColumns(frm, table_fieldname, fields_to_toggle, should_show) {
+    const grid = frm.fields_dict[table_fieldname]?.grid;
+
+    if (grid) {
+        for (let field_name of fields_to_toggle) {
+            // Option 1: Using update_docfield_property (preferred)
+            grid.update_docfield_property(field_name, 'hidden', should_show ? 0 : 1);
+            
+            /* 
+            // Option 2: Direct manipulation of internal properties (if Option 1 fails)
+            if (grid.fields_map && grid.fields_map[field_name]) {
+                grid.fields_map[field_name].hidden = should_show ? 0 : 1;
+            }
+            */
+        }
+        
+        // Ensure the grid re-renders its header and rows
+        grid.visible_columns = undefined; // Force recalculation of visible columns
+        grid.setup_visible_columns();
+        
+        // These calls ensure the UI reflects the changes
+        if (grid.header_row && grid.header_row.wrapper) {
+            grid.header_row.wrapper.remove();
+        }
+        delete grid.header_row;
+        grid.make_head(); 
+        
+        for (let row of grid.grid_rows) {
+            row.render_row();
+        }
+        
+        frm.refresh_field(table_fieldname);
+    }
 }
 
 // Child table: auto-cleanup bundle details when component removed
