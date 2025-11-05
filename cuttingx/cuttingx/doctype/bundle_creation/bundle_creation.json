@@ -8,6 +8,7 @@
  "field_order": [
   "naming_series",
   "cut_docket_id",
+  "yarn_request_no",
   "fg_item",
   "style_number",
   "table_bundle_creation_components",
@@ -30,7 +31,6 @@
    "options": "Cut Docket"
   },
   {
-   "fetch_from": "cut_docket_id.style",
    "fieldname": "fg_item",
    "fieldtype": "Link",
    "label": "FG Item",
@@ -89,6 +89,7 @@
   {
    "fieldname": "table_shade_and_ply",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Shade and Ply Details",
    "options": "Bundle Shade and Ply"
   },
@@ -96,6 +97,7 @@
    "fetch_from": "cut_docket_id.no_of_plies",
    "fieldname": "no_of_plies",
    "fieldtype": "Int",
+   "hidden": 1,
    "label": "No of Plies"
   },
   {
@@ -121,13 +123,19 @@
    "fieldtype": "Table",
    "label": "Components",
    "options": "Bundle Creation Components"
+  },
+  {
+   "fieldname": "yarn_request_no",
+   "fieldtype": "Link",
+   "label": "Yarn Request No",
+   "options": "Knitting Yarn Request"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-29 20:46:03.436169",
+ "modified": "2025-11-05 15:59:41.551397",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

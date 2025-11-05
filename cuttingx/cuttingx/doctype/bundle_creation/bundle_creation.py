@@ -5,13 +5,15 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
-from frappe.model.naming import make_autoname
 
 
 class BundleCreation(Document):
     def validate(self):
-        """Ensure total allocated units per shade exactly match shade cut quantity, accounting for remainder bundles"""
+        """Ensure total allocated units per size or shade exactly match cut quantity or shade cut quantity."""
+
         validation_map = {}
+
+        is_yarn_flow = bool(self.yarn_request_no)
 
         for item in self.table_bundle_creation_item:
             key = (
@@ -19,25 +21,29 @@ class BundleCreation(Document):
                 item.sales_order or "",
                 item.line_item_no or "",
                 item.size or "",
-                item.shade or ""
             )
+            if not is_yarn_flow:
+                key += (item.shade or "",)
+
+            # choose quantity field depending on flow
+            qty_field = "cut_quantity" if is_yarn_flow else "shade_cut_quantity"
+            base_qty = getattr(item, qty_field) or 0
 
             if key not in validation_map:
                 validation_map[key] = {
                     "allocated": 0,
-                    "shade_cut_quantity": item.shade_cut_quantity or 0
+                    "expected_qty": base_qty
                 }
 
             units_per_bundle = int(item.unitsbundle or 0)
             no_of_bundles = int(item.no_of_bundles or 0)
-            shade_cut_qty = validation_map[key]["shade_cut_quantity"]
+            expected_qty = validation_map[key]["expected_qty"]
 
-            # Calculate allocation like your generate_bundle_details()
-            full_bundles = no_of_bundles - 1
+            # Calculate allocation logic (same as generate_bundle_details)
+            full_bundles = max(no_of_bundles - 1, 0)
             total_from_full = full_bundles * units_per_bundle
 
-            # The last bundle takes remaining qty if it exists
-            remainder = shade_cut_qty - total_from_full
+            remainder = expected_qty - total_from_full
             if remainder < 0:
                 remainder = 0
             last_bundle_units = min(units_per_bundle, remainder)
@@ -45,20 +51,27 @@ class BundleCreation(Document):
             total_units = total_from_full + last_bundle_units
             validation_map[key]["allocated"] += total_units
 
+        # Compare expected vs allocated for each group
         errors = []
         for key, data in validation_map.items():
             allocated = data["allocated"]
-            expected = data["shade_cut_quantity"]
+            expected = data["expected_qty"]
 
-            work_order, sales_order, line_item, size, shade = key
+            if is_yarn_flow:
+                work_order, sales_order, line_item, size = key
+                shade_label = ""
+            else:
+                work_order, sales_order, line_item, size, shade = key
+                shade_label = f", Shade {shade}" if shade else ""
 
             if allocated != expected:
                 diff = allocated - expected
                 direction = "greater" if diff > 0 else "less"
                 errors.append(
-                    f"❌ Allocated units ({allocated}) are {abs(diff)} {direction} than Shade Cut Qty ({expected}) "
+                    f"❌ Allocated units ({allocated}) are {abs(diff)} {direction} than "
+                    f"{'Cut Qty' if is_yarn_flow else 'Shade Cut Qty'} ({expected}) "
                     f"for Work Order {work_order}, Sales Order {sales_order}, "
-                    f"Line Item {line_item}, Size {size}, Shade {shade}."
+                    f"Line Item {line_item}, Size {size}{shade_label}."
                 )
 
         if errors:
@@ -204,6 +217,35 @@ def get_eligible_cut_dockets():
     eligible = [
         d['cut_po_number'] for d in submitted_cut_confirmations
         if d['cut_po_number'] not in used_docket_ids
+    ]
+
+    return eligible
+
+
+@frappe.whitelist()
+def get_eligible_yarn_requests():
+    # Step 1: Get all Yarn Request names used in *submitted* Bundle Creation
+    used_in_bundle = frappe.get_all(
+        'Bundle Creation',
+        # filters={'docstatus': 1},
+        fields=['yarn_request_no']
+    )
+    used_yarn_request_names = {
+        d['yarn_request_no'] for d in used_in_bundle
+        if d.get('yarn_request_no')  # avoid None/empty
+    }
+
+    # Step 2: Get all *submitted* Yarn Requests (Knitting Yarn Request)
+    submitted_yarn_requests = frappe.get_all(
+        'Knitting Yarn Request',  # <-- Use the correct doctype name
+        filters={'docstatus': 1},
+        fields=['name']
+    )
+
+    # Step 3: Filter out the ones already used
+    eligible = [
+        d['name'] for d in submitted_yarn_requests
+        if d['name'] not in used_yarn_request_names
     ]
 
     return eligible
@@ -501,17 +543,21 @@ def get_cut_confirmation_items_from_docket(cut_docket_id):
 
 
 @frappe.whitelist()
-def generate_bundle_details(docname):
+def generate_bundle_details(docname, is_yarn_flow: bool = False):
     """
-    Generate bundle rows with barcode/QR for a given Bundle Creation document.
-    For each row in table_bundle_creation_item:
-        - Create `no_of_bundles` bundles
-        - Each bundle contains `unitsbundle` units
-        - Each bundle is replicated once per component in table_bundle_creation_components
-    Series numbering is continuous across all bundles (does NOT restart per row/component).
+    Generate bundle rows for Bundle Creation document.
+
+    - For both flows (Cut Docket and Yarn Request):
+        Each bundle item is replicated per component.
+    - For Yarn Request flow:
+        Shade and Ply are ignored (None).
     """
+
     import re
     doc = frappe.get_doc("Bundle Creation", docname)
+
+    # detect yarn flow from either flag or field
+    is_yarn_flow = frappe.utils.cint(is_yarn_flow) or bool(doc.yarn_request_no)
 
     if doc.get("table_bundle_details"):
         frappe.msgprint("⚠️ Bundles already created. Please remove existing bundles to regenerate.")
@@ -520,27 +566,23 @@ def generate_bundle_details(docname):
     if not doc.fg_item:
         frappe.throw("Please select FG Item to generate bundles.")
 
-    # ✅ Validate components
+    # ✅ Components are always required now
     bundle_components = doc.get("table_bundle_creation_components") or []
     if not bundle_components:
-        frappe.throw("No components found in 'Bundle Creation Components'. Please check Style Master and Style Group Link.")
+        frappe.throw(
+            "No components found in 'Bundle Creation Components'. "
+            "Please check Style Master and Style Group Link."
+        )
 
+    # Get company abbreviation
     company = (
         frappe.defaults.get_user_default("Company", user=frappe.session.user)
         or frappe.defaults.get_global_default("Company")
     )
     if not company:
-        frappe.throw(
-            "No Company is set for this user and no Global Default Company found. "
-            "Please set one in User Defaults or Global Defaults."
-        )
+        frappe.throw("No Company found in User Defaults or Global Defaults.")
 
-    company_abbr = frappe.db.get_value("Company", company, "abbr")
-    if not company_abbr:
-        frappe.throw(
-            f"Company '{frappe.utils.escape_html(company)}' has no abbreviation (abbr). "
-            "Please set it in the Company master."
-        )
+    company_abbr = frappe.db.get_value("Company", company, "abbr") or "CMP"
 
     def safe_series_name(name: str) -> str:
         if not name:
@@ -556,22 +598,31 @@ def generate_bundle_details(docname):
         code = component_name[:2].upper() if len(component_name) >= 2 else (component_name + "X")[:2].upper()
         comp_codes.append((code, component_name))
 
-    # Shared counter per component code (global across all rows)
+    # Shared counter per component code (continuous numbering)
     shared_counters = {comp_code: 0 for comp_code, _ in comp_codes}
-
     total_created = 0
 
     for item in doc.table_bundle_creation_item:
-        size = item.size
-        shade = item.shade
-        ply = item.ply
         work_order = item.work_order
-        units_per_bundle = int(item.unitsbundle)
-        num_bundles = int(item.no_of_bundles)
+        size = item.size
+        units_per_bundle = frappe.utils.cint(item.unitsbundle)
+        num_bundles = frappe.utils.cint(item.no_of_bundles)
+        if units_per_bundle <= 0 or num_bundles <= 0:
+            frappe.log_error(
+                f"Skipping invalid bundle row (unitsbundle={units_per_bundle}, no_of_bundles={num_bundles}) for item {item.name}",
+                "Bundle Creation Validation"
+            )
+            continue
 
         safe_wo = safe_series_name(work_order)
+        base_qty = (
+            item.cut_quantity if is_yarn_flow else (item.shade_cut_quantity or 0)
+        )
 
-        # Generate `num_bundles` bundles for this row
+        # For Yarn flow, ignore shade/ply
+        shade = None if is_yarn_flow else item.shade
+        ply = None if is_yarn_flow else item.ply
+
         for bundle_num in range(num_bundles):
             for comp_code, component_name in comp_codes:
                 shared_counters[comp_code] += 1
@@ -596,4 +647,8 @@ def generate_bundle_details(docname):
                 total_created += 1
 
     doc.save(ignore_permissions=True)
-    frappe.msgprint(f"✅ Created {total_created} component-wise bundle labels with continuous numbering.")
+
+    frappe.msgprint(
+        f"✅ Created {total_created} component-wise bundle label(s) with continuous numbering "
+        f"({'Yarn Request' if is_yarn_flow else 'Cut Docket'} flow)."
+    )
