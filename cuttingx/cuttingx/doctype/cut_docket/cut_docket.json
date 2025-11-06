@@ -229,6 +229,7 @@
    "search_index": 1
   },
   {
+   "fetch_from": "style.custom_style_master",
    "fieldname": "style_no",
    "fieldtype": "Data",
    "label": "Style",
@@ -294,6 +295,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "fetch_from": "style.custom_colour_name",
    "fieldname": "color",
    "fieldtype": "Data",
    "label": "Colour",
@@ -323,7 +325,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-29 20:41:03.350884",
+ "modified": "2025-11-06 15:35:41.548919",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Docket",
