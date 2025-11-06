@@ -17,6 +17,7 @@
   "total_garment_qty",
   "total_bom_consumption",
   "total_yarn_requirement",
+  "total_yarn_issued",
   "remarks",
   "status",
   "section_break_rxjs",
@@ -120,8 +121,7 @@
    "fieldname": "table_yarn_shade_distribution",
    "fieldtype": "Table",
    "label": "Yarn Requirement by Shade",
-   "options": "Yarn Shade Distribution",
-   "read_only": 1
+   "options": "Yarn Shade Distribution"
   },
   {
    "default": "YRN.-.RQ.-.YYYY.-.######",
@@ -131,16 +131,25 @@
    "label": "Naming Series",
    "options": "YRN.-.RQ.-.YYYY.-.######",
    "read_only": 1
+  },
+  {
+   "fieldname": "total_yarn_issued",
+   "fieldtype": "Float",
+   "label": "Total Yarn Issued (Kg)",
+   "non_negative": 1,
+   "precision": "2",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-04 16:36:40.921961",
+ "modified": "2025-11-06 12:08:41.910152",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Knitting Yarn Request",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {

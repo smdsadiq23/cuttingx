@@ -11,7 +11,8 @@
   "yarn_shade_code",
   "yarn_count",
   "bom_consumption",
-  "yarn_required"
+  "yarn_required",
+  "yarn_issued"
  ],
  "fields": [
   {
@@ -21,6 +22,7 @@
    "in_list_view": 1,
    "label": "Yarn Code",
    "options": "Item",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -30,6 +32,7 @@
    "in_list_view": 1,
    "label": "Yarn Shade",
    "options": "Colour Master",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -39,6 +42,7 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Yarn Count",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -48,6 +52,7 @@
    "in_list_view": 1,
    "label": "BOM Consumption (Kg/Pc)",
    "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -58,6 +63,7 @@
    "label": "Yarn Required",
    "non_negative": 1,
    "precision": "2",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -68,13 +74,21 @@
    "in_list_view": 1,
    "label": "Yarn Shade Code",
    "read_only": 1
+  },
+  {
+   "columns": 1,
+   "fieldname": "yarn_issued",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Yarn Issued",
+   "precision": "2"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-11-04 16:15:03.480925",
+ "modified": "2025-11-06 12:24:48.236518",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Yarn Shade Distribution",

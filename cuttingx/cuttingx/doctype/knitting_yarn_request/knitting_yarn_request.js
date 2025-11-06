@@ -6,8 +6,16 @@ frappe.ui.form.on('Knitting Yarn Request', {
         set_yarn_code_query_safely(frm);
     },
 
-    before_submit: function(frm) {
-        frm.set_value('status', 'Issued');
+    refresh: function(frm) {
+        if (frm.doc.docstatus === 0) {
+            frm.page.set_indicator(__('Requested'), 'orange');
+        } else if (frm.doc.docstatus === 1) {
+            frm.page.set_indicator(__('Issued'), 'green');
+        }        
+        const is_yarn_approver = frappe.user.has_role('Yarn Approver');
+        const is_allowed_status = (frm.doc.docstatus === 0) 
+        const readonly = ! (is_yarn_approver && is_allowed_status);
+        frm.set_df_property('table_yarn_shade_distribution', 'read_only', readonly);
     },
 
     work_order: function(frm) {
@@ -94,16 +102,13 @@ frappe.ui.form.on('Knitting Yarn Request', {
                 frm.refresh_field('table_yarn_size_distribution');
                 frm.set_value('total_bom_consumption', 0);
                 frm.set_value('total_yarn_requirement', 0);
+                frm.set_value('total_yarn_issued', 0);
             });
     },
 
     total_garment_qty: function(frm) {
         recalculate_yarn_shade_table(frm);
     },
-
-    before_submit: function(frm) {
-        frm.set_value('status', 'Issued');
-    }
 });
 
 // // Yarn Shade Distribution child table handlers
@@ -145,6 +150,16 @@ frappe.ui.form.on('Knitting Yarn Request', {
 //     }
 // });
 
+frappe.ui.form.on('Yarn Shade Distribution', {
+    yarn_issued: function(frm, cdt, cdn) {
+        let total = 0;
+        (frm.doc.table_yarn_shade_distribution || []).forEach(row => {
+            total += flt(row.yarn_issued);
+        });
+        frm.set_value('total_yarn_issued', total);
+    }
+});
+
 // ✅ Safe query setter (won't mark doc as dirty)
 function set_yarn_code_query_safely(frm) {
     const grid_field = frm.get_field("table_yarn_shade_distribution");
@@ -182,13 +197,13 @@ function recalculate_yarn_shade_table(frm) {
 // Update total_bom_consumption and total_yarn_requirement
 function update_yarn_shade_totals(frm) {
     let total_bom = 0;
-    let total_yarn = 0;
+    let total_yarn_required = 0;
 
     (frm.doc.table_yarn_shade_distribution || []).forEach(row => {
         total_bom += flt(row.bom_consumption);
-        total_yarn += flt(row.yarn_required);
+        total_yarn_required += flt(row.yarn_required);
     });
 
     frm.set_value('total_bom_consumption', total_bom);
-    frm.set_value('total_yarn_requirement', total_yarn);
+    frm.set_value('total_yarn_requirement', total_yarn_required);
 }

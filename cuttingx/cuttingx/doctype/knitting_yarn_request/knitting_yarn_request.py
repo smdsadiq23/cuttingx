@@ -2,13 +2,30 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
 
 class KnittingYarnRequest(Document):
-    def before_submit(self):
-        """Set status to 'Issued' automatically on submission."""
-        self.status = "Issued"
+    def before_submit(doc):
+        # 1. Role validation: Only Yarn Approvers can submit
+        if "Yarn Approver" not in frappe.get_roles(frappe.session.user):
+            frappe.throw(_("Only users with the 'Yarn Approver' role can submit this document."))
+
+        # 2. Child table validation: yarn_issued must be > 0 in every row
+        if not doc.table_yarn_shade_distribution:
+            frappe.throw(_("Please add at least one item in the Yarn Shade Distribution table."))
+
+        for row in doc.table_yarn_shade_distribution:
+            if not row.yarn_issued or flt(row.yarn_issued) <= 0:
+                frappe.throw(
+                    _("Row #{0}: Yarn Issued must be greater than 0 for Yarn Code {1}.").format(
+                        row.idx, row.yarn_code or _("(not specified)")
+                    )
+                )
+
+        # 3. All validations passed → safe to update status
+        doc.status = "Issued"
         
 
 @frappe.whitelist()
