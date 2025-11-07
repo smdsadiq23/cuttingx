@@ -28,7 +28,9 @@
   "section_break_yine",
   "table_ckp_bundle_details",
   "table_ckp_bundle_summary",
-  "table_operation_map"
+  "table_operation_map",
+  "last_operation",
+  "table_physical_cell_last_operation"
  ],
  "fields": [
   {
@@ -177,16 +179,34 @@
    "label": "Naming Series",
    "options": "CKP.-.YYYY.-.######",
    "read_only": 1
+  },
+  {
+   "allow_on_submit": 1,
+   "fieldname": "last_operation",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Last Operation",
+   "options": "Operation",
+   "read_only": 1
+  },
+  {
+   "fieldname": "table_physical_cell_last_operation",
+   "fieldtype": "Table",
+   "hidden": 1,
+   "label": "Physical Cell Last Operation",
+   "options": "Tracking Order Physical Cell Last Operation",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-07 17:39:23.860929",
+ "modified": "2025-11-07 17:51:32.779905",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
+ "naming_rule": "By \"Naming Series\" field",
  "owner": "Administrator",
  "permissions": [
   {
