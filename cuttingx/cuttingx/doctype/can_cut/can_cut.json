@@ -100,7 +100,6 @@
    "fieldtype": "Float",
    "in_list_view": 1,
    "label": "File Consumption (Kg / Pcs)",
-   "precision": "2",
    "read_only": 1,
    "reqd": 1
   },
@@ -133,7 +132,6 @@
    "fieldname": "actual_consumption",
    "fieldtype": "Float",
    "label": "Actual Consumption (Kg / Pcs)",
-   "precision": "2",
    "reqd": 1
   },
   {
@@ -264,7 +262,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-16 18:31:58.057620",
+ "modified": "2025-11-10 18:37:37.350127",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
