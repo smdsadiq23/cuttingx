@@ -142,48 +142,8 @@ frappe.ui.form.on('Cut Confirmation', {
 
         frm.set_value("lay_record", "");
         frm.refresh_field("lay_record");
-
-        // // Fetch associated Sales Orders
-        // frappe.call({
-        //     method: 'cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_sales_orders_from_docket',
-        //     args: {
-        //         docket_name: frm.doc.cut_po_number
-        //     },
-        //     callback: function(r) {
-        //         if (r.message) {
-        //             frm.clear_table('sales_orders');
-        //             (r.message || []).forEach(so => {
-        //                 const row = frm.add_child('sales_orders');
-        //                 row.sales_order = so;
-        //             });
-        //             frm.refresh_field('sales_orders');
-        //         }
-        //     }
-        // });
     }
 });
-
-// // 🔍 Utility: Get already used Cut Dockets
-// function get_already_used_dockets() {
-//     let dockets = [];
-//     frappe.call({
-//         method: 'frappe.client.get_list',
-//         async: false,
-//         args: {
-//             doctype: 'Cut Confirmation',
-//             fields: ['cut_po_number'],
-//             filters: {
-//                 docstatus: ['!=', 2],  // Exclude cancelled
-//                 cut_po_number: ['!=', null]
-//             },
-//             limit_page_length: 1000
-//         },
-//         callback: function(r) {
-//             dockets = (r.message || []).map(row => row.cut_po_number);
-//         }
-//     });
-//     return dockets;
-// }
 
 frappe.ui.form.on('Cut Confirmation Item', {
     
@@ -204,32 +164,6 @@ frappe.ui.form.on('Cut Confirmation Item', {
         calculate_all(frm, cdt, cdn);
     }
 });
-
-function calculate_all(frm, cdt, cdn) {
-    const d = locals[cdt][cdn];
-
-    const planned = parseFloat(d.planned_quantity) || 0;
-    const confirmed = parseFloat(d.confirmed_quantity) || 0;
-    const full_panel = parseFloat(d.full_panel_reject) || 0;
-    const other = parseFloat(d.other_reject) || 0;
-
-    // ⚠️ Warn if over 120% (soft limit)
-    const maxAllowed = planned * 1.2;
-    if (confirmed > maxAllowed) {
-        frappe.show_alert({
-            message: __('Confirmed Quantity ({0}) exceeds 120% of Planned ({1} × 1.2 = {2})', 
-                [confirmed, planned, maxAllowed.toFixed(2)]),
-            indicator: 'orange'
-        }, 5);
-    }
-
-    // ✅ Ensure balance is never negative
-    const balance_to_confirm = Math.max(0, planned - confirmed);
-    const total_reject = full_panel + other;
-
-    frappe.model.set_value(cdt, cdn, 'balance_to_confirm', parseFloat(balance_to_confirm.toFixed(2)));
-    frappe.model.set_value(cdt, cdn, 'total_reject', parseFloat(total_reject.toFixed(2)));
-}
 
 // Reusable function to focus the field
 function focus_cut_po_field(frm) {
