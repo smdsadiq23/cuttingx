@@ -236,4 +236,4 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
 
     # Sort by creation (descending) — mimic original behavior
     # Note: We lost gri.creation; if needed, add it to first query
-    return sorted(result, key=lambda x: str(x["roll_no"]))
+    return sorted(result, key=lambda x: float(x["roll_no"]) if x["roll_no"] is not None else 0)
