@@ -136,17 +136,17 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
     if not (sales_order and style and colour):
         return []
 
-    # 1. Get item codes from Sales Order
-    item_codes = frappe.db.sql_list("""
-        SELECT DISTINCT soi.item_code
-        FROM `tabSales Order Item` soi
-        WHERE soi.parent = %s
-          AND soi.custom_style = %s
-          AND soi.custom_color = %s
-    """, (sales_order, style, colour))
+    # # 1. Get item codes from Sales Order
+    # item_codes = frappe.db.sql_list("""
+    #     SELECT DISTINCT soi.item_code
+    #     FROM `tabSales Order Item` soi
+    #     WHERE soi.parent = %s
+    #       AND soi.custom_style = %s
+    #       AND soi.custom_color = %s
+    # """, (sales_order, style, colour))
 
-    if not item_codes:
-        return []
+    # if not item_codes:
+    #     return []
 
     # 2. Get all relevant GRN Items (submitted GRNs only)
     grn_items = frappe.db.sql("""
@@ -162,11 +162,10 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
         WHERE 
             grn.ocn = %s
             AND grn.docstatus = 1
-            AND gri.item_code IN %s
             AND gri.color = %s
             AND gri.roll_no IS NOT NULL
             AND gri.received_quantity > 0
-    """, (sales_order, tuple(item_codes), colour), as_dict=1)
+    """, (sales_order, colour), as_dict=1)
 
     if not grn_items:
         return []
