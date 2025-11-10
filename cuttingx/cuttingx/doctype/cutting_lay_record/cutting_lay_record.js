@@ -6,6 +6,8 @@ frappe.ui.form.on('Cutting Lay Record', {
         // Clear all dependent data
         frm.clear_table('table_lay_size_ratio');
         frm.clear_table('table_lay_roll_details');
+        frm.refresh_field('table_lay_size_ratio');
+        frm.refresh_field('table_lay_roll_details');  
         ['cut_no', 'total_ratio_qty', 'total_roll_weight', 'total_no_of_lays', 'average_consumption'].forEach(field => {
             frm.set_value(field, '');
         });
@@ -43,6 +45,8 @@ frappe.ui.form.on('Cutting Lay Record', {
         // Clear dependent tables and computed fields
         frm.clear_table('table_lay_size_ratio');
         frm.clear_table('table_lay_roll_details');
+        frm.refresh_field('table_lay_size_ratio');
+        frm.refresh_field('table_lay_roll_details');          
         ['cut_no', 'total_ratio_qty', 'total_roll_weight', 'total_no_of_lays'].forEach(field => {
             frm.set_value(field, '');
         });
