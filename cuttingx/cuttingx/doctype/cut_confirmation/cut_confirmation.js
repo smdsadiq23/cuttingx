@@ -73,6 +73,20 @@ frappe.ui.form.on('Cut Confirmation', {
                 }, 100); // Adjust based on scanner speed
             });
         });
+
+        // 🔽 ADD THIS: Set query for lay_record based on cut_po_number
+        frm.set_query("lay_record", function() {
+            if (!frm.doc.cut_po_number) {
+                return { filters: { name: ["=", ""] } };
+            }
+            return {
+                query: "cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.get_eligible_lay_records",
+                filters: {
+                    cut_docket: frm.doc.cut_po_number,
+                    current_doc: frm.doc.name || ""
+                }
+            };
+        });      
     },
     onload: function(frm) {
         // Try immediately
@@ -93,7 +107,11 @@ frappe.ui.form.on('Cut Confirmation', {
         });
     },
     cut_po_number: function(frm) {
-        if (!frm.doc.cut_po_number) return;
+        if (!frm.doc.cut_po_number) {
+            // Clear lay_record when Cut Docket is cleared
+            frm.set_value("lay_record", "");
+            return;
+        }
 
         // Fetch Cut Confirmation Items
         frappe.call({
@@ -121,6 +139,9 @@ frappe.ui.form.on('Cut Confirmation', {
                 }
             }
         });
+
+        frm.set_value("lay_record", "");
+        frm.refresh_field("lay_record");
 
         // // Fetch associated Sales Orders
         // frappe.call({
@@ -192,23 +213,22 @@ function calculate_all(frm, cdt, cdn) {
     const full_panel = parseFloat(d.full_panel_reject) || 0;
     const other = parseFloat(d.other_reject) || 0;
 
-    // 🔒 Client-side validation: confirmed_quantity <= planned_quantity
-    if (confirmed > planned) {
+    // ⚠️ Warn if over 120% (soft limit)
+    const maxAllowed = planned * 1.2;
+    if (confirmed > maxAllowed) {
         frappe.show_alert({
-            message: __('Confirmed Quantity cannot exceed Planned Quantity ({0})', [planned]),
-            indicator: 'red'
+            message: __('Confirmed Quantity ({0}) exceeds 120% of Planned ({1} × 1.2 = {2})', 
+                [confirmed, planned, maxAllowed.toFixed(2)]),
+            indicator: 'orange'
         }, 5);
-        // Reset to planned or 0 if invalid
-        frappe.model.set_value(cdt, cdn, 'confirmed_quantity', planned);
-        return; // Stop further calculation
     }
 
-    const balance_to_confirm = parseFloat((planned - confirmed).toFixed(2));
-    const total_reject = parseFloat((full_panel + other).toFixed(2));
+    // ✅ Ensure balance is never negative
+    const balance_to_confirm = Math.max(0, planned - confirmed);
+    const total_reject = full_panel + other;
 
-    // Set calculated fields
-    frappe.model.set_value(cdt, cdn, 'balance_to_confirm', balance_to_confirm);
-    frappe.model.set_value(cdt, cdn, 'total_reject', total_reject);
+    frappe.model.set_value(cdt, cdn, 'balance_to_confirm', parseFloat(balance_to_confirm.toFixed(2)));
+    frappe.model.set_value(cdt, cdn, 'total_reject', parseFloat(total_reject.toFixed(2)));
 }
 
 // Reusable function to focus the field

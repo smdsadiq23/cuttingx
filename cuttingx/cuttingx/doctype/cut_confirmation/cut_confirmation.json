@@ -9,8 +9,9 @@
   "posted_date_and_time",
   "shift",
   "cut_po_number",
-  "work_center",
+  "lay_record",
   "column_break_hveh",
+  "work_center",
   "panel_type",
   "panel_code",
   "table_no",
@@ -87,13 +88,21 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "lay_record",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Lay Record",
+   "options": "Cutting Lay Record",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-29 20:45:39.830616",
+ "modified": "2025-11-10 19:38:41.383869",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

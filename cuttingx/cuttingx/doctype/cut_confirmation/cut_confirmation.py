@@ -6,6 +6,7 @@ import frappe
 from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt
+import json
 
 
 class CutConfirmation(Document):
@@ -36,85 +37,203 @@ class CutConfirmation(Document):
 
 def validate(doc, method):
     """
-    Validate that confirmed_quantity <= planned_quantity for each item.
+    Validate:
+    1. Recalculate derived fields (balance_to_confirm, total_reject)
+    2. Cut Docket and Lay Record must be selected together
+    3. (Cut Docket + Lay Record) combination must be unique
+    4. Total confirmed quantity across all Cut Confirmations 
+       must not exceed 120% of Cut Docket's planned quantity 
+       for each (Work Order, Sales Order, Line Item No, Size)
     """
+    # 1. Recalculate derived fields (safe, no validation)
     for item in doc.table_cut_confirmation_item:
-        if flt(item.confirmed_quantity) > flt(item.planned_quantity):
-            frappe.throw(
-                _("Row #{0}: Confirmed Quantity ({1}) cannot be greater than Planned Quantity ({2}) for Work Order {3}, Size {4}").format(
-                    item.idx,
-                    item.confirmed_quantity,
-                    item.planned_quantity,
-                    item.work_order or "N/A",
-                    item.size or "N/A"
-                )
-            )
-        # Recalculate (optional, but safe)
         item.calculate_balance_to_confirm()
         item.calculate_total_reject()
 
-    # Validation 2: Prevent duplicate Cut Docket
-    if doc.cut_po_number:
-        # Check if this Cut Docket is already used in another **submitted or saved** Cut Confirmation
+    # 2. Ensure Cut Docket and Lay Record are selected together
+    if doc.cut_po_number and not doc.lay_record:
+        frappe.throw(_("Please select a Lay Record for the selected Cut Docket."))
+    if doc.lay_record and not doc.cut_po_number:
+        frappe.throw(_("Lay Record cannot be selected without a Cut Docket."))
+
+    # 3. Ensure (Cut Docket + Lay Record) combination is unique
+    if doc.cut_po_number and doc.lay_record:
         existing = frappe.db.exists(
             "Cut Confirmation",
             {
                 "cut_po_number": doc.cut_po_number,
-                "name": ("!=", doc.name),  # Exclude current doc
-                "docstatus": ("!=", 2)     # Exclude cancelled
+                "lay_record": doc.lay_record,
+                "name": ("!=", doc.name),
+                "docstatus": ("!=", 2)  # Exclude cancelled
             }
         )
         if existing:
             frappe.throw(
-                _("Cut Docket {0} has already been used in Cut Confirmation <a href='/app/cut-confirmation/{1}'>{1}</a>. "
-                  "Each Cut Docket can only be confirmed once.").format(
+                _("The combination of Cut Docket {0} and Lay Record {1} has already been used in "
+                  "<a href='/app/cut-confirmation/{2}'>{2}</a>. "
+                  "Each (Cut Docket + Lay Record) pair can only be confirmed once.").format(
                     frappe.bold(doc.cut_po_number),
+                    frappe.bold(doc.lay_record),
                     existing
                 ),
-                title=_("Duplicate Cut Docket")
+                title=_("Duplicate Cut Docket + Lay Record")
+            )
+
+    # 4. Validate total confirmed ≤ 120% of planned (aggregate across all Cut Confirmations)
+    if doc.cut_po_number:
+        validate_total_confirmed_against_docket(doc)
+
+
+def validate_total_confirmed_against_docket(doc):
+    """
+    Validate that total confirmed quantity across all Cut Confirmations
+    for each (work_order, sales_order, line_item_no, size) 
+    does not exceed 120% of Cut Docket's planned_cut_quantity.
+    """
+    if not doc.cut_po_number:
+        return
+
+    # Fetch Cut Docket
+    try:
+        cut_docket = frappe.get_doc("Cut Docket", doc.cut_po_number)
+    except frappe.DoesNotExistError:
+        frappe.throw(_("Cut Docket {0} not found").format(doc.cut_po_number))
+
+    # Build map from Cut Docket: key → planned_cut_quantity
+    docket_plan = {}
+    for row in cut_docket.table_size_ratio_qty:
+        if row.ref_work_order and row.sales_order and row.line_item_no and row.size:
+            key = (
+                row.ref_work_order.strip(),
+                row.sales_order.strip(),
+                str(row.line_item_no).strip(),  # Ensure string for consistency
+                row.size.strip().lower()
+            )
+            docket_plan[key] = flt(row.planned_cut_quantity)
+
+    # Build map: key → total confirmed (including current doc)
+    confirmed_total = {}
+
+    # Add current document's items
+    for item in doc.table_cut_confirmation_item:
+        if item.work_order and item.sales_order and item.line_item_no and item.size:
+            key = (
+                item.work_order.strip(),
+                item.sales_order.strip(),
+                str(item.line_item_no).strip(),
+                item.size.strip().lower()
+            )
+            confirmed_total[key] = confirmed_total.get(key, 0) + flt(item.confirmed_quantity)
+
+    # Add confirmed quantities from OTHER Cut Confirmations
+    other_data = frappe.db.sql("""
+        SELECT 
+            cci.work_order,
+            cci.sales_order,
+            cci.line_item_no,
+            cci.size,
+            SUM(cci.confirmed_quantity) as total_confirmed
+        FROM `tabCut Confirmation Item` cci
+        INNER JOIN `tabCut Confirmation` cc ON cci.parent = cc.name
+        WHERE 
+            cc.cut_po_number = %s
+            AND cc.docstatus != 2
+            AND cc.name != %s
+        GROUP BY 
+            cci.work_order, 
+            cci.sales_order, 
+            cci.line_item_no, 
+            cci.size
+    """, (doc.cut_po_number, doc.name), as_dict=True)
+
+    for row in other_data:
+        key = (
+            (row.work_order or "").strip(),
+            (row.sales_order or "").strip(),
+            str(row.line_item_no or "").strip(),
+            (row.size or "").strip().lower()
+        )
+        if all(key):  # Only if all parts are non-empty
+            confirmed_total[key] = confirmed_total.get(key, 0) + flt(row.total_confirmed)
+
+    # Now validate each key
+    for key, total_confirmed in confirmed_total.items():
+        work_order, sales_order, line_item_no, size = key
+
+        # Check if this key exists in Cut Docket
+        if key not in docket_plan:
+            frappe.throw(
+                _("Row with Work Order '{0}', Sales Order '{1}', Line Item No '{2}', Size '{3}' "
+                  "is not present in Cut Docket {4}. Please verify.")
+                .format(work_order, sales_order, line_item_no, size, doc.cut_po_number)
+            )
+
+        planned = docket_plan[key]
+        max_allowed = planned * 1.2  # 120%
+
+        if total_confirmed > max_allowed:
+            frappe.throw(
+                _("Total confirmed quantity for:<br>"
+                  "<b>WO:</b> {0}, <b>SO:</b> {1}, <b>Line Item:</b> {2}, <b>Size:</b> {3}<br>"
+                  "is <b>{4}</b>, which exceeds 120% of planned quantity ({5} × 1.2 = {6}).")
+                .format(
+                    work_order,
+                    sales_order,
+                    line_item_no,
+                    size,
+                    flt(total_confirmed, 2),
+                    planned,
+                    flt(max_allowed, 2)
+                )
             )        
 
 
 @frappe.whitelist()
 def get_unused_cut_dockets(doctype, txt, searchfield, start, page_len, filters, as_dict=False):
     """
-    Return Cut Dockets that are:
-    - Submitted (docstatus = 1)
-    - NOT used in any non-cancelled Cut Confirmation
-    - Match search text
+    Return Cut Dockets that:
+    - Are submitted (docstatus = 1)
+    - Have at least one Cutting Lay Record (cut_kanban_no = Cut Docket)
+    - And have at least one Lay Record that is NOT used in any other non-cancelled Cut Confirmation
+    - Match the search text
     """
     current_doc = filters.get("current_doc") or ""
 
-    # Get all used Cut Dockets (excluding current doc)
-    used_dockets = frappe.db.sql("""
-        SELECT DISTINCT cut_po_number
-        FROM `tabCut Confirmation`
-        WHERE cut_po_number IS NOT NULL
-          AND docstatus != 2
-          AND name != %s
-    """, (current_doc,), as_dict=False)
-
-    used_list = [d[0] for d in used_dockets if d[0]]
-
-    # Build NOT IN clause safely
-    unused_condition = ""
-    if used_list:
-        placeholders = ','.join(['%s'] * len(used_list))
-        unused_condition = f"AND name NOT IN ({placeholders})"
-
-    # Final query
-    query = f"""
-        SELECT name
-        FROM `tabCut Docket`
-        WHERE docstatus = 1
-          AND name LIKE %s
-          {unused_condition}
-        ORDER BY name
-        LIMIT %s OFFSET %s
+    # Main query: Find Cut Dockets with unused Lay Records
+    query = """
+        SELECT DISTINCT cd.name
+        FROM `tabCut Docket` cd
+        WHERE cd.docstatus = 1
+          AND cd.name LIKE %(txt)s
+          AND EXISTS (
+              -- At least one Lay Record exists for this Cut Docket
+              SELECT 1
+              FROM `tabCutting Lay Record` clr
+              WHERE clr.cut_kanban_no = cd.name
+                AND clr.docstatus != 2
+                AND NOT EXISTS (
+                    -- And that Lay Record is NOT used in any other Cut Confirmation
+                    SELECT 1
+                    FROM `tabCut Confirmation` cc
+                    WHERE cc.cut_po_number = cd.name
+                      AND cc.lay_record = clr.name
+                      AND cc.name != %(current_doc)s
+                      AND cc.docstatus != 2
+                )
+          )
+        ORDER BY cd.name
+        LIMIT %(page_len)s OFFSET %(start)s
     """
 
-    params = ['%' + txt + '%'] + used_list + [page_len, start]
-    return frappe.db.sql(query, params)
+    params = {
+        "txt": f"%{txt}%",
+        "current_doc": current_doc,
+        "page_len": page_len,
+        "start": start
+    }
+
+    results = frappe.db.sql(query, params)
+    return [[row[0]] for row in results]
 
 
 @frappe.whitelist()
@@ -145,6 +264,63 @@ def get_items_from_cut_docket(cut_po_number):
 
     return items
 
+
+@frappe.whitelist()
+def get_eligible_lay_records(doctype, txt, searchfield, start, page_len, filters):
+    """
+    Frappe-compatible search query for Lay Record dropdown in Cut Confirmation.
+    
+    Filters Lay Records by:
+      - cut_kanban_no = filters.cut_docket
+      - Not used in any other Cut Confirmation
+    """
+    # Parse filters (passed as a JSON string or dict)
+    if isinstance(filters, str):
+        filters = json.loads(filters)
+    
+    cut_docket = filters.get("cut_docket")
+    current_doc = filters.get("current_doc") or ""
+
+    if not cut_docket:
+        return []
+
+    # Get Lay Records already used with this Cut Docket (excluding current doc)
+    used_lay_records = frappe.db.sql("""
+        SELECT lay_record
+        FROM `tabCut Confirmation`
+        WHERE cut_po_number = %s
+          AND lay_record IS NOT NULL
+          AND docstatus != 2
+          AND name != %s
+    """, (cut_docket, current_doc), as_dict=False)
+
+    used_set = {row[0] for row in used_lay_records if row[0]}
+
+    # Get eligible Lay Records (with optional search text match)
+    query = """
+        SELECT name
+        FROM `tabCutting Lay Record`
+        WHERE cut_kanban_no = %s
+          AND docstatus != 2
+          AND name LIKE %s
+        ORDER BY name
+        LIMIT %s OFFSET %s
+    """
+
+    lay_records = frappe.db.sql(
+        query,
+        (cut_docket, f"%{txt}%", int(page_len), int(start)),
+        as_dict=False
+    )
+
+    # Filter out used ones
+    eligible = [
+        [row[0]]  # Frappe expects list of lists or list of dicts
+        for row in lay_records
+        if row[0] not in used_set
+    ]
+
+    return eligible
 
 
 # @frappe.whitelist()
