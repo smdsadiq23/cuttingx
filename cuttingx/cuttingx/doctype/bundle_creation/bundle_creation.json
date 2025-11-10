@@ -94,11 +94,11 @@
    "options": "Bundle Shade and Ply"
   },
   {
-   "fetch_from": "cut_docket_id.no_of_plies",
    "fieldname": "no_of_plies",
    "fieldtype": "Int",
-   "hidden": 1,
-   "label": "No of Plies"
+   "label": "No of Plies",
+   "non_negative": 1,
+   "reqd": 1
   },
   {
    "default": "0",
@@ -135,7 +135,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-05 15:59:41.551397",
+ "modified": "2025-11-10 19:28:23.572573",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

@@ -7,7 +7,45 @@ from frappe.utils import cint  # Ensure this is imported
 
 
 class CuttingLayRecord(Document):
-	pass
+    def autoname(self):
+        """
+        Custom naming: LR-{WorkOrderFromCutDocket}-0001
+        Uses cut_kanban_no → Cut Docket → first Work Order
+        """
+        if not self.cut_kanban_no:
+            frappe.throw(_("Please select a Cut Kanban No (Cut Docket) before saving."))
+
+        # Fetch Cut Docket document
+        try:
+            cut_docket = frappe.get_doc("Cut Docket", self.cut_kanban_no)
+        except frappe.DoesNotExistError:
+            frappe.throw(_("Cut Docket {0} not found.").format(self.cut_kanban_no))
+
+        # Try to get Work Order from work_order_details (preferred)
+        work_order = None
+        if cut_docket.work_order_details:
+            work_order = cut_docket.work_order_details[0].work_order
+
+        # Fallback: get from table_size_ratio_qty
+        if not work_order and cut_docket.table_size_ratio_qty:
+            for row in cut_docket.table_size_ratio_qty:
+                if row.ref_work_order:
+                    work_order = row.ref_work_order
+                    break
+
+        if not work_order:
+            frappe.throw(
+                _("Cut Docket {0} does not contain any Work Order. "
+                  "Please ensure it has at least one Work Order in its size or WO table.").format(self.cut_kanban_no)
+            )
+
+        # Sanitize WO name (replace problematic characters)
+        wo_clean = str(work_order).replace("/", "-").replace("\\", "-").replace(" ", "-")
+
+        # Generate name: LR-{WO}-0001
+        prefix = f"LR-{wo_clean}"
+        self.name = frappe.model.naming.make_autoname(prefix + "-.####")
+        
 
 @frappe.whitelist()
 def get_cut_docket_details(cut_kanban_no):

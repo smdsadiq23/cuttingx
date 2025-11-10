@@ -8,6 +8,33 @@ from labelx.utils.generators import generate_barcode_base64, generate_qrcode_bas
 
 
 class BundleCreation(Document):
+    def autoname(self):
+        """
+        Custom naming: BC-{First_Work_Order}-0001
+        Example: BC-WO-00123-0001
+        """
+        work_order = None
+
+        # Get first valid Work Order from child table `table_bundle_creation_item`
+        if self.table_bundle_creation_item:
+            for row in self.table_bundle_creation_item:
+                if row.work_order:
+                    work_order = row.work_order
+                    break
+
+        if not work_order:
+            frappe.throw(
+                _("At least one Work Order must be selected in Bundle Creation Items to generate document name.")
+            )
+
+        # Sanitize Work Order name (replace /, \, spaces to ensure valid naming)
+        wo_clean = str(work_order).replace("/", "-").replace("\\", "-").replace(" ", "-")
+
+        # Generate auto-incrementing name: BC-{WO}-0001
+        prefix = f"BC-{wo_clean}"
+        self.name = frappe.model.naming.make_autoname(prefix + "-.####")
+        
+
     def validate(self):
         """Ensure total allocated units per size or shade exactly match cut quantity or shade cut quantity."""
 

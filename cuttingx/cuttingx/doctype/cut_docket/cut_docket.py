@@ -9,6 +9,38 @@ from frappe.utils import flt
 from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
 
 class CutDocket(Document):
+    def autoname(self):
+        """
+        Custom naming: CR-{First_Work_Order}-{####}
+        Example: CR-WO-00123-0001
+        """
+        # Get the first valid Work Order from child tables
+        work_order = None
+
+        # Priority 1: From work_order_details (if exists)
+        if self.work_order_details:
+            work_order = self.work_order_details[0].work_order
+
+        # Fallback: From table_size_ratio_qty
+        if not work_order and self.table_size_ratio_qty:
+            for row in self.table_size_ratio_qty:
+                if row.ref_work_order:
+                    work_order = row.ref_work_order
+                    break
+
+        if not work_order:
+            frappe.throw(_("At least one Work Order must be selected to generate Cut Docket name."))
+
+        # Clean the WO name (remove special chars if needed, but usually WO names are safe)
+        wo_clean = work_order.replace("/", "-").replace("\\", "-")  # optional sanitization
+
+        # Construct base prefix
+        prefix = f"CR-{wo_clean}"
+
+        # Get next number in sequence for this prefix
+        self.name = frappe.model.naming.make_autoname(prefix + "-.####")
+
+
     def before_insert(self):
         """
         Called when a new Cut Docket is created (including duplication).

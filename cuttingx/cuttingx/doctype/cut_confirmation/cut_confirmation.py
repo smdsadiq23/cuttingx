@@ -9,7 +9,29 @@ from frappe.utils import flt
 
 
 class CutConfirmation(Document):
-    pass
+    def autoname(self):
+        """
+        Custom naming: CC-{First_Work_Order}-0001
+        Example: CC-WO-00123-0001
+        """
+        work_order = None
+
+        # Get first valid Work Order from child table `table_cut_confirmation_item`
+        if self.table_cut_confirmation_item:
+            for row in self.table_cut_confirmation_item:
+                if row.work_order:
+                    work_order = row.work_order
+                    break
+
+        if not work_order:
+            frappe.throw(_("At least one Work Order must be selected in Cut Confirmation Items to generate document name."))
+
+        # Sanitize Work Order name (replace problematic characters like /, \, spaces)
+        wo_clean = str(work_order).replace("/", "-").replace("\\", "-").replace(" ", "-")
+
+        # Generate name using Frappe's auto-incrementing naming
+        prefix = f"CC-{wo_clean}"
+        self.name = frappe.model.naming.make_autoname(prefix + "-.####")
 
 
 def validate(doc, method):
