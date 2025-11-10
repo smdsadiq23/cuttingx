@@ -31,11 +31,13 @@ class KnittingYarnRequest(Document):
 @frappe.whitelist()
 def get_yarns_from_work_order_bom(work_order):
     """
-    Fetch yarn_code, bom_consumption, and yarn_count for all yarns in the BOM's custom_yarns_items.
+    Fetch yarn_code, yarn_shade_code, yarn_shade (from Colour Master),
+    bom_consumption, and yarn_count from the BOM's custom_yarns_items.
     """
     if not work_order:
         return []
 
+    # Get BOM from Work Order → Production Item → Default BOM
     production_item = frappe.db.get_value("Work Order", work_order, "production_item")
     if not production_item:
         return []
@@ -44,40 +46,48 @@ def get_yarns_from_work_order_bom(work_order):
     if not bom:
         return []
 
-    # Get all yarn items from BOM
+    # Fetch yarn entries from BOM's custom_yarns_items
     bom_yarns = frappe.db.get_all(
         "BOM Item",
-        filters={
-            "parent": bom,
-            "parentfield": "custom_yarns_items"
-        },
-        fields=["item_code AS yarn_code", "custom_yarn_shade AS yarn_shade", "qty AS bom_consumption"]
+        filters={"parent": bom, "parentfield": "custom_yarns_items"},
+        fields=["item_code AS yarn_code", "custom_yarn_shade AS yarn_shade_code", "qty AS bom_consumption"],
     )
 
     if not bom_yarns:
         return []
 
-    # Extract all yarn codes
-    yarn_codes = [y.get("yarn_code") for y in bom_yarns if y.get("yarn_code")]
+    # Unique codes for batch fetching
+    yarn_codes = list({y["yarn_code"] for y in bom_yarns if y.get("yarn_code")})
+    shade_codes = list({y["yarn_shade_code"] for y in bom_yarns if y.get("yarn_shade_code")})
 
-    # Fetch custom_yarn_count for all yarns in one query
-    yarn_items = frappe.db.get_all(
-        "Item",
-        filters={"name": ["in", yarn_codes]},
-        fields=["name AS yarn_code", "custom_yarn_count AS yarn_count"]
-    )
+    # Batch-fetch yarn counts
+    yarn_count_map = {
+        item.name: item.custom_yarn_count or ""
+        for item in frappe.db.get_all(
+            "Item",
+            filters={"name": ["in", yarn_codes]},
+            fields=["name", "custom_yarn_count"]
+        )
+    }
 
-    # Create a map: yarn_code → yarn_count
-    yarn_count_map = {item["yarn_code"]: item.get("yarn_count") or "" for item in yarn_items}
+    # Batch-fetch colour names
+    colour_name_map = {
+        colour.name: colour.colour_name or ""
+        for colour in frappe.db.get_all(
+            "Colour Master",
+            filters={"name": ["in", shade_codes]},
+            fields=["name", "colour_name"]
+        )
+    }
 
-    # Enrich BOM yarns with yarn_count
-    result = []
-    for yarn in bom_yarns:
-        result.append({
-            "yarn_code": yarn["yarn_code"],
-            "yarn_shade": yarn["yarn_shade"],
-            "bom_consumption": yarn["bom_consumption"],
-            "yarn_count": yarn_count_map.get(yarn["yarn_code"], "")
-        })
-
-    return result
+    # Build result
+    return [
+        {
+            "yarn_code": y["yarn_code"],
+            "yarn_shade_code": y.get("yarn_shade_code") or "",
+            "yarn_shade": colour_name_map.get(y.get("yarn_shade_code") or "", ""),
+            "bom_consumption": y["bom_consumption"],
+            "yarn_count": yarn_count_map.get(y["yarn_code"], ""),
+        }
+        for y in bom_yarns
+    ]

@@ -82,6 +82,7 @@ frappe.ui.form.on('Knitting Yarn Request', {
                             r.message.forEach(yarn => {
                                 let row = frm.add_child('table_yarn_shade_distribution');
                                 row.yarn_code = yarn.yarn_code;
+                                row.yarn_shade_code = yarn.yarn_shade_code;
                                 row.yarn_shade = yarn.yarn_shade;
                                 row.yarn_count = yarn.yarn_count;
                                 row.bom_consumption = flt(yarn.bom_consumption);
