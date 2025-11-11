@@ -8,6 +8,7 @@
  "field_order": [
   "naming_series",
   "cut_docket_id",
+  "cut_confirmation_no",
   "yarn_request_no",
   "fg_item",
   "style_number",
@@ -128,13 +129,19 @@
    "fieldtype": "Link",
    "label": "Yarn Request No",
    "options": "Knitting Yarn Request"
+  },
+  {
+   "fieldname": "cut_confirmation_no",
+   "fieldtype": "Link",
+   "label": "Cut Confirmation No",
+   "options": "Cut Confirmation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-11 10:30:45.295755",
+ "modified": "2025-11-11 11:38:20.479262",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

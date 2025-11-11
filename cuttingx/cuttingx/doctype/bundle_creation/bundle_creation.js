@@ -16,6 +16,20 @@ frappe.ui.form.on("Bundle Creation", {
 				filters: { name: ["in", get_eligible_yarn_requests()] },
 			};
 		});		
+
+        frm.set_query("cut_confirmation_no", function() {
+            if (!frm.doc.cut_docket_id) {
+                return {
+                    filters: { name: ["=", ""] }
+                };
+            }
+            return {
+                query: "cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_eligible_cut_confirmations",
+                filters: {
+                    cut_docket_id: frm.doc.cut_docket_id
+                }
+            };
+        });	
 	},
 
 	refresh: function (frm) {
@@ -50,6 +64,10 @@ frappe.ui.form.on("Bundle Creation", {
 	},
 
 	cut_docket_id: function (frm) {
+        if (frm.doc.cut_confirmation_no) {
+            frm.set_value("cut_confirmation_no", "");
+        }
+
 		toggle_cut_flow_fields(frm);
 
 		if (!frm.doc.cut_docket_id) {
@@ -268,6 +286,8 @@ function toggle_cut_flow_fields(frm) {
     // --- Top-level fields ---
     frm.toggle_display("no_of_plies", should_show_cut_fields);
 	frm.set_df_property("no_of_plies", "reqd", should_show_cut_fields);
+	frm.toggle_display("cut_confirmation_no", should_show_cut_fields);
+	frm.set_df_property("cut_confirmation_no", "reqd", should_show_cut_fields);
     frm.toggle_display("table_shade_and_ply", should_show_cut_fields);
 
     // --- Child table: Bundle Creation Item ---
@@ -362,10 +382,15 @@ function fetch_and_split_data(frm) {
 		frappe.msgprint(__("Please select a Cut Docket first."));
 		return;
 	}
+    
+	if (!frm.doc.cut_confirmation_no) {
+        frappe.msgprint(__("Please select a Cut Confirmation first."));
+        return;
+    }
 
 	frappe.call({
-		method: "cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_cut_confirmation_items_from_docket",
-		args: { cut_docket_id: frm.doc.cut_docket_id },
+		method: "cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_items_from_cut_confirmation",
+		args: { cut_confirmation_no: frm.doc.cut_confirmation_no },
 		callback: function (r) {
 			if (!(r.message || []).length) {
 				frappe.msgprint(__("No data found in Cut Confirmation for this Cut Docket."));

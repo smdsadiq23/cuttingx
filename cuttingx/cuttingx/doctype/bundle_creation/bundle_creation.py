@@ -227,26 +227,71 @@ class BundleCreation(Document):
 
 @frappe.whitelist()
 def get_eligible_cut_dockets():
-    # Step 1: Get all Cut Dockets used in submitted Bundle Creation
-    used_in_bundle = frappe.get_all(
-        'Bundle Creation',
-        # filters={'docstatus': 1},
-        fields=['cut_docket_id']
+    """
+    Return Cut Dockets that have at least one:
+    - Submitted Cut Confirmation, AND
+    - That Cut Confirmation is NOT used in any Bundle Creation
+    """
+    # Step 1: Get all Cut Confirmations used in Bundle Creation
+    used_confirmations = frappe.get_all(
+        "Bundle Creation",
+        filters={"cut_confirmation_no": ["is", "set"]},
+        pluck="cut_confirmation_no"
     )
-    used_docket_ids = {d['cut_docket_id'] for d in used_in_bundle if d['cut_docket_id']}
+    used_confirmation_set = set(used_confirmations)
 
-    # Step 2: Get all Cut Dockets used in submitted Cut Confirmation
-    submitted_cut_confirmations = frappe.get_all(
-        'Cut Confirmation',
-        filters={'docstatus': 1},
-        fields=['cut_po_number']
+    # Step 2: Get all submitted Cut Confirmations NOT in used set
+    eligible_confirmations = frappe.get_all(
+        "Cut Confirmation",
+        filters={
+            "docstatus": 1,
+            "name": ["not in", list(used_confirmation_set)] if used_confirmation_set else ""
+        },
+        pluck="cut_po_number"  # Cut Docket ID
     )
-    eligible = [
-        d['cut_po_number'] for d in submitted_cut_confirmations
-        if d['cut_po_number'] not in used_docket_ids
-    ]
 
-    return eligible
+    # Step 3: Deduplicate Cut Dockets (one Cut Docket may have multiple unused confirmations)
+    eligible_dockets = list(set(eligible_confirmations))
+
+    return eligible_dockets
+
+
+@frappe.whitelist()
+def get_eligible_cut_confirmations(doctype, txt, searchfield, start, page_len, filters):
+    cut_docket_id = filters.get("cut_docket_id")
+    if not cut_docket_id:
+        return []
+
+    # Get used Cut Confirmations for THIS Cut Docket only
+    used_list = frappe.db.sql("""
+        SELECT DISTINCT bc.cut_confirmation_no
+        FROM `tabBundle Creation` bc
+        INNER JOIN `tabCut Confirmation` cc
+            ON bc.cut_confirmation_no = cc.name
+        WHERE bc.cut_confirmation_no IS NOT NULL
+        AND cc.cut_po_number = %s
+    """, (cut_docket_id,), as_dict=0)
+
+    used_names = [row[0] for row in used_list if row[0]]
+    
+    # Base conditions
+    conditions = "cc.docstatus != 2 AND cc.cut_po_number = %s AND cc.name LIKE %s"
+    params = [cut_docket_id, f"%{txt}%", int(page_len), int(start)]
+
+    if used_names:
+        placeholders = ",".join(["%s"] * len(used_names))
+        conditions += f" AND cc.name NOT IN ({placeholders})"
+        params = [cut_docket_id, f"%{txt}%"] + used_names + [int(page_len), int(start)]
+
+    query = f"""
+        SELECT cc.name
+        FROM `tabCut Confirmation` cc
+        WHERE {conditions}
+        ORDER BY cc.name
+        LIMIT %s OFFSET %s
+    """
+
+    return frappe.db.sql(query, params)
 
 
 @frappe.whitelist()
@@ -279,295 +324,39 @@ def get_eligible_yarn_requests():
 
 
 @frappe.whitelist()
-def get_cut_confirmation_items_from_docket(cut_docket_id):
-    """Fetch size and confirmed_quantity from Cut Confirmation Item for the given Cut PO"""
-    if not cut_docket_id:
+def get_items_from_cut_confirmation(cut_confirmation_no):
+    """
+    Fetch items from a SPECIFIC Cut Confirmation (not by Cut Docket).
+    """
+    if not cut_confirmation_no:
         return []
 
-    confirmation = frappe.get_all(
-        'Cut Confirmation',
-        filters={'cut_po_number': cut_docket_id, 'docstatus': 1},
-        fields=['name']
-    )
+    # Optional: Validate that the Cut Confirmation exists and is submitted
+    if not frappe.db.exists("Cut Confirmation", cut_confirmation_no):
+        frappe.throw(_("Cut Confirmation {0} not found").format(cut_confirmation_no))
 
-    if not confirmation:
-        return []
-
-    confirmation_name = confirmation[0]['name']
+    docstatus = frappe.db.get_value("Cut Confirmation", cut_confirmation_no, "docstatus")
+    if docstatus != 1:
+        frappe.throw(_("Cut Confirmation {0} must be submitted to create bundles").format(cut_confirmation_no))
 
     items = frappe.get_all(
-        'Cut Confirmation Item',
-        filters={'parent': confirmation_name},
-        fields=['work_order', 'sales_order', 'line_item_no', 'size', 'confirmed_quantity', 'idx'],
-        order_by='idx'
+        "Cut Confirmation Item",
+        filters={"parent": cut_confirmation_no},
+        fields=["work_order", "sales_order", "line_item_no", "size", "confirmed_quantity", "idx"],
+        order_by="idx"
     )
 
-    # Return data in desired structure
     return [
         {
-            'work_order': item['work_order'],
-            'sales_order': item['sales_order'],
-            'line_item_no': item['line_item_no'],
-            'size': item['size'],
-            'cut_quantity': item['confirmed_quantity'],
-            'idx': item['idx']  # Keep idx for sorting
+            "work_order": item.work_order,
+            "sales_order": item.sales_order,
+            "line_item_no": item.line_item_no,
+            "size": item.size,
+            "cut_quantity": item.confirmed_quantity,
+            "idx": item.idx
         }
         for item in items
     ]
-
-###### Below functions uses make_autoname method which will store series counter and #######
-###### Even if you delete bundle details it will start from counter plus 1 hence created custom method #######
-
-# @frappe.whitelist()
-# def generate_bundle_details(docname):
-#     """
-#     Generate bundle rows with barcode/QR for a given Bundle Creation document.
-#     Each bundle generates one row per FG Component.
-#     Example:
-#       Bundle 1 → Front, Back, Sleeve
-#       Bundle 2 → Front, Back, Sleeve
-#     """
-#     import re
-#     doc = frappe.get_doc("Bundle Creation", docname)
-
-#     if doc.get("table_bundle_details"):
-#         frappe.msgprint("⚠️ Bundles already created. Please remove existing bundles to regenerate.")
-#         return
-
-#     if not doc.fg_item:
-#         frappe.throw("Please select FG Item to generate bundles.")
-
-#     try:
-#         item_doc = frappe.get_doc("Item", doc.fg_item)
-#     except frappe.DoesNotExistError:
-#         frappe.throw(f"Item {doc.fg_item} not found")
-
-#     fg_components = item_doc.get("custom_fg_components") or []
-#     if not fg_components:
-#         frappe.throw(f"No FG Components found for Item {doc.fg_item}")
-
-#     company = (
-#         frappe.defaults.get_user_default("Company", user=frappe.session.user)
-#         or frappe.defaults.get_global_default("Company")
-#     )
-
-#     if not company:
-#         frappe.throw(
-#             "No Company is set for this user and no Global Default Company found. "
-#             "Please set one in User Defaults or Global Defaults."
-#         )
-
-#     company_abbr = frappe.db.get_value("Company", company, "abbr")
-#     if not company_abbr:
-#         frappe.throw(
-#             f"Company '{frappe.utils.escape_html(company)}' has no abbreviation (abbr). "
-#             "Please set it in the Company master."
-#         )
-
-#     def safe_series_name(name: str) -> str:
-#         if not name:
-#             return "UNKNOWN"
-#         return re.sub(r"[^A-Za-z0-9\-_]", "", str(name)).strip()
-
-#     # Validate all rows before creating any bundles
-#     for item in doc.table_bundle_creation_item:
-#         try:
-#             units_per_bundle = int(item.unitsbundle) if item.unitsbundle is not None else 0
-#         except (ValueError, TypeError):
-#             frappe.throw(f"Invalid Units per Bundle in row {item.idx}: must be a number")
-
-#         if units_per_bundle <= 0:
-#             frappe.throw(f"Units per bundle must be greater than 0 in row {item.idx}")
-
-#     total_created = 0
-
-#     for item in doc.table_bundle_creation_item:
-#         total_qty = int(item.shade_cut_quantity or 0)
-#         if total_qty <= 0:
-#             continue
-
-#         units_per_bundle = int(item.unitsbundle)
-#         size = item.size
-#         shade = item.shade
-#         ply = item.ply
-#         work_order = getattr(item, "work_order", None)
-#         if not work_order:
-#             frappe.throw(f"Work Order is missing in row {item.idx}")
-
-#         # Ceil division: number of bundles
-#         total_bundles = (total_qty + units_per_bundle - 1) // units_per_bundle
-
-#         # Sanitize work order for series
-#         safe_wo = safe_series_name(work_order)
-
-#         # Get first 2 chars of component_name
-#         comp_codes = []
-#         for comp in fg_components:
-#             component_name = comp.get("component_name") or "XX"
-#             code = (component_name.strip()[:2].upper() if len(component_name.strip()) >= 2
-#                     else (component_name + "X")[:2].upper())
-#             comp_codes.append((code, component_name))
-
-#         # ✅ Loop over bundles first
-#         for bundle_idx in range(total_bundles):
-#             # ✅ Generate one bundle ID per bundle
-#             # Series: BNDL-MFG-{WO}-{COMP_CODE}-.#####
-#             # But we need to use same base for all components
-#             base_series = f"BDL-{company_abbr}-MFG-{safe_wo}-"
-
-#             # For each component, create one row
-#             for comp_code, component_name in comp_codes:
-#                 # ✅ Use same bundle ID for all components in this bundle
-#                 series_prefix = f"{base_series}{comp_code}-.#####"
-#                 bundle_id = make_autoname(series_prefix)
-
-#                 # Calculate quantity for this bundle
-#                 if bundle_idx == total_bundles - 1:
-#                     bundle_qty = total_qty - units_per_bundle * (total_bundles - 1)
-#                 else:
-#                     bundle_qty = units_per_bundle
-
-#                 # Generate barcode & QR
-#                 barcode_b64 = generate_barcode_base64(bundle_id)
-#                 qrcode_b64 = generate_qrcode_base64(bundle_id)
-
-#                 doc.append("table_bundle_details", {
-#                     "bundle_id": bundle_id,
-#                     "unitsbundle": bundle_qty,
-#                     "size": size,
-#                     "shade": shade,
-#                     "ply": ply,
-#                     "component": component_name,
-#                     "barcode_image": barcode_b64,
-#                     "qrcode_image": qrcode_b64,
-#                     "parent_item_id": item.name,
-#                 })
-#                 total_created += 1
-
-#     doc.save(ignore_permissions=True)
-#     frappe.msgprint(f"✅ Created {total_created} component-wise bundle labels.")
-
-
-
-## Since bundle split is now done in Bundle Configuration table itself we have disabled below method and created new method
-## which does not calucalte no of bundles again and just use the existing
-# @frappe.whitelist()
-# def generate_bundle_details(docname):
-#     """
-#     Generate bundle rows with barcode/QR for a given Bundle Creation document.
-#     Each bundle generates one row per component in table_bundle_creation_components.
-#     Series numbering is continuous across all rows (does NOT restart per size/shade).
-#     """
-#     import re
-#     doc = frappe.get_doc("Bundle Creation", docname)
-
-#     if doc.get("table_bundle_details"):
-#         frappe.msgprint("⚠️ Bundles already created. Please remove existing bundles to regenerate.")
-#         return
-
-#     if not doc.fg_item:
-#         frappe.throw("Please select FG Item to generate bundles.")
-
-#     # ✅ EARLY VALIDATION: Use components from Bundle Creation child table
-#     bundle_components = doc.get("table_bundle_creation_components") or []
-#     if not bundle_components:
-#         frappe.throw("No components found in 'Bundle Creation Components'. Please check Style Master and Style Group Link.")
-
-#     company = (
-#         frappe.defaults.get_user_default("Company", user=frappe.session.user)
-#         or frappe.defaults.get_global_default("Company")
-#     )
-
-#     if not company:
-#         frappe.throw(
-#             "No Company is set for this user and no Global Default Company found. "
-#             "Please set one in User Defaults or Global Defaults."
-#         )
-
-#     company_abbr = frappe.db.get_value("Company", company, "abbr")
-#     if not company_abbr:
-#         frappe.throw(
-#             f"Company '{frappe.utils.escape_html(company)}' has no abbreviation (abbr). "
-#             "Please set it in the Company master."
-#         )
-
-#     def safe_series_name(name: str) -> str:
-#         if not name:
-#             return "UNKNOWN"
-#         return re.sub(r"[^A-Za-z0-9\-_]", "", str(name)).strip()
-
-#     # Validate all rows before creating any bundles
-#     for item in doc.table_bundle_creation_item:
-#         try:
-#             units_per_bundle = int(item.unitsbundle) if item.unitsbundle is not None else 0
-#         except (ValueError, TypeError):
-#             frappe.throw(f"Invalid Units per Bundle in row {item.idx}: must be a number")
-
-#         if units_per_bundle <= 0:
-#             frappe.throw(f"Units per bundle must be greater than 0 in row {item.idx}")
-
-#     # ✅ Prepare component codes from Bundle Creation Components (not from Item)
-#     comp_codes = []
-#     for row in bundle_components:
-#         component_name = (row.get("component_name") or "").strip()
-#         if not component_name:
-#             frappe.throw(f"Component name is missing in Bundle Creation Components row {row.idx}")
-        
-#         code = component_name[:2].upper() if len(component_name) >= 2 else (component_name + "X")[:2].upper()
-#         comp_codes.append((code, component_name))
-
-#     # One counter per component code — global across all bundles
-#     shared_counters = {comp_code: 0 for comp_code, _ in comp_codes}
-
-#     total_created = 0
-
-#     for item in doc.table_bundle_creation_item:
-#         total_qty = int(item.shade_cut_quantity or 0)
-#         if total_qty <= 0:
-#             continue
-
-#         units_per_bundle = int(item.unitsbundle)
-#         size = item.size
-#         shade = item.shade
-#         ply = item.ply
-#         work_order = getattr(item, "work_order", None)
-#         if not work_order:
-#             frappe.throw(f"Work Order is missing in row {item.idx}")
-
-#         total_bundles = (total_qty + units_per_bundle - 1) 
-#         safe_wo = safe_series_name(work_order)
-
-#         for bundle_idx in range(total_bundles):
-#             for comp_code, component_name in comp_codes:
-#                 shared_counters[comp_code] += 1
-#                 counter = shared_counters[comp_code]
-
-#                 bundle_id = f"BDL-{company_abbr}-MFG-{safe_wo}-{comp_code}-{counter:05d}"
-
-#                 if bundle_idx == total_bundles - 1:
-#                     bundle_qty = total_qty - units_per_bundle * (total_bundles - 1)
-#                 else:
-#                     bundle_qty = units_per_bundle
-
-#                 barcode_b64 = generate_barcode_base64(bundle_id)
-#                 qrcode_b64 = generate_qrcode_base64(bundle_id)
-
-#                 doc.append("table_bundle_details", {
-#                     "bundle_id": bundle_id,
-#                     "unitsbundle": bundle_qty,
-#                     "size": size,
-#                     "shade": shade,
-#                     "ply": ply,
-#                     "component": component_name,
-#                     "barcode_image": barcode_b64,
-#                     "qrcode_image": qrcode_b64,
-#                     "parent_item_id": item.name,
-#                 })
-#                 total_created += 1
-
-#     doc.save(ignore_permissions=True)
-#     frappe.msgprint(f"✅ Created {total_created} component-wise bundle labels with continuous numbering.")
-
 
 @frappe.whitelist()
 def generate_bundle_details(docname, is_yarn_flow: bool = False):
