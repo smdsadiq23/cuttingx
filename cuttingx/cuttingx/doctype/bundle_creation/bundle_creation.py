@@ -240,17 +240,19 @@ def get_eligible_cut_dockets():
     )
     used_confirmation_set = set(used_confirmations)
 
-    # Step 2: Get all submitted Cut Confirmations NOT in used set
+    # Step 2: Build filters for Cut Confirmation
+    filters = {"docstatus": 1}
+    if used_confirmation_set:
+        filters["name"] = ["not in", list(used_confirmation_set)]
+    # If unused, we don't add a name filter → get ALL submitted
+
     eligible_confirmations = frappe.get_all(
         "Cut Confirmation",
-        filters={
-            "docstatus": 1,
-            "name": ["not in", list(used_confirmation_set)] if used_confirmation_set else ""
-        },
-        pluck="cut_po_number"  # Cut Docket ID
+        filters=filters,
+        pluck="cut_po_number"
     )
 
-    # Step 3: Deduplicate Cut Dockets (one Cut Docket may have multiple unused confirmations)
+    # Step 3: Deduplicate Cut Dockets
     eligible_dockets = list(set(eligible_confirmations))
 
     return eligible_dockets
