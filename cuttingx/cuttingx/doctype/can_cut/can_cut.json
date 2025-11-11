@@ -109,8 +109,7 @@
    "in_list_view": 1,
    "label": "File Fabric Width (Cm)",
    "precision": "2",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "file_dia",
@@ -138,8 +137,7 @@
    "fieldname": "actual_fabric_width",
    "fieldtype": "Float",
    "label": "Actual Fabric Width (Cm)",
-   "precision": "2",
-   "reqd": 1
+   "precision": "2"
   },
   {
    "fieldname": "actual_dia",
@@ -262,7 +260,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-10 18:37:37.350127",
+ "modified": "2025-11-11 19:03:11.534828",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
