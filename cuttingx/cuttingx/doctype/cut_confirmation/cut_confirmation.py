@@ -245,8 +245,8 @@ def get_unused_cut_dockets(doctype, txt, searchfield, start, page_len, filters, 
 @frappe.whitelist()
 def get_items_from_cut_docket(cut_po_number):
     """
-    Fetch data from Cut Docket Item child table based on given docket number.
-    Returns: List of dicts with fields for Cut Confirmation Item.
+    Fetch data from Cut Docket Item child table.
+    Set confirmed_quantity = planned - already confirmed elsewhere.
     """
     if not cut_po_number:
         return []
@@ -256,19 +256,82 @@ def get_items_from_cut_docket(cut_po_number):
     except frappe.DoesNotExistError:
         frappe.throw(_("Cut Docket {0} not found").format(cut_po_number))
 
-    items = []
+    # Build key → planned map from docket
+    docket_plan = {}
+    result_template = []
     for item in docket_doc.get("table_size_ratio_qty") or []:
         if item.ref_work_order and item.size:
-            items.append({
-                "work_order": item.ref_work_order,
-                "sales_order": item.sales_order,
-                "line_item_no": item.line_item_no,
-                "size": item.size,
-                "planned_quantity": item.planned_cut_quantity,
-                "confirmed_quantity": item.planned_cut_quantity
-            })
+            key = (
+                (item.ref_work_order or "").strip(),
+                (item.sales_order or "").strip(),
+                str(item.line_item_no or "").strip(),
+                (item.size or "").strip().lower()
+            )
+            if all(key):
+                planned = flt(item.planned_cut_quantity)
+                docket_plan[key] = planned
+                result_template.append({
+                    "work_order": item.ref_work_order,
+                    "sales_order": item.sales_order,
+                    "line_item_no": item.line_item_no,
+                    "size": item.size,
+                    "planned_quantity": planned,
+                    "key": key
+                })
 
-    return items
+    if not result_template:
+        return []
+
+    # Fetch ALL confirmed quantities for this Cut Docket (from other Cut Confirmations)
+    confirmed_rows = frappe.db.sql("""
+        SELECT 
+            cci.work_order,
+            cci.sales_order,
+            cci.line_item_no,
+            cci.size,
+            SUM(cci.confirmed_quantity) AS total_confirmed
+        FROM `tabCut Confirmation Item` cci
+        INNER JOIN `tabCut Confirmation` cc ON cci.parent = cc.name
+        WHERE 
+            cc.cut_po_number = %s
+            AND cc.docstatus != 2
+        GROUP BY 
+            cci.work_order, 
+            cci.sales_order, 
+            cci.line_item_no, 
+            cci.size
+    """, (cut_po_number,), as_dict=True)
+
+    # Build confirmed map
+    confirmed_map = {}
+    for row in confirmed_rows:
+        key = (
+            (row.work_order or "").strip(),
+            (row.sales_order or "").strip(),
+            str(row.line_item_no or "").strip(),
+            (row.size or "").strip().lower()
+        )
+        if all(key):
+            confirmed_map[key] = flt(row.total_confirmed)
+
+    # Build final result
+    result = []
+    for item in result_template:
+        key = item["key"]
+        planned = item["planned_quantity"]
+        already_confirmed = confirmed_map.get(key, 0)
+        remaining = max(0, planned - already_confirmed)
+
+        result.append({
+            "work_order": item["work_order"],
+            "sales_order": item["sales_order"],
+            "line_item_no": item["line_item_no"],
+            "size": item["size"],
+            "planned_quantity": planned,
+            "confirmed_quantity": remaining 
+        })
+
+    return result
 
 
 @frappe.whitelist()
