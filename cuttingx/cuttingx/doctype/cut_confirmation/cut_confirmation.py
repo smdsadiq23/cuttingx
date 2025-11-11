@@ -186,8 +186,8 @@ def validate_total_confirmed_against_docket(doc):
                 )
             )
 
-        # 3. ✅ Set accurate balance_to_confirm = planned − confirmed_elsewhere
-        balance = planned - confirmed_elsewhere
+        # 3. ✅ Set accurate balance_to_confirm = planned − total_confirmed (including current doc)          
+        balance = planned - total_confirmed
         item.balance_to_confirm = max(0, flt(balance))
 
         # 4. Optional: Also set total_reject (if needed)

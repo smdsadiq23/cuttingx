@@ -396,9 +396,14 @@ function flt(value, precision) {
 
 // ✅ Build approval card HTML
 function get_approval_card_html(frm) {
+    // --- Can Cut % formatting ---
+    const canCutPercent = parseFloat(frm.doc.can_cut_percent || 0);
+    const canCutColor = canCutPercent >= 98 ? '#28a745' : '#dc3545'; 
+    const canCutPercentFormatted = canCutPercent.toFixed(2);
+
     // Format profit/loss value
     const profitLoss = flt(frm.doc.profit_loss_value);
-    const profitLossColor = profitLoss >= 0 ? '#28a745' : '#dc3545'; // green/red
+    const profitLossColor = profitLoss >= 0 ? '#28a745' : '#dc3545';
     const profitLossSign = profitLoss >= 0 ? '+' : '';
     const profitLossFormatted = profitLossSign + profitLoss.toFixed(2);
 
@@ -460,9 +465,11 @@ function get_approval_card_html(frm) {
                 </table>
             </div>
 
-            <div style="text-align: center; margin: 15px 0; color: #4c9658; font-size: 1.1em;">
+            <div style="text-align: center; margin: 15px 0; color: ${canCutColor}; font-size: 1.1em;">
                 <b>Can Cut %:</b>
-                <span style="background-color: #4c9658; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; margin-left: 10px;">${parseFloat(frm.doc.can_cut_percent || 0).toFixed(2)}%</span>
+                <span style="background-color: ${canCutColor}; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.9em; margin-left: 10px; font-weight: bold;">
+                    ${canCutPercentFormatted}%
+                </span>
             </div>
 
             <div style="text-align: center; margin: 15px 0; color: ${profitLossColor}; font-size: 1.1em;">

@@ -267,6 +267,7 @@ function toggle_cut_flow_fields(frm) {
 
     // --- Top-level fields ---
     frm.toggle_display("no_of_plies", should_show_cut_fields);
+	frm.set_df_property("no_of_plies", "reqd", should_show_cut_fields);
     frm.toggle_display("table_shade_and_ply", should_show_cut_fields);
 
     // --- Child table: Bundle Creation Item ---
