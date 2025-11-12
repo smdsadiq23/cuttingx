@@ -190,6 +190,7 @@
    "read_only": 1
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "table_physical_cell_last_operation",
    "fieldtype": "Table",
    "hidden": 1,
@@ -202,7 +203,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-07 17:51:32.779905",
+ "modified": "2025-11-12 15:59:54.550647",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
