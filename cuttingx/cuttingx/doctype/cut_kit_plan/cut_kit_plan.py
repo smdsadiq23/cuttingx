@@ -52,10 +52,43 @@ class CutKitPlan(Document):
                 row.configs = {}
 
 
-    def _set_last_operation(self, doc): 
+    # def _set_last_operation(self, doc): 
+    #     """Set last_operation using in-memory operation map data"""
+    #     try:
+    #         operation_data = []
+    #         for row in doc.table_operation_map:
+    #             operation_data.append({
+    #                 'operation': row.operation,
+    #                 'component': row.component,
+    #                 'next_operation': row.next_operation,
+    #                 'sequence_no': row.sequence_no or 1,
+    #                 'configs': row.configs or {}
+    #             })
+            
+    #         from trackerx_live.trackerx_live.utils.operation_map_util import OperationMapData
+    #         operation_map = OperationMapData(f"CutKitPlan:{doc.name}")
+    #         result = operation_map.build_from_operation_map(operation_data)
+            
+    #         if result.is_valid:
+    #             doc.last_operation = operation_map.get_final_production_operation() or "Final QC"
+    #         else:
+    #             error_msg = "; ".join(result.errors)
+    #             frappe.log_error(f"Invalid operation map in {doc.name}: {error_msg}")
+    #             doc.last_operation = "Final QC"
+                
+    #     except Exception as e:
+    #         frappe.log_error(f"Failed to set last_operation for {doc.name}: {str(e)}")
+    #         doc.last_operation = "Final QC"
+
+
+    # Updated for giving correct last operation
+    def _set_last_operation(self, doc):
         """Set last_operation using in-memory operation map data"""
         try:
+            # Convert in-memory table_operation_map to operation_data format
             operation_data = []
+            all_operations = set()
+            
             for row in doc.table_operation_map:
                 operation_data.append({
                     'operation': row.operation,
@@ -64,7 +97,23 @@ class CutKitPlan(Document):
                     'sequence_no': row.sequence_no or 1,
                     'configs': row.configs or {}
                 })
-            
+                all_operations.add(row.operation)
+                if row.next_operation:
+                    all_operations.add(row.next_operation)
+
+            # Add any final operations that are only targets (not sources)
+            for op in all_operations:
+                # If this op is never a source, add it as a terminal node
+                if not any(d['operation'] == op for d in operation_data):
+                    operation_data.append({
+                        'operation': op,
+                        'component': row.component,  # Use last component (or handle properly)
+                        'next_operation': '',
+                        'sequence_no': 1,
+                        'configs': {}
+                    })
+
+            # Build OperationMapData directly
             from trackerx_live.trackerx_live.utils.operation_map_util import OperationMapData
             operation_map = OperationMapData(f"CutKitPlan:{doc.name}")
             result = operation_map.build_from_operation_map(operation_data)
@@ -78,7 +127,7 @@ class CutKitPlan(Document):
                 
         except Exception as e:
             frappe.log_error(f"Failed to set last_operation for {doc.name}: {str(e)}")
-            doc.last_operation = "Final QC"
+            doc.last_operation = "Final QC"            
 
 
     def _populate_physical_cell_last_operations(self, doc):
