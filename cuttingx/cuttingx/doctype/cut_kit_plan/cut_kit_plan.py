@@ -111,13 +111,13 @@ class CutKitPlan(Document):
             frappe.throw("Process Map is mandatory for Cut Kit Plan submission.")
 
         # === STEP 1: Populate table_operation_map ===
-        self._update_operation_map(doc)  # ✅ Added 'self.'
+        self._update_operation_map(doc)
 
         # === STEP 2: Set last_operation ===
-        self._set_last_operation(doc)  # ✅ Added 'self.'
+        self._set_last_operation(doc)
 
         # === STEP 3: Populate physical cell last operations ===
-        self._populate_physical_cell_last_operations(doc)  # ✅ Added 'self.'
+        self._populate_physical_cell_last_operations(doc)
 
         frappe.logger().info(f"Updated operations for Cut Kit Plan {doc.name}")          
                 
