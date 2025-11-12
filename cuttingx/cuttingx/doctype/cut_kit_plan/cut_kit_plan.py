@@ -52,6 +52,7 @@ class CutKitPlan(Document):
                 row.configs = {}
 
 
+    # # Previous Method replicated from TrackerX Live. Last Operation is not calculated correctly
     # def _set_last_operation(self, doc): 
     #     """Set last_operation using in-memory operation map data"""
     #     try:
