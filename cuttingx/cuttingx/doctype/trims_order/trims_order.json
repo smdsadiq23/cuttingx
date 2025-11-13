@@ -11,6 +11,7 @@
   "work_order",
   "item_code",
   "work_center",
+  "company",
   "amended_from",
   "section_break_nnoe",
   "table_trims_order_summary",
@@ -77,13 +78,21 @@
    "fieldtype": "Table",
    "label": "Tirms Order Summary",
    "options": "Trims Order Summary"
+  },
+  {
+   "fetch_from": "item_code.custom_company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-13 13:42:53.415585",
+ "modified": "2025-11-13 18:06:04.173326",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Trims Order",

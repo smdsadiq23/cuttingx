@@ -14,6 +14,7 @@
   "work_order",
   "colour",
   "style",
+  "company",
   "fabric_details_section",
   "fabric_ordered",
   "fabric_issued",
@@ -255,12 +256,20 @@
    "hidden": 1,
    "label": "Profit/Loss Value",
    "read_only": 1
+  },
+  {
+   "fetch_from": "work_order.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-11 19:12:07.835393",
+ "modified": "2025-11-13 18:12:37.247206",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

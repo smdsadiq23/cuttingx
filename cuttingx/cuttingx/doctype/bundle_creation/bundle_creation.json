@@ -18,6 +18,7 @@
   "no_of_plies",
   "cut_bundle_inspection",
   "tracking_tech",
+  "company",
   "section_break_nmab",
   "table_shade_and_ply",
   "table_bundle_creation_item",
@@ -135,13 +136,20 @@
    "fieldtype": "Link",
    "label": "Cut Confirmation No",
    "options": "Cut Confirmation"
+  },
+  {
+   "fetch_from": "fg_item.custom_company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-13 17:45:07.794193",
+ "modified": "2025-11-13 17:58:26.155161",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

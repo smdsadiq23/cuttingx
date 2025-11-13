@@ -17,6 +17,7 @@
   "process_order_no",
   "work_order",
   "sales_order",
+  "company",
   "column_break_txfp",
   "style",
   "colour",
@@ -197,13 +198,21 @@
    "label": "Physical Cell Last Operation",
    "options": "Tracking Order Physical Cell Last Operation",
    "read_only": 1
+  },
+  {
+   "fetch_from": "fg_item.custom_company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-12 15:59:54.550647",
+ "modified": "2025-11-13 18:03:58.608171",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",

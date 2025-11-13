@@ -15,6 +15,7 @@
   "panel_type",
   "panel_code",
   "table_no",
+  "company",
   "section_break_dwom",
   "table_cut_confirmation_item",
   "amended_from"
@@ -96,13 +97,21 @@
    "label": "Lay Record",
    "options": "Cutting Lay Record",
    "reqd": 1
+  },
+  {
+   "fetch_from": "cut_po_number.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-10 19:38:41.383869",
+ "modified": "2025-11-13 18:11:26.239981",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Confirmation",

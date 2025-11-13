@@ -17,6 +17,7 @@
   "cut_no",
   "bit_length",
   "bit_weight",
+  "company",
   "section_break_gkls",
   "table_lay_size_ratio",
   "column_break_wfxn",
@@ -176,13 +177,21 @@
    "fieldtype": "Link",
    "label": "Cut Kanban No",
    "options": "Cut Docket"
+  },
+  {
+   "fetch_from": "cut_kanban_no.company",
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-29 19:49:10.381641",
+ "modified": "2025-11-13 18:12:44.014862",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",
