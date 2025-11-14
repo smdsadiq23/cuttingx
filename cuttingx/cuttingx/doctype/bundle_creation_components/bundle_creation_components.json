@@ -6,14 +6,25 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "component_name"
+  "component_name",
+  "is_main"
  ],
  "fields": [
   {
+   "columns": 3,
    "fieldname": "component_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Component Name",
+   "read_only": 1
+  },
+  {
+   "columns": 2,
+   "default": "0",
+   "fieldname": "is_main",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "is main",
    "read_only": 1
   }
  ],
@@ -21,7 +32,7 @@
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-27 11:47:52.786441",
+ "modified": "2025-11-14 13:09:09.169084",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation Components",

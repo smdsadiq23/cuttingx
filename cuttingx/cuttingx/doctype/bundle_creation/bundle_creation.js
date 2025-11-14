@@ -268,6 +268,7 @@ frappe.ui.form.on("Bundle Creation", {
 						comps.forEach((comp) => {
 							const row = frm.add_child("table_bundle_creation_components");
 							row.component_name = comp.component_name;
+							row.is_main = comp.is_main;
 						});
 						frm.refresh_field("table_bundle_creation_components");
 					},
