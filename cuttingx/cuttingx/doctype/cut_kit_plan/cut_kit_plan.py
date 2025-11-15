@@ -79,11 +79,20 @@ class CutKitPlan(Document):
         """Populate table_physical_cell_first_and_last_operation with first & last operation per physical cell"""
         doc.set("table_physical_cell_first_and_last_operation", [])
 
+        frappe.log_error(
+            title="Debug: Populate Cell First/Last Ops",
+            message=f"Starting for Cut Kit Plan: {doc.name}"
+        )
+
         # Step 1: Get all active physical cells (excluding activation cell)
         physical_cells = frappe.get_all(
             "Physical Cell",
             filters={"name": ["!=", "QR/Barcode Cut Bundle Activation"]},
             pluck="name"
+        )
+        frappe.log_error(
+            title="Debug: Physical Cells Found",
+            message=f"Physical cells: {physical_cells}"
         )
 
         # Step 2: Build a mapping: operation → sequence_no from table_operation_map
@@ -91,15 +100,23 @@ class CutKitPlan(Document):
         for row in doc.table_operation_map:
             operation_sequence[row.operation] = row.sequence_no
 
+        frappe.log_error(
+            title="Debug: Operation Sequence Map",
+            message=f"Operation → Sequence: {operation_sequence}"
+        )
+
         # Step 3: For each physical cell, find its operations that exist in the operation map
         for cell_name in physical_cells:
             # Get operations assigned to this cell from Physical Cell Operation
-            # Since Physical Cell Operation is a child table of Physical Cell,
-            # we query by `parent = cell_name`
             cell_operations = frappe.get_all(
                 "Physical Cell Operation",
                 filters={"parent": cell_name},
                 pluck="operation"
+            )
+
+            frappe.log_error(
+                title=f"Debug: Cell {cell_name} Raw Ops",
+                message=f"Raw operations: {cell_operations}"
             )
 
             # Filter: Only keep operations that exist in the current operation map
@@ -108,20 +125,38 @@ class CutKitPlan(Document):
                 if op in operation_sequence
             ]
 
+            frappe.log_error(
+                title=f"Debug: Cell {cell_name} Valid Ops",
+                message=f"Valid operations (in op map): {valid_operations}"
+            )
+
             if not valid_operations:
+                frappe.log_error(
+                    title=f"Debug: Skipping Cell {cell_name}",
+                    message="No valid operations found in operation map"
+                )
                 continue  # Skip cells with no relevant operations
 
             # Sort by sequence_no from operation map
             sorted_ops = sorted(valid_operations, key=lambda op: operation_sequence[op])
-
             first_op = sorted_ops[0]
             last_op = sorted_ops[-1]
+
+            frappe.log_error(
+                title=f"Debug: Cell {cell_name} Result",
+                message=f"First: {first_op}, Last: {last_op}, Sorted: {sorted_ops}"
+            )
 
             # Append to new child table
             row = doc.append("table_physical_cell_first_and_last_operation", {})
             row.physical_cell = cell_name
             row.first_operation = first_op
-            row.last_operation = last_op                
+            row.last_operation = last_op
+
+        frappe.log_error(
+            title="Debug: Populate Complete",
+            message=f"Final child table rows: {len(doc.table_physical_cell_first_and_last_operation)}"
+        )              
 
 
     # def _update_operation_map(self, doc):  # ✅ Added 'self'
