@@ -306,7 +306,7 @@ class CutKitPlan(Document):
 
         # === STEP 3: Populate physical cell last operations ===
         # self._populate_physical_cell_last_operations(doc)
-        self._populate_physical_cell_first_and_last_operations
+        self._populate_physical_cell_first_and_last_operations(doc)
 
         frappe.logger().info(f"Updated operations for Cut Kit Plan {doc.name}")          
                 
