@@ -31,7 +31,7 @@
   "table_ckp_bundle_summary",
   "table_operation_map",
   "last_operation",
-  "table_physical_cell_last_operation"
+  "table_physical_cell_first_and_last_operation"
  ],
  "fields": [
   {
@@ -192,28 +192,25 @@
    "read_only": 1
   },
   {
-   "allow_on_submit": 1,
-   "fieldname": "table_physical_cell_last_operation",
-   "fieldtype": "Table",
-   "hidden": 1,
-   "label": "Physical Cell Last Operation",
-   "options": "Tracking Order Physical Cell Last Operation",
-   "read_only": 1
-  },
-  {
    "fetch_from": "fg_item.custom_company",
    "fieldname": "company",
    "fieldtype": "Link",
    "label": "Company",
    "options": "Company",
    "read_only": 1
+  },
+  {
+   "fieldname": "table_physical_cell_first_and_last_operation",
+   "fieldtype": "Table",
+   "label": "Physical Cell First and Last Operation",
+   "options": "Physical Cell First and Last Operation"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-14 16:33:32.813801",
+ "modified": "2025-11-15 11:35:25.109720",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",

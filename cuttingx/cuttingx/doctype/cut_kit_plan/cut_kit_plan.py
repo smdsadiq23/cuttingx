@@ -21,8 +21,8 @@ class CutKitPlan(Document):
                 self.colour = item_doc.get("custom_colour_name") or ""
                 
 
-    def _update_operation_map(self, doc):  # ✅ Added 'self'
-        """Populate table_operation_map from selected Process Map"""
+    def _update_operation_map_and_last_operation(self, doc):
+        """Populate table_operation_map and set last_operation directly from Process Map edges"""
         doc.set("table_operation_map", [])
         
         process_map = frappe.get_doc("Process Map", doc.operation_map)
@@ -32,6 +32,11 @@ class CutKitPlan(Document):
         node_id_to_label = {node["id"]: node["label"] for node in nodes}
         sequence_tracker = defaultdict(int)
         
+        # Track all operations that appear as SOURCE
+        source_operations = set()
+        # Track all operations that appear as TARGET
+        target_operations = set()
+        
         for edge in edges:
             source_op = node_id_to_label.get(edge["source"])
             target_op = node_id_to_label.get(edge["target"])
@@ -39,7 +44,10 @@ class CutKitPlan(Document):
             
             if not source_op or not target_op:
                 continue
-                
+            
+            source_operations.add(source_op)
+            target_operations.add(target_op)
+            
             for component in components:
                 seq_key = f"{source_op}|{component}"
                 sequence_tracker[seq_key] += 1
@@ -50,6 +58,101 @@ class CutKitPlan(Document):
                 row.next_operation = target_op
                 row.sequence_no = sequence_tracker[seq_key]
                 row.configs = {}
+
+        # Final operation = any target that is NOT a source
+        final_operations = target_operations - source_operations
+        
+        if final_operations:
+            # If multiple, pick one (e.g., alphabetically or by edge order)
+            # Since your flow is linear, there should be exactly one
+            doc.last_operation = next(iter(final_operations))
+        else:
+            # Fallback: last target in edge list (for malformed maps)
+            if edges:
+                last_target_id = edges[-1]["target"]
+                doc.last_operation = node_id_to_label.get(last_target_id, "Final QC")
+            else:
+                doc.last_operation = "Final QC"
+
+
+    def _populate_physical_cell_first_and_last_operations(self, doc):
+        """Populate table_physical_cell_first_and_last_operation with first & last operation per physical cell"""
+        doc.set("table_physical_cell_first_and_last_operation", [])
+
+        # Step 1: Get all active physical cells (excluding activation cell)
+        physical_cells = frappe.get_all(
+            "Physical Cell",
+            filters={"name": ["!=", "QR/Barcode Cut Bundle Activation"]},
+            pluck="name"
+        )
+
+        # Step 2: Build a mapping: operation → sequence_no from table_operation_map
+        operation_sequence = {}
+        for row in doc.table_operation_map:
+            operation_sequence[row.operation] = row.sequence_no
+
+        # Step 3: For each physical cell, find its operations that exist in the operation map
+        for cell_name in physical_cells:
+            # Get operations assigned to this cell from Physical Cell Operation
+            # Since Physical Cell Operation is a child table of Physical Cell,
+            # we query by `parent = cell_name`
+            cell_operations = frappe.get_all(
+                "Physical Cell Operation",
+                filters={"parent": cell_name},
+                pluck="operation"
+            )
+
+            # Filter: Only keep operations that exist in the current operation map
+            valid_operations = [
+                op for op in cell_operations
+                if op in operation_sequence
+            ]
+
+            if not valid_operations:
+                continue  # Skip cells with no relevant operations
+
+            # Sort by sequence_no from operation map
+            sorted_ops = sorted(valid_operations, key=lambda op: operation_sequence[op])
+
+            first_op = sorted_ops[0]
+            last_op = sorted_ops[-1]
+
+            # Append to new child table
+            row = doc.append("table_physical_cell_first_and_last_operation", {})
+            row.physical_cell = cell_name
+            row.first_operation = first_op
+            row.last_operation = last_op                
+
+
+    # def _update_operation_map(self, doc):  # ✅ Added 'self'
+    #     """Populate table_operation_map from selected Process Map"""
+    #     doc.set("table_operation_map", [])
+        
+    #     process_map = frappe.get_doc("Process Map", doc.operation_map)
+    #     nodes = json.loads(process_map.nodes or "[]")
+    #     edges = json.loads(process_map.edges or "[]")
+        
+    #     node_id_to_label = {node["id"]: node["label"] for node in nodes}
+    #     sequence_tracker = defaultdict(int)
+        
+    #     for edge in edges:
+    #         source_op = node_id_to_label.get(edge["source"])
+    #         target_op = node_id_to_label.get(edge["target"])
+    #         components = edge.get("components", [])
+            
+    #         if not source_op or not target_op:
+    #             continue
+                
+    #         for component in components:
+    #             seq_key = f"{source_op}|{component}"
+    #             sequence_tracker[seq_key] += 1
+                
+    #             row = doc.append("table_operation_map", {})
+    #             row.operation = source_op
+    #             row.component = component
+    #             row.next_operation = target_op
+    #             row.sequence_no = sequence_tracker[seq_key]
+    #             row.configs = {}
 
 
     # # Previous Method replicated from TrackerX Live. Last Operation is not calculated correctly
@@ -82,69 +185,69 @@ class CutKitPlan(Document):
     #         doc.last_operation = "Final QC"
 
 
-    # Updated for giving correct last operation
-    def _set_last_operation(self, doc):
-        """Set last_operation using in-memory operation map data"""
-        try:
-            # Convert in-memory table_operation_map to operation_data format
-            operation_data = []
-            all_operations = set()
+    # # Updated for giving correct last operation
+    # def _set_last_operation(self, doc):
+    #     """Set last_operation using in-memory operation map data"""
+    #     try:
+    #         # Convert in-memory table_operation_map to operation_data format
+    #         operation_data = []
+    #         all_operations = set()
             
-            for row in doc.table_operation_map:
-                operation_data.append({
-                    'operation': row.operation,
-                    'component': row.component,
-                    'next_operation': row.next_operation,
-                    'sequence_no': row.sequence_no or 1,
-                    'configs': row.configs or {}
-                })
-                all_operations.add(row.operation)
-                if row.next_operation:
-                    all_operations.add(row.next_operation)
+    #         for row in doc.table_operation_map:
+    #             operation_data.append({
+    #                 'operation': row.operation,
+    #                 'component': row.component,
+    #                 'next_operation': row.next_operation,
+    #                 'sequence_no': row.sequence_no or 1,
+    #                 'configs': row.configs or {}
+    #             })
+    #             all_operations.add(row.operation)
+    #             if row.next_operation:
+    #                 all_operations.add(row.next_operation)
 
-            # Add any final operations that are only targets (not sources)
-            for op in all_operations:
-                # If this op is never a source, add it as a terminal node
-                if not any(d['operation'] == op for d in operation_data):
-                    operation_data.append({
-                        'operation': op,
-                        'component': row.component,  # Use last component (or handle properly)
-                        'next_operation': '',
-                        'sequence_no': 1,
-                        'configs': {}
-                    })
+    #         # Add any final operations that are only targets (not sources)
+    #         for op in all_operations:
+    #             # If this op is never a source, add it as a terminal node
+    #             if not any(d['operation'] == op for d in operation_data):
+    #                 operation_data.append({
+    #                     'operation': op,
+    #                     'component': row.component,  # Use last component (or handle properly)
+    #                     'next_operation': '',
+    #                     'sequence_no': 1,
+    #                     'configs': {}
+    #                 })
 
-            # Build OperationMapData directly
-            from trackerx_live.trackerx_live.utils.operation_map_util import OperationMapData
-            operation_map = OperationMapData(f"CutKitPlan:{doc.name}")
-            result = operation_map.build_from_operation_map(operation_data)
+    #         # Build OperationMapData directly
+    #         from trackerx_live.trackerx_live.utils.operation_map_util import OperationMapData
+    #         operation_map = OperationMapData(f"CutKitPlan:{doc.name}")
+    #         result = operation_map.build_from_operation_map(operation_data)
             
-            if result.is_valid:
-                doc.last_operation = operation_map.get_final_production_operation() or "Final QC"
-            else:
-                error_msg = "; ".join(result.errors)
-                frappe.log_error(f"Invalid operation map in {doc.name}: {error_msg}")
-                doc.last_operation = "Final QC"
+    #         if result.is_valid:
+    #             doc.last_operation = operation_map.get_final_production_operation() or "Final QC"
+    #         else:
+    #             error_msg = "; ".join(result.errors)
+    #             frappe.log_error(f"Invalid operation map in {doc.name}: {error_msg}")
+    #             doc.last_operation = "Final QC"
                 
-        except Exception as e:
-            frappe.log_error(f"Failed to set last_operation for {doc.name}: {str(e)}")
-            doc.last_operation = "Final QC"            
+    #     except Exception as e:
+    #         frappe.log_error(f"Failed to set last_operation for {doc.name}: {str(e)}")
+    #         doc.last_operation = "Final QC"            
 
 
-    def _populate_physical_cell_last_operations(self, doc):
-        """Populate table_physical_cell_last_operation for all active cells"""
-        doc.set("table_physical_cell_last_operation", [])
+    # def _populate_physical_cell_last_operations(self, doc):
+    #     """Populate table_physical_cell_last_operation for all active cells"""
+    #     doc.set("table_physical_cell_last_operation", [])
         
-        physical_cells = frappe.get_all(
-            "Physical Cell",
-            filters={"name": ["!=", "QR/Barcode Cut Bundle Activation"]},
-            fields=["name"]
-        )
+    #     physical_cells = frappe.get_all(
+    #         "Physical Cell",
+    #         filters={"name": ["!=", "QR/Barcode Cut Bundle Activation"]},
+    #         fields=["name"]
+    #     )
         
-        for cell in physical_cells:
-            row = doc.append("table_physical_cell_last_operation", {})
-            row.physical_cell = cell.name
-            row.operation = doc.last_operation 
+    #     for cell in physical_cells:
+    #         row = doc.append("table_physical_cell_last_operation", {})
+    #         row.physical_cell = cell.name
+    #         row.operation = doc.last_operation 
              
 
     def before_submit(self, doc=None, method=None): 
@@ -161,13 +264,14 @@ class CutKitPlan(Document):
             frappe.throw("Process Map is mandatory for Cut Kit Plan submission.")
 
         # === STEP 1: Populate table_operation_map ===
-        self._update_operation_map(doc)
+        self._update_operation_map_and_last_operation(doc)
 
-        # === STEP 2: Set last_operation ===
-        self._set_last_operation(doc)
+        # # === STEP 2: Set last_operation ===
+        # self._set_last_operation(doc)
 
         # === STEP 3: Populate physical cell last operations ===
-        self._populate_physical_cell_last_operations(doc)
+        # self._populate_physical_cell_last_operations(doc)
+        self._populate_physical_cell_first_and_last_operations
 
         frappe.logger().info(f"Updated operations for Cut Kit Plan {doc.name}")          
                 
