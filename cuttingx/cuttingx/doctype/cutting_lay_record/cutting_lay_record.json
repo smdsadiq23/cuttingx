@@ -18,6 +18,8 @@
   "bit_length",
   "bit_weight",
   "company",
+  "strategic_business_unit",
+  "factory_business_unit",
   "section_break_gkls",
   "table_lay_size_ratio",
   "column_break_wfxn",
@@ -182,16 +184,29 @@
    "fetch_from": "cut_kanban_no.company",
    "fieldname": "company",
    "fieldtype": "Link",
-   "label": "Company",
+   "label": "Business Unit",
    "options": "Company",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "strategic_business_unit",
+   "fieldtype": "Link",
+   "label": "Strategic Business Unit",
+   "options": "Strategic Business Unit"
+  },
+  {
+   "fieldname": "factory_business_unit",
+   "fieldtype": "Link",
+   "label": "Factory Business Unit",
+   "options": "Factory Business Unit"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-13 18:12:44.014862",
+ "modified": "2025-11-17 11:25:23.730698",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",

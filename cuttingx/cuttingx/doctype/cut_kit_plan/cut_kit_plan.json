@@ -18,6 +18,8 @@
   "work_order",
   "sales_order",
   "company",
+  "strategic_business_unit",
+  "factory_business_unit",
   "column_break_txfp",
   "style",
   "colour",
@@ -195,22 +197,35 @@
    "fetch_from": "fg_item.custom_company",
    "fieldname": "company",
    "fieldtype": "Link",
-   "label": "Company",
+   "label": "Business Unit",
    "options": "Company",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
   },
   {
    "fieldname": "table_physical_cell_first_and_last_operation",
    "fieldtype": "Table",
    "label": "Physical Cell First and Last Operation",
    "options": "Physical Cell First and Last Operation"
+  },
+  {
+   "fieldname": "strategic_business_unit",
+   "fieldtype": "Link",
+   "label": "Strategic Business Unit",
+   "options": "Strategic Business Unit"
+  },
+  {
+   "fieldname": "factory_business_unit",
+   "fieldtype": "Link",
+   "label": "Factory Business Unit",
+   "options": "Factory Business Unit"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-15 11:35:25.109720",
+ "modified": "2025-11-17 11:25:30.878979",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",

@@ -19,6 +19,8 @@
   "cut_bundle_inspection",
   "tracking_tech",
   "company",
+  "strategic_business_unit",
+  "factory_business_unit",
   "section_break_nmab",
   "table_shade_and_ply",
   "table_bundle_creation_item",
@@ -141,15 +143,28 @@
    "fetch_from": "fg_item.custom_company",
    "fieldname": "company",
    "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company"
+   "label": "Business Unit",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "strategic_business_unit",
+   "fieldtype": "Link",
+   "label": "Strategic Business Unit",
+   "options": "Strategic Business Unit"
+  },
+  {
+   "fieldname": "factory_business_unit",
+   "fieldtype": "Link",
+   "label": "Factory Business Unit",
+   "options": "Factory Business Unit"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-13 17:58:26.155161",
+ "modified": "2025-11-17 11:12:05.392088",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

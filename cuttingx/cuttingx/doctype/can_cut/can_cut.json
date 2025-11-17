@@ -15,6 +15,8 @@
   "colour",
   "style",
   "company",
+  "strategic_business_unit",
+  "factory_business_unit",
   "fabric_details_section",
   "fabric_ordered",
   "fabric_issued",
@@ -261,15 +263,28 @@
    "fetch_from": "work_order.company",
    "fieldname": "company",
    "fieldtype": "Link",
-   "label": "Company",
+   "label": "Business Unit",
    "options": "Company",
-   "read_only": 1
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "strategic_business_unit",
+   "fieldtype": "Link",
+   "label": "Strategic Business Unit",
+   "options": "Strategic Business Unit"
+  },
+  {
+   "fieldname": "factory_business_unit",
+   "fieldtype": "Link",
+   "label": "Factory Business Unit",
+   "options": "Factory Business Unit"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-13 18:12:37.247206",
+ "modified": "2025-11-17 11:17:43.140523",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
