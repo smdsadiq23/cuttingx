@@ -328,7 +328,6 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
 
     # Step 4: For each bundle, check if it has ANY unused item
     available_bundles = []
-    bundle_has_unused = {}
 
     # Group items by bundle
     from collections import defaultdict
