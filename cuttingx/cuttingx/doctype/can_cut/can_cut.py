@@ -56,17 +56,32 @@ class CanCut(Document):
 
     def notify_approvers(self):
         """Notify all Can Cut Approvers that approval is pending."""
-        # Get all users with "Can Cut Approver" role
-        approvers = frappe.get_all(
+        from frappe.utils import get_url_to_form
+
+        # Get user IDs with "Can Cut Approver" role
+        approver_user_ids = frappe.get_all(
             "Has Role",
             filters={"role": "Can Cut Approver"},
-            pluck="parent"  # returns list of user emails
+            pluck="parent"  # returns list of user IDs (e.g., "Administrator", "user1")
         )
-        approvers = list(set(approvers))  # deduplicate
+        approver_user_ids = list(set(approver_user_ids))  # deduplicate
 
-        # Email
+        # Remove current user (optional, but cleaner)
+        approver_user_ids = [u for u in approver_user_ids if u != frappe.session.user]
+
+        # ✅ Convert user IDs to email addresses for email
+        approver_emails = [
+            frappe.db.get_value("User", user_id, "email")
+            for user_id in approver_user_ids
+        ]
+        approver_emails = [email for email in approver_emails if email]
+
+        if not approver_emails:
+            return
+
+        # Email (to valid emails)
         frappe.sendmail(
-            recipients=approvers,
+            recipients=approver_emails,
             subject=f"📋 Action Required: Can Cut Approval Pending — {self.name}",
             message=f"""
                 <p>A new <b>Can Cut</b> request is pending your approval.</p>
@@ -80,12 +95,12 @@ class CanCut(Document):
             """
         )
 
-        # Desktop Notification
-        for user in approvers:
+        # Desktop Notification (still uses user IDs)
+        for user_id in approver_user_ids:
             frappe.publish_realtime(
                 "msgprint",
                 message=f"📋 New Can Cut pending approval: {self.name}",
-                user=user
+                user=user_id
             )
 
 
@@ -96,9 +111,17 @@ class CanCut(Document):
         :param status: 'Approved' or 'Rejected'
         :param reason: Rejection reason (if any)
         """
+        from frappe.utils import get_url_to_form
+
+        # ✅ Resolve owner user ID to email
+        owner_email = frappe.db.get_value("User", self.owner, "email")
+        if not owner_email:
+            # Optional: log or skip
+            return
+
         # Email
         frappe.sendmail(
-            recipients=[self.owner],
+            recipients=[owner_email],
             subject=f"Can Cut {status}: {self.name}",
             message=f"""
                 <p>Your <b>Can Cut</b> request <b>{self.name}</b> has been <b>{status}</b>.</p>
@@ -111,7 +134,7 @@ class CanCut(Document):
             """
         )
 
-        # Desktop Notification
+        # Desktop Notification (uses user ID — correct as-is)
         frappe.publish_realtime(
             "msgprint",
             message=f"Can Cut {self.name} was {status.lower()} by {action_by}",

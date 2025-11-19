@@ -290,7 +290,7 @@ class CutDocket(Document):
 
         roles_to_notify = ["Stock User", "Stock Manager"]
 
-        # Get users with any of the roles
+        # Get users with any of the roles (returns user IDs like "Administrator")
         stock_users = frappe.get_all(
             "Has Role",
             filters={
@@ -302,12 +302,12 @@ class CutDocket(Document):
 
         # Filter only enabled users
         enabled_users = frappe.get_all("User", filters={"enabled": 1}, pluck="name")
-        recipients = list(set(user for user in stock_users if user in enabled_users))
+        recipients_user_ids = list(set(user for user in stock_users if user in enabled_users))
 
         # Remove current user (submitter) from recipients
-        recipients = [user for user in recipients if user != frappe.session.user]        
+        recipients_user_ids = [user for user in recipients_user_ids if user != frappe.session.user]        
 
-        if not recipients:
+        if not recipients_user_ids:
             return
 
         # ✅ Ensure name exists
@@ -323,21 +323,28 @@ class CutDocket(Document):
             <p><a href="{get_url_to_form('Cut Docket', self.name)}" target="_blank">View Cut Docket</a></p>
         """
 
-        # 📧 Send Email
-        frappe.sendmail(
-            recipients=recipients,
-            subject=subject,
-            message=message
-        )
+        # ✅ Convert user IDs to actual email addresses for email delivery
+        recipient_emails = [
+            frappe.db.get_value("User", user_id, "email")
+            for user_id in recipients_user_ids
+        ]
+        recipient_emails = [email for email in recipient_emails if email]  # remove None/empty
 
-        # 💬 Send Desktop Notification
-        for user in recipients:
-            # ✅ Always send a non-empty message
+        if recipient_emails:
+            # 📧 Send Email to valid email addresses
+            frappe.sendmail(
+                recipients=recipient_emails,
+                subject=subject,
+                message=message
+            )
+
+        # 💬 Send Desktop Notification (uses user IDs — correct as-is)
+        for user_id in recipients_user_ids:
             msg = f"✅ Cut Docket {self.name} submitted."
             frappe.publish_realtime(
                 "msgprint",
                 message=msg,
-                user=user
+                user=user_id
             )
 
 
