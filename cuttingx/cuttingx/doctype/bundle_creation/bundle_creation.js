@@ -112,6 +112,31 @@ frappe.ui.form.on("Bundle Creation", {
 		frappe.after_ajax(() => setTimeout(() => protect_child_table(frm), 100));
 	},
 
+    cut_confirmation_no(frm) {
+        if (frm.doc.cut_confirmation_no) {
+            frappe.call({
+                method: "cuttingx.cuttingx.doctype.bundle_creation.bundle_creation.get_no_of_plies_from_cut_confirmation",
+                args: {
+                    cut_confirmation_no: frm.doc.cut_confirmation_no
+                },
+                callback: function(r) {
+                    if (r.message !== null && r.message !== undefined) {
+                        frm.set_value("no_of_plies", r.message);
+                    } else {
+                        // Optionally clear or warn
+                        frm.set_value("no_of_plies", 0);
+                        frappe.show_alert({
+                            message: __("No lay record or total lays found for this Cut Confirmation"),
+                            indicator: "orange"
+                        });
+                    }
+                }
+            });
+        } else {
+            frm.set_value("no_of_plies", 0);
+        }
+    },
+
 	yarn_request_no: function (frm) {
 		toggle_cut_flow_fields(frm);
 

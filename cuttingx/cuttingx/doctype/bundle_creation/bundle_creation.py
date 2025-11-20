@@ -3,6 +3,7 @@
 
 import frappe
 from frappe import _
+from frappe.utils import flt
 from frappe.model.document import Document
 from labelx.utils.generators import generate_barcode_base64, generate_qrcode_base64
 
@@ -326,6 +327,22 @@ def get_eligible_yarn_requests():
 
 
 @frappe.whitelist()
+def get_no_of_plies_from_cut_confirmation(cut_confirmation_no):
+    """
+    Given a Cut Confirmation name, return total_no_of_lays from its linked Cutting Lay Record.
+    """
+    if not cut_confirmation_no:
+        return None
+
+    lay_record = frappe.db.get_value("Cut Confirmation", cut_confirmation_no, "lay_record")
+    if not lay_record:
+        return None
+
+    total_no_of_lays = frappe.db.get_value("Cutting Lay Record", lay_record, "total_no_of_lays")
+    return flt(total_no_of_lays)
+
+
+@frappe.whitelist()
 def get_items_from_cut_confirmation(cut_confirmation_no):
     """
     Fetch items from a SPECIFIC Cut Confirmation (not by Cut Docket).
@@ -359,6 +376,7 @@ def get_items_from_cut_confirmation(cut_confirmation_no):
         }
         for item in items
     ]
+
 
 @frappe.whitelist()
 def generate_bundle_details(docname, is_yarn_flow: bool = False):
