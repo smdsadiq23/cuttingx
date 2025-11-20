@@ -151,7 +151,6 @@
    "fieldname": "average_consumption",
    "fieldtype": "Float",
    "label": "Average Consumption",
-   "precision": "2",
    "reqd": 1
   },
   {
@@ -206,7 +205,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-17 11:25:23.730698",
+ "modified": "2025-11-20 15:37:39.610250",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",
