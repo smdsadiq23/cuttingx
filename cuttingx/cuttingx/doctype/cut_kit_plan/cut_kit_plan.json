@@ -205,6 +205,7 @@
   {
    "fieldname": "table_physical_cell_first_and_last_operation",
    "fieldtype": "Table",
+   "hidden": 1,
    "label": "Physical Cell First and Last Operation",
    "options": "Physical Cell First and Last Operation"
   },
@@ -225,7 +226,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-17 11:25:30.878979",
+ "modified": "2025-11-21 12:46:04.731053",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
