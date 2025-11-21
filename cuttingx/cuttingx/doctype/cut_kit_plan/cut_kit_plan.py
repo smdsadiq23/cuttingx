@@ -498,7 +498,7 @@ def get_bundle_details_with_components(bundle_creation_name):
         INNER JOIN `tabTracking Order` tor 
             ON tbc.parent = tor.name
         INNER JOIN `tabTracking Component` tc 
-            ON tc.parent = tor.name AND tbc.component = tc.component_name
+            ON tc.parent = tor.name AND tbc.component = tc.name
         WHERE tor.`reference_order_number` = %s 
           AND tbc.source = 'Activation' 
         ORDER BY pi.bundle_configuration, pi.production_item_number
