@@ -506,6 +506,12 @@ def get_bundle_details_with_components(bundle_creation_name):
 
     if not bundle_details:
         return {"bundle_details": [], "unique_components": []}
+    
+    # Log original bundle details
+    frappe.log_error(
+        message=frappe.as_json(bundle_details, indent=2),
+        title="Bundle Details (Raw) - get_bundle_details_with_components"
+    )    
 
     # Step 2: Get all production_item_numbers already in Cut Kit Plan Bundle Details
     existing_items = set(
@@ -521,6 +527,12 @@ def get_bundle_details_with_components(bundle_creation_name):
         row for row in bundle_details
         if row.production_item_number not in existing_items
     ]
+
+    # Log filtered bundle details
+    frappe.log_error(
+        message=frappe.as_json(filtered_bundle_details, indent=2),
+        title="Filtered Bundle Details - get_bundle_details_with_components"
+    )    
 
     # Step 4: Extract and sort unique components
     unique_components = sorted({
