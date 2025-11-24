@@ -8,9 +8,15 @@ window.can_cut_script = window.can_cut_script || {
 
 frappe.ui.form.on('Can Cut', {
     onload: function(frm) {
-        console.log('📥 Can Cut onload triggered for', frm.doc.name);
-    },
-
+        // Prevent Work Order selection until Sales Order is chosen
+        frm.set_query('work_order', function() {
+            return {
+                filters: frm.doc.sales_order
+                    ? { 'sales_order': frm.doc.sales_order, 'docstatus': 1 }
+                    : { name: '0' } // Empty result
+            };
+        });
+    },    
     // Trigger recalc on field changes
     fabric_ordered: function(frm) {
         frm.trigger('recalculate');
@@ -178,19 +184,29 @@ frappe.ui.form.on('Can Cut', {
     },
 
     sales_order: function(frm) {
+        // Toggle Work Order field state
         if (!frm.doc.sales_order) {
-            frm.set_value('fob', 0);
-            frm.set_value('colour', '');
-            frm.set_value('style', '');
-            frm.trigger('recalculate');
+            frm.set_value('work_order', '');
+            frm.set_query('work_order', function() {
+                return {
+                    filters: frm.doc.sales_order
+                        ? { 'sales_order': frm.doc.sales_order, 'docstatus': 1 }
+                        : { name: '0' } // Empty result
+                };
+            });   
+        }
+
+        // Reset all dependent fields if Sales Order is empty
+        if (!frm.doc.sales_order) {
+            frm.set_value('fob', 0);          
             return;
         }
 
-        // Clear dependent fields
+        // Clear colour & style to avoid stale data
         frm.set_value('colour', '');
         frm.set_value('style', '');
 
-        // Set query for Work Order
+        // ✅ Set dynamic query for Work Order
         frm.set_query('work_order', function() {
             return {
                 filters: {
@@ -198,9 +214,14 @@ frappe.ui.form.on('Can Cut', {
                     'docstatus': 1
                 }
             };
-        });        
+        });
 
-        // Fetch Sales Order to get custom_fob
+        // 📌 Clear Work Order if SO has changed (to avoid mismatch)
+        if (frm.doc.work_order) {
+            frm.set_value('work_order', ''); // This auto-triggers work_order() which clears more fields
+        }
+
+        // 🔹 Fetch FOB
         frappe.call({
             method: 'frappe.client.get_value',
             args: {
@@ -209,14 +230,12 @@ frappe.ui.form.on('Can Cut', {
                 filters: { 'name': frm.doc.sales_order }
             },
             callback: function(r) {
-                if (r.message && r.message.custom_fob) {
-                    frm.set_value('fob', r.message.custom_fob); // ✅ Auto-fill FOB
-                } else {
-                    frm.set_value('fob', 0);
-                }
+                const fob = (r.message && r.message.custom_fob) ? r.message.custom_fob : 0;
+                frm.set_value('fob', fob);
             }
         });
 
+        // 🔹 Fetch colour options
         frappe.call({
             method: 'frappe.client.get',
             args: {
@@ -225,38 +244,27 @@ frappe.ui.form.on('Can Cut', {
                 fields: ['items.item_code', 'items.custom_color', 'items.custom_order_qty']
             },
             callback: function(r) {
-                if (r.message) {
-                    const items = r.message.items || [];
-
-                    // Sum custom_order_qty from all items
-                    const total_order_qty = items.reduce((sum, item) => {
-                        return sum + (flt(item.custom_order_qty) || 0);
-                    }, 0);
-
-                    // Set in Can Cut
-                    //frm.set_value('order_quantity', total_order_qty);
-
-                    // Extract unique colors
+                if (r.message?.items) {
                     const colors = [...new Set(
-                        items
+                        r.message.items
                             .map(item => item.custom_color)
                             .filter(Boolean)
                     )].sort();
-
-                    // Set as options in Colour field
                     frm.set_df_property('colour', 'options', colors);
                     frm.refresh_field('colour');
                 }
             }
         });
-
-        frm.trigger('recalculate');
     },
 
     work_order: function(frm) {
         if (!frm.doc.work_order) {
             frm.set_value('order_quantity', 0);
             frm.set_value('fabric_ordered', 0);
+            frm.set_value('file_consumption', '');
+            frm.set_value('file_fabric_width', '');
+            frm.set_value('file_dia', '');
+            frm.set_value('file_gsm', '');            
             frm.set_value('colour', '');
             frm.set_value('style', '');
             frm.trigger('recalculate');
@@ -422,46 +430,55 @@ function get_approval_card_html(frm) {
     });
 
     return `
-        <div class="approval-card" style="border: 1px solid #4c9658; padding: 20px; border-radius: 8px; max-width: 800px; margin: 0 auto; background: white; font-family: Arial, sans-serif;">
+        <div class="approval-card" style="border: 1px solid #4c9658; padding: 20px; border-radius: 8px; max-width: 1200px; margin: 0 auto; background: white; font-family: Arial, sans-serif;">
             <h3 style="color: #4c9658; text-align: center; margin: 0 0 15px;">Can Cut % – Approval</h3>
             <div style="font-size: 0.9em; line-height: 1.6; margin-bottom: 15px;">
-                <b>Request ID:</b> ${frm.doc.name} &nbsp;&nbsp;
+                <b>Request ID:</b> ${frm.doc.name} &nbsp; | &nbsp;
                 <b>Status:</b> Sent for Approval<br>
-                <b>Style:</b> ${frm.doc.style || '–'} &nbsp;&nbsp;
-                <b>Sales Order:</b> ${frm.doc.sales_order || '–'} &nbsp;&nbsp;
-                <b>Work Order:</b> ${frm.doc.work_order || '–'} &nbsp;&nbsp;
+                <b>Style:</b> ${frm.doc.style || '–'} &nbsp; | &nbsp;
+                <b>Sales Order:</b> ${frm.doc.sales_order || '–'} &nbsp; | &nbsp;
+                <b>Work Order:</b> ${frm.doc.work_order || '–'} &nbsp; | &nbsp;
                 <b>Colour:</b> ${frm.doc.colour || '–'}<br>
-                <b>Requested By:</b> ${frm.doc.owner} &nbsp;&nbsp;
-                <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}
+                <b>Requested By:</b> ${frm.doc.owner} &nbsp; | &nbsp;
+                <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)} &nbsp;| &nbsp;
+                <b>Remarks:</b> ${frm.doc.remarks ? frappe.utils.escape_html(String(frm.doc.remarks)) : '–'}
             </div>
 
-            <div style="margin: 15px 0; border-top: 1px solid #4c9658; padding-top: 15px;">
+            <div style="margin: 15px 0; border-top: 1px solid #4c9658; padding-top: 15px; overflow-x: auto;">
                 <b>SUMMARY</b><br>
-                <table style="width: 100%; border-collapse: collapse; margin: 10px 0;">
-                    <tr>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Order Fabric</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Issued Fabric</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Order Qty</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Can Cut Qty</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">File Fabric Width</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Actual Fabric Width</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">File Dia</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Actual Dia</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">File GSM</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center; font-weight: bold;">Actual GSM</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.fabric_ordered)} kg</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.fabric_issued)} kg</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.order_quantity)} pcs</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.can_cut_quantity)} pcs</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.file_fabric_width)} cm</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.actual_fabric_width)} cm</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.file_dia)} cm</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.actual_dia)} cm</td>                        
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.file_gsm)}</td>
-                        <td style="border: 1px solid #4c9658; padding: 8px; text-align: center;">${flt(frm.doc.actual_gsm)}</td>
-                    </tr>
+                <table style="width: 100%; border-collapse: collapse; margin: 10px 0; table-layout: fixed; font-size: 0.85em;">
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Order Fabric</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Issued Fabric</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Order Qty</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Can Cut Qty</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">File Consumption</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: bold;">Actual Consumption</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">File Width</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Actual Width</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">File Dia</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Actual Dia</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">File GSM</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: break-word;">Actual GSM</th>                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.fabric_ordered)} kg</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.fabric_issued)} kg</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.order_quantity)} pcs</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.can_cut_quantity)} pcs</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.file_consumption)} kg/pcs</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.actual_consumption)} kg/pcs</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.file_fabric_width)} inch</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.actual_fabric_width)} inch</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.file_dia)} inch</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.actual_dia)} inch</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.file_gsm)}</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center; word-wrap: break-word;">${flt(frm.doc.actual_gsm)}</td>                            
+                        </tr>
+                    </tbody>
                 </table>
             </div>
 

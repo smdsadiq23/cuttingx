@@ -47,13 +47,15 @@
    "fieldname": "sales_order",
    "fieldtype": "Link",
    "label": "Sales Order",
-   "options": "Sales Order"
+   "options": "Sales Order",
+   "reqd": 1
   },
   {
    "fieldname": "work_order",
    "fieldtype": "Link",
    "label": "Work Order",
-   "options": "Work Order"
+   "options": "Work Order",
+   "reqd": 1
   },
   {
    "fieldname": "style",
@@ -284,7 +286,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-17 11:17:43.140523",
+ "modified": "2025-11-24 12:32:54.698956",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
