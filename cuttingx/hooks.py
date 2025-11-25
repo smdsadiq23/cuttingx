@@ -153,7 +153,22 @@ doc_events = {
     },
     "Cut Confirmation": {
         "validate": "cuttingx.cuttingx.doctype.cut_confirmation.cut_confirmation.validate"
-    }
+    },
+    # "Cut Kit Plan": {
+    #     "after_insert": "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    #     "on_update":    "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    #     "on_trash":     "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    # },
+    # "Cut Kit Operations": {
+    #     "after_insert": "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    #     "on_update":    "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    #     "on_trash":     "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    # },
+    # "Cut Kit Plan Bundle Details": {
+    #     "after_insert": "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    #     "on_update":    "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    #     "on_trash":     "cuttingx.cuttingx.utils.route_cache_proxy.clear_route_cache_on_change",
+    # },    
 }
 
 

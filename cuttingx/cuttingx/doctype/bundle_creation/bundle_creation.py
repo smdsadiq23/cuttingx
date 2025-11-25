@@ -387,12 +387,13 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
         Each bundle item is replicated per component.
     - For Yarn Request flow:
         Shade and Ply are ignored (None).
+    - Serial numbering restarts per reference (cut_docket_id or yarn_request_no)
+      and continues from the last used number per component code.
     """
 
     import re
     doc = frappe.get_doc("Bundle Creation", docname)
 
-    # detect yarn flow from either flag or field
     is_yarn_flow = frappe.utils.cint(is_yarn_flow) or bool(doc.yarn_request_no)
 
     if doc.get("table_bundle_details"):
@@ -402,13 +403,18 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
     if not doc.fg_item:
         frappe.throw("Please select FG Item to generate bundles.")
 
-    # ✅ Components are always required now
     bundle_components = doc.get("table_bundle_creation_components") or []
     if not bundle_components:
         frappe.throw(
             "No components found in 'Bundle Creation Components'. "
             "Please check Style Master and Style Group Link."
         )
+
+    # Determine reference ID for continuity
+    ref_field = "yarn_request_no" if is_yarn_flow else "cut_docket_id"
+    ref_value = doc.get(ref_field)
+    if not ref_value:
+        frappe.throw(f"Please set {ref_field.replace('_', ' ').title()} to ensure serial continuity.")
 
     # Get company abbreviation
     company = (
@@ -417,7 +423,6 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
     )
     if not company:
         frappe.throw("No Company found in User Defaults or Global Defaults.")
-
     company_abbr = frappe.db.get_value("Company", company, "abbr") or "CMP"
 
     def safe_series_name(name: str) -> str:
@@ -434,8 +439,37 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
         code = component_name[:2].upper() if len(component_name) >= 2 else (component_name + "X")[:2].upper()
         comp_codes.append((code, component_name))
 
-    # Shared counter per component code (continuous numbering)
+    # Fetch existing bundle IDs linked to the same reference (cut_docket_id / yarn_request_no)
+    linked_bundle_docs = frappe.get_all(
+        "Bundle Creation",
+        filters={ref_field: ref_value},
+        pluck="name"
+    )
+
+    # Initialize counters by inspecting existing bundle_id suffixes
     shared_counters = {comp_code: 0 for comp_code, _ in comp_codes}
+
+    if linked_bundle_docs:
+        existing_bundles = frappe.get_all(
+            "Bundle Details",
+            filters={"parent": ["in", linked_bundle_docs]},
+            fields=["bundle_id"]
+        )
+
+        bundle_id_pattern = re.compile(rf"BDL-{re.escape(company_abbr)}-MFG-[A-Za-z0-9\-_]+-([A-Z]{{2}})-(\d{{5}})$")
+        for b in existing_bundles:
+            match = bundle_id_pattern.match(b.bundle_id)
+            if match:
+                comp_code, serial_str = match.groups()
+                if comp_code in shared_counters:
+                    serial_num = int(serial_str)
+                    if serial_num > shared_counters[comp_code]:
+                        shared_counters[comp_code] = serial_num
+
+    # Now increment to assign next serial
+    for comp_code in shared_counters:
+        shared_counters[comp_code] += 1
+
     total_created = 0
 
     for item in doc.table_bundle_creation_item:
@@ -451,19 +485,13 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
             continue
 
         safe_wo = safe_series_name(work_order)
-        base_qty = (
-            item.cut_quantity if is_yarn_flow else (item.shade_cut_quantity or 0)
-        )
-
-        # For Yarn flow, ignore shade/ply
+        base_qty = item.cut_quantity if is_yarn_flow else (item.shade_cut_quantity or 0)
         shade = None if is_yarn_flow else item.shade
         ply = None if is_yarn_flow else item.ply
 
         for bundle_num in range(num_bundles):
             for comp_code, component_name in comp_codes:
-                shared_counters[comp_code] += 1
                 counter = shared_counters[comp_code]
-
                 bundle_id = f"BDL-{company_abbr}-MFG-{safe_wo}-{comp_code}-{counter:05d}"
 
                 barcode_b64 = generate_barcode_base64(bundle_id)
@@ -480,6 +508,8 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
                     "qrcode_image": qrcode_b64,
                     "parent_item_id": item.name,
                 })
+
+                shared_counters[comp_code] += 1
                 total_created += 1
 
     doc.save(ignore_permissions=True)

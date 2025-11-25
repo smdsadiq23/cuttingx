@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 from frappe.utils import cint
 import json
-from collections import defaultdict
+from collections import defaultdict, deque
 
 
 class CutKitPlan(Document):
@@ -19,60 +19,148 @@ class CutKitPlan(Document):
                 self.style = item_doc.get("custom_style_master") or ""
             if not self.colour:
                 self.colour = item_doc.get("custom_colour_name") or ""
-                
 
     def _update_operation_map_and_last_operation(self, doc):
-        """Populate table_operation_map and set last_operation directly from Process Map edges"""
+        """
+        Populate table_operation_map and set last_operation from Process Map.
+
+        - For each component in Process Map edges, we build a DAG (ops as nodes, edges as source->target).
+        - We then run a stable Kahn topological sort per component (ties broken by original edge order and label),
+        and append rows to `table_operation_map` in that order with a strictly increasing `sequence_no` per component.
+        - `last_operation` is set to the unique sink (node with out-degree 0) if and only if there is exactly one
+        sink across all components; otherwise it's left unchanged to avoid misleading UI.
+        """
+        # reset table
         doc.set("table_operation_map", [])
-        
+
+        if not doc.operation_map:
+            return
+
         process_map = frappe.get_doc("Process Map", doc.operation_map)
         nodes = json.loads(process_map.nodes or "[]")
         edges = json.loads(process_map.edges or "[]")
-        
-        node_id_to_label = {node["id"]: node["label"] for node in nodes}
-        sequence_tracker = defaultdict(int)
-        
-        # Track all operations that appear as SOURCE
-        source_operations = set()
-        # Track all operations that appear as TARGET
-        target_operations = set()
-        
-        for edge in edges:
-            source_op = node_id_to_label.get(edge["source"])
-            target_op = node_id_to_label.get(edge["target"])
-            components = edge.get("components", [])
-            
-            if not source_op or not target_op:
+
+        # id -> label
+        node_id_to_label = {n.get("id"): n.get("label") for n in nodes if n.get("id")}
+
+        # normalize edges: (source_label, target_label, components[], original_index)
+        norm_edges = []
+        for idx, e in enumerate(edges):
+            s = node_id_to_label.get(e.get("source"))
+            t = node_id_to_label.get(e.get("target"))
+            comps = e.get("components") or []
+            if not s or not t:
                 continue
-            
-            source_operations.add(source_op)
-            target_operations.add(target_op)
-            
-            for component in components:
-                seq_key = f"{source_op}|{component}"
-                sequence_tracker[seq_key] += 1
-                
+            # ensure list
+            if isinstance(comps, str):
+                comps = [comps]
+            if not comps:
+                # treat as "no component filter" edge — record as component=None bucket
+                comps = [None]
+            norm_edges.append((s, t, comps, idx))
+
+        if not norm_edges:
+            # fallback: best-effort last_operation from last target in the serialized edges
+            if edges:
+                last_target_id = edges[-1].get("target")
+                doc.last_operation = node_id_to_label.get(last_target_id)
+            return
+
+        # gather all explicit component names including None bucket
+        all_components = set()
+        for _s, _t, comps, _i in norm_edges:
+            for c in comps:
+                all_components.add(c)
+
+        # will collect sinks across all components to compute an overall last_operation
+        global_sinks = set()
+
+        # process per component
+        for comp in sorted(all_components, key=lambda x: ("" if x is None else str(x)).lower()):
+            # build adjacency and indegree only for this component
+            adj = defaultdict(list)        # op -> list[(next_op, edge_idx)]
+            indeg = defaultdict(int)       # op -> indegree count
+            outdeg = defaultdict(int)      # op -> outdegree count
+            ops_present = set()
+
+            # collect nodes & edges
+            for s, t, comps, edge_idx in norm_edges:
+                if comp not in comps:
+                    continue
+                ops_present.add(s); ops_present.add(t)
+                adj[s].append((t, edge_idx))
+                indeg[t] += 1
+                # ensure keys exist
+                indeg.setdefault(s, indeg.get(s, 0))
+                outdeg[s] += 1
+                outdeg.setdefault(t, outdeg.get(t, 0))
+
+            if not ops_present:
+                continue
+
+            # stable Kahn: queue of indegree==0, ordered by (label, first_edge_index)
+            first_edge_index = {}
+            for s, lst in adj.items():
+                lst.sort(key=lambda it: it[1])  # stabilize adjacency by original edge order
+                if lst:
+                    first_edge_index[s] = min(idx for _, idx in lst)
+            for op in ops_present:
+                first_edge_index.setdefault(op, 10**9)
+
+            q = [op for op in ops_present if indeg.get(op, 0) == 0]
+            q.sort(key=lambda op: (first_edge_index.get(op, 10**9), str(op).lower()))
+            q = deque(q)
+
+            topo = []
+            while q:
+                u = q.popleft()
+                topo.append(u)
+                for v, _ei in adj.get(u, []):
+                    indeg[v] -= 1
+                    if indeg[v] == 0:
+                        q.append(v)
+                # keep queue stable
+                q = deque(sorted(list(q), key=lambda op: (first_edge_index.get(op, 10**9), str(op).lower())))
+
+            # If cycle (topo shorter), fall back to alphabetical to at least assign a stable order
+            if len(topo) < len(ops_present):
+                topo = sorted(list(ops_present), key=lambda op: str(op).lower())
+
+            # build a quick edge lookup to decide next_operation for a source in this component
+            has_edge = set()
+            for s, t, comps, _ei in norm_edges:
+                if comp in comps:
+                    has_edge.add((s, t))
+
+            # assign sequence numbers strictly increasing per component
+            seq_no = 0
+            # to generate rows, we want rows for each directed edge that exists in this component,
+            # ordered by the topo order of its source op
+            edge_rows = []
+            topo_index = {op: i for i, op in enumerate(topo)}
+            for s, t in sorted(has_edge, key=lambda st: (topo_index.get(st[0], 10**9), topo_index.get(st[1], 10**9))):
+                seq_no += 1
+                edge_rows.append((s, t, seq_no))
+
+            # append to child table
+            for s, t, seq in edge_rows:
                 row = doc.append("table_operation_map", {})
-                row.operation = source_op
-                row.component = component
-                row.next_operation = target_op
-                row.sequence_no = sequence_tracker[seq_key]
+                row.operation = s
+                row.component = comp or ""   # store blank if None
+                row.next_operation = t
+                row.sequence_no = seq
                 row.configs = {}
 
-        # Final operation = any target that is NOT a source
-        final_operations = target_operations - source_operations
-        
-        if final_operations:
-            # If multiple, pick one (e.g., alphabetically or by edge order)
-            # Since your flow is linear, there should be exactly one
-            doc.last_operation = next(iter(final_operations))
-        else:
-            # Fallback: last target in edge list (for malformed maps)
-            if edges:
-                last_target_id = edges[-1]["target"]
-                doc.last_operation = node_id_to_label.get(last_target_id, "Final QC")
-            else:
-                doc.last_operation = "Final QC"
+            # collect sinks for this component (outdeg==0)
+            sinks = [op for op in ops_present if outdeg.get(op, 0) == 0]
+            # if multiple sinks, include all; we'll resolve below
+            for sk in sinks:
+                global_sinks.add(sk)
+
+        # decide last_operation: only if exactly one unique sink across all components
+        if len(global_sinks) == 1:
+            doc.last_operation = next(iter(global_sinks))
+        # else: leave as-is (don’t overwrite with an arbitrary value)
 
 
     def _populate_physical_cell_first_and_last_operations(self, doc):
@@ -483,7 +571,30 @@ def get_bundle_details_with_components(bundle_creation_name):
     if not bundle_creation_name:
         return {"bundle_details": [], "unique_components": []}
 
-    # Step 1: Get all bundle details (without exclusion)
+    # Step 1: Fetch components from Bundle Creation in idx order
+    bundle_creation_components = frappe.db.sql("""
+        SELECT component_name
+        FROM `tabBundle Creation Components`
+        WHERE parent = %s
+        ORDER BY idx
+    """, bundle_creation_name, as_dict=True)
+
+    # Maintain order and avoid duplicates while preserving first occurrence
+    seen = set()
+    unique_components = []
+    for row in bundle_creation_components:
+        comp = row.get("component_name")
+        if comp and comp not in seen:
+            unique_components.append(comp)
+            seen.add(comp)
+
+    if not unique_components:
+        return {"bundle_details": [], "unique_components": []}
+
+    # Create a set for fast lookup
+    allowed_components = set(unique_components)
+
+    # Step 2: Fetch bundle details from tracking system (as before)
     bundle_details = frappe.db.sql("""
         SELECT 
             pi.name AS 'production_item_id',  
@@ -505,15 +616,15 @@ def get_bundle_details_with_components(bundle_creation_name):
     """, bundle_creation_name, as_dict=True)
 
     if not bundle_details:
-        return {"bundle_details": [], "unique_components": []}
-    
-    # Log original bundle details
+        return {"bundle_details": [], "unique_components": unique_components}
+
+    # Log raw bundle details
     frappe.log_error(
         message=frappe.as_json(bundle_details, indent=2),
         title="Bundle Details (Raw) - get_bundle_details_with_components"
-    )    
+    )
 
-    # Step 2: Get all production_item_numbers already in Cut Kit Plan Bundle Details
+    # Step 3: Get existing items in Cut Kit Plan to exclude
     existing_items = set(
         frappe.db.sql_list("""
             SELECT DISTINCT production_item_number 
@@ -522,25 +633,29 @@ def get_bundle_details_with_components(bundle_creation_name):
         """)
     )
 
-    # Step 3: Filter out items that are already in Cut Kit Plan
+    # Step 4: Filter bundle details:
+    # - Exclude already used production_item_numbers
+    # - Only keep rows where component is in allowed_components
     filtered_bundle_details = [
         row for row in bundle_details
         if row.production_item_number not in existing_items
+        and row.component in allowed_components
     ]
 
-    # Log filtered bundle details
+    # Optional: Sort bundle_details to follow component order
+    # (Useful if UI groups by component)
+    component_order = {comp: i for i, comp in enumerate(unique_components)}
+    filtered_bundle_details.sort(
+        key=lambda x: component_order.get(x.component, 999999)
+    )
+
+    # Log filtered
     frappe.log_error(
         message=frappe.as_json(filtered_bundle_details, indent=2),
         title="Filtered Bundle Details - get_bundle_details_with_components"
-    )    
-
-    # Step 4: Extract and sort unique components
-    unique_components = sorted({
-        row.component for row in filtered_bundle_details if row.component
-    })
+    )
 
     return {
         "bundle_details": filtered_bundle_details,
-        "unique_components": unique_components
+        "unique_components": unique_components  # now in idx order from Bundle Creation
     }
- 
