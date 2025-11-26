@@ -367,7 +367,7 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
     Return available Bundle Creation records:
     - Submitted (docstatus = 1)
     - Match search text
-    - Have at least one unused production_item_number (not in Cut Kit Plan Bundle Details)
+    - Have at least one unused production_item (by ID) not referenced in Cut Kit Plan Bundle Details
     - OR is the currently selected bundle (to allow editing)
     """
     current_bundle = (filters or {}).get("current_bundle")
@@ -375,7 +375,7 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
     start = cint(start)
     page_len = cint(page_len) or 20
 
-    # Step 1: Get all submitted bundles matching search (minimal SQL)
+    # Step 1: Get all submitted bundles matching search
     bundles = frappe.db.sql("""
         SELECT name, fg_item
         FROM `tabBundle Creation`
@@ -392,11 +392,11 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
 
     bundle_names = [b.name for b in bundles]
 
-    # Step 2: Get all production_item_number -> bundle mapping for these bundles
-    # (Only for 'Activation' & 'Completed' lines)
-    bundle_to_items = frappe.db.sql("""
+    # Step 2: Get all production_item IDs linked to these bundles
+    # (via Tracking Order → Bundle Configuration → Production Item)
+    bundle_to_item_ids = frappe.db.sql("""
         SELECT 
-            pi.production_item_number,
+            pi.name AS production_item_id,
             tor.reference_order_number AS bundle_name
         FROM `tabProduction Item` pi
         INNER JOIN `tabTracking Order Bundle Configuration` tbc 
@@ -407,42 +407,48 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
           AND tbc.source = 'Activation'
     """, {"bundle_names": bundle_names}, as_dict=True)
 
-    # Step 3: Get all already-used production_item_number
-    used_items = set(frappe.db.sql_list("""
+    if not bundle_to_item_ids:
+        # No production items linked → only current bundle may be shown
+        if current_bundle:
+            matching = [b for b in bundles if b.name == current_bundle]
+            if matching:
+                return [(matching[0].name, matching[0].fg_item)]
+        return []
+
+    # Step 3: Get all already-used production_item IDs (by ID, not number)
+    used_item_ids = set(frappe.db.sql_list("""
         SELECT DISTINCT production_item_id
         FROM `tabCut Kit Plan Bundle Details`
         WHERE production_item_id IS NOT NULL
     """))
 
-    # Step 4: For each bundle, check if it has ANY unused item
+    # Step 4: Determine which bundles have at least one unused production_item
     available_bundles = []
-
-    # Group items by bundle
     from collections import defaultdict
     items_by_bundle = defaultdict(list)
-    for row in bundle_to_items:
-        items_by_bundle[row.bundle_name].append(row.production_item_number)
+    
+    for row in bundle_to_item_ids:
+        items_by_bundle[row.bundle_name].append(row.production_item_id)
 
     for bundle in bundles:
         name = bundle.name
 
-        # Always include current bundle (even if fully used)
+        # Always include the currently selected bundle
         if name == current_bundle:
             available_bundles.append((name, bundle.fg_item))
             continue
 
-        items = items_by_bundle.get(name, [])
-        if not items:
-            continue  # no valid bundle lines
+        item_ids = items_by_bundle.get(name, [])
+        if not item_ids:
+            continue
 
-        # Check if ANY item is unused
-        has_unused = any(item not in used_items for item in items)
+        # Check if ANY production_item ID is unused
+        has_unused = any(item_id not in used_item_ids for item_id in item_ids)
         if has_unused:
             available_bundles.append((name, bundle.fg_item))
 
-    # Step 5: Apply pagination (start, page_len)
+    # Step 5: Apply pagination
     paginated = available_bundles[start : start + page_len]
-
     return paginated
 
 
@@ -565,7 +571,7 @@ def get_operations_from_process_map(process_map_name):
     return operations
     
 
-# NEW: Single method to fetch both bundle details and unique components
+# Single method to fetch both bundle details and unique components
 @frappe.whitelist()
 def get_bundle_details_with_components(bundle_creation_name):
     if not bundle_creation_name:
@@ -591,26 +597,25 @@ def get_bundle_details_with_components(bundle_creation_name):
     if not unique_components:
         return {"bundle_details": [], "unique_components": []}
 
-    # Create a set for fast lookup
     allowed_components = set(unique_components)
 
-    # Step 2: Fetch bundle details from tracking system (as before)
+    # Step 2: Fetch bundle details — now include pi.name as production_item_id
     bundle_details = frappe.db.sql("""
         SELECT 
-            pi.name AS 'production_item_id',  
+            pi.name AS production_item_id,  
             pi.production_item_number, 
             tbc.shade, 
             tbc.size, 
-            tc.component_name AS 'component', 
-            tbc.bundle_quantity AS 'bundle_qty' 
+            tc.component_name AS component, 
+            tbc.bundle_quantity AS bundle_qty 
         FROM `tabProduction Item` pi
         INNER JOIN `tabTracking Order Bundle Configuration` tbc 
-            ON pi.`bundle_configuration` = tbc.name
+            ON pi.bundle_configuration = tbc.name
         INNER JOIN `tabTracking Order` tor 
             ON tbc.parent = tor.name
         INNER JOIN `tabTracking Component` tc 
             ON tc.parent = tor.name AND tbc.component = tc.name
-        WHERE tor.`reference_order_number` = %s 
+        WHERE tor.reference_order_number = %s 
           AND tbc.source = 'Activation' 
         ORDER BY pi.bundle_configuration, pi.production_item_number
     """, bundle_creation_name, as_dict=True)
@@ -618,38 +623,35 @@ def get_bundle_details_with_components(bundle_creation_name):
     if not bundle_details:
         return {"bundle_details": [], "unique_components": unique_components}
 
-    # Log raw bundle details
     frappe.log_error(
         message=frappe.as_json(bundle_details, indent=2),
         title="Bundle Details (Raw) - get_bundle_details_with_components"
     )
 
-    # Step 3: Get existing items in Cut Kit Plan to exclude
-    existing_items = set(
+    # Step 3: Get existing production_item_id values (NOT production_item_number)
+    existing_item_ids = set(
         frappe.db.sql_list("""
-            SELECT DISTINCT production_item_number 
+            SELECT DISTINCT production_item_id 
             FROM `tabCut Kit Plan Bundle Details`
-            WHERE production_item_number IS NOT NULL
+            WHERE production_item_id IS NOT NULL
         """)
     )
 
     # Step 4: Filter bundle details:
-    # - Exclude already used production_item_numbers
+    # - Exclude already used production_item_id
     # - Only keep rows where component is in allowed_components
     filtered_bundle_details = [
         row for row in bundle_details
-        if row.production_item_number not in existing_items
+        if row.production_item_id not in existing_item_ids
         and row.component in allowed_components
     ]
 
-    # Optional: Sort bundle_details to follow component order
-    # (Useful if UI groups by component)
+    # Optional: Sort by component order from Bundle Creation
     component_order = {comp: i for i, comp in enumerate(unique_components)}
     filtered_bundle_details.sort(
         key=lambda x: component_order.get(x.component, 999999)
     )
 
-    # Log filtered
     frappe.log_error(
         message=frappe.as_json(filtered_bundle_details, indent=2),
         title="Filtered Bundle Details - get_bundle_details_with_components"
@@ -657,5 +659,5 @@ def get_bundle_details_with_components(bundle_creation_name):
 
     return {
         "bundle_details": filtered_bundle_details,
-        "unique_components": unique_components  # now in idx order from Bundle Creation
+        "unique_components": unique_components
     }
