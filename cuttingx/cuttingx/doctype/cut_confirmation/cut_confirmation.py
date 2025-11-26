@@ -243,6 +243,64 @@ def get_unused_cut_dockets(doctype, txt, searchfield, start, page_len, filters, 
 
 
 @frappe.whitelist()
+def get_eligible_lay_records(doctype, txt, searchfield, start, page_len, filters):
+    """
+    Frappe-compatible search query for Lay Record dropdown in Cut Confirmation.
+    
+    Filters Lay Records by:
+      - cut_kanban_no = filters.cut_docket
+      - Not used in any other Cut Confirmation
+    """
+    # Parse filters (passed as a JSON string or dict)
+    if isinstance(filters, str):
+        filters = json.loads(filters)
+    
+    cut_docket = filters.get("cut_docket")
+    current_doc = filters.get("current_doc") or ""
+
+    if not cut_docket:
+        return []
+
+    # Get Lay Records already used with this Cut Docket (excluding current doc)
+    used_lay_records = frappe.db.sql("""
+        SELECT lay_record
+        FROM `tabCut Confirmation`
+        WHERE cut_po_number = %s
+          AND lay_record IS NOT NULL
+          AND docstatus != 2
+          AND name != %s
+    """, (cut_docket, current_doc), as_dict=False)
+
+    used_set = {row[0] for row in used_lay_records if row[0]}
+
+    # Get eligible Lay Records (with optional search text match)
+    query = """
+        SELECT name
+        FROM `tabCutting Lay Record`
+        WHERE cut_kanban_no = %s
+          AND docstatus != 2
+          AND name LIKE %s
+        ORDER BY name
+        LIMIT %s OFFSET %s
+    """
+
+    lay_records = frappe.db.sql(
+        query,
+        (cut_docket, f"%{txt}%", int(page_len), int(start)),
+        as_dict=False
+    )
+
+    # Filter out used ones
+    eligible = [
+        [row[0]]  # Frappe expects list of lists or list of dicts
+        for row in lay_records
+        if row[0] not in used_set
+    ]
+
+    return eligible
+
+
+@frappe.whitelist()
 def get_items_from_cut_docket(cut_po_number):
     """
     Fetch data from Cut Docket Item child table.
@@ -332,64 +390,6 @@ def get_items_from_cut_docket(cut_po_number):
         })
 
     return result
-
-
-@frappe.whitelist()
-def get_eligible_lay_records(doctype, txt, searchfield, start, page_len, filters):
-    """
-    Frappe-compatible search query for Lay Record dropdown in Cut Confirmation.
-    
-    Filters Lay Records by:
-      - cut_kanban_no = filters.cut_docket
-      - Not used in any other Cut Confirmation
-    """
-    # Parse filters (passed as a JSON string or dict)
-    if isinstance(filters, str):
-        filters = json.loads(filters)
-    
-    cut_docket = filters.get("cut_docket")
-    current_doc = filters.get("current_doc") or ""
-
-    if not cut_docket:
-        return []
-
-    # Get Lay Records already used with this Cut Docket (excluding current doc)
-    used_lay_records = frappe.db.sql("""
-        SELECT lay_record
-        FROM `tabCut Confirmation`
-        WHERE cut_po_number = %s
-          AND lay_record IS NOT NULL
-          AND docstatus != 2
-          AND name != %s
-    """, (cut_docket, current_doc), as_dict=False)
-
-    used_set = {row[0] for row in used_lay_records if row[0]}
-
-    # Get eligible Lay Records (with optional search text match)
-    query = """
-        SELECT name
-        FROM `tabCutting Lay Record`
-        WHERE cut_kanban_no = %s
-          AND docstatus != 2
-          AND name LIKE %s
-        ORDER BY name
-        LIMIT %s OFFSET %s
-    """
-
-    lay_records = frappe.db.sql(
-        query,
-        (cut_docket, f"%{txt}%", int(page_len), int(start)),
-        as_dict=False
-    )
-
-    # Filter out used ones
-    eligible = [
-        [row[0]]  # Frappe expects list of lists or list of dicts
-        for row in lay_records
-        if row[0] not in used_set
-    ]
-
-    return eligible
 
 
 # @frappe.whitelist()
