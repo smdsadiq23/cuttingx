@@ -78,9 +78,23 @@ def validate(doc, method):
                 title=_("Duplicate Cut Docket + Lay Record")
             )
 
-    # 4. Validate total confirmed ≤ 120% of planned (aggregate across all Cut Confirmations)
+    # 4. 🔑 Ensure at least one confirmed quantity > 0
+    validate_at_least_one_confirmed(doc)  
+
+    # 5. Validate total confirmed ≤ 120% of planned (aggregate across all Cut Confirmations)
     if doc.cut_po_number:
         validate_total_confirmed_against_docket(doc)
+
+
+def validate_at_least_one_confirmed(doc):
+    """Ensure at least one row in Cut Confirmation Item has confirmed_quantity > 0."""
+    has_confirmed = any(
+        flt(row.confirmed_quantity) > 0 for row in doc.table_cut_confirmation_item
+    )
+    if not has_confirmed:
+        frappe.throw(
+            _("At least one row in 'Cut Confirmation Item' must have a Confirmed Quantity greater than zero.")
+        )
 
 
 def validate_total_confirmed_against_docket(doc):

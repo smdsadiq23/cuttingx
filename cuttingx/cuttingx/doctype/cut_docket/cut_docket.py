@@ -262,13 +262,24 @@ class CutDocket(Document):
 
 
     def validate_no_negative_balance(self):
+        # Existing validation: no negative balance
         for row in self.table_size_ratio_qty:
             if flt(row.balance) < 0:
                 frappe.throw(
                     _("Negative balance found for Size '{0}' and Work Order '{1}'. Check planned quantity.").format(
-                        row.size, row.ref_work_order or "Unknown"
+                        row.size, row.ref_work_order or _("Unknown")
                     )
                 )
+
+        # New validation: at least one row must have planned_cut_quantity > 0
+        has_planned_quantity = any(
+            flt(row.planned_cut_quantity) > 0 for row in self.table_size_ratio_qty
+        )
+        
+        if not has_planned_quantity:
+            frappe.throw(
+                _("At least one row in 'Size Ratio Qty' must have a Cut Kanban Quantity greater than zero.")
+            )
 
             
     def on_submit(self):
