@@ -409,9 +409,9 @@ def filter_available_bundles(doctype, txt, searchfield, start, page_len, filters
 
     # Step 3: Get all already-used production_item_number
     used_items = set(frappe.db.sql_list("""
-        SELECT DISTINCT production_item_number
+        SELECT DISTINCT production_item_id
         FROM `tabCut Kit Plan Bundle Details`
-        WHERE production_item_number IS NOT NULL
+        WHERE production_item_id IS NOT NULL
     """))
 
     # Step 4: For each bundle, check if it has ANY unused item
