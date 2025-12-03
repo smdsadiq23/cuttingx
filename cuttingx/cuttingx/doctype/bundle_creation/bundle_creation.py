@@ -492,7 +492,7 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
         for bundle_num in range(num_bundles):
             for comp_code, component_name in comp_codes:
                 counter = shared_counters[comp_code]
-                bundle_id = f"BDL-{company_abbr}-MFG-{safe_wo}-{comp_code}-{counter:05d}"
+                bundle_id = f"BDL-{company_abbr}-MFG-{safe_wo}-{comp_code}-{counter:03d}"
 
                 barcode_b64 = generate_barcode_base64(bundle_id)
                 qrcode_b64 = generate_qrcode_base64(bundle_id)
