@@ -305,6 +305,7 @@ doc_events = {
 #                 "Factory Manager",
 #                 "Can Cut User",
 #                 "Can Cut Approver",
+#                 "Can Cut Manager",
 #                 "Yarn Approver"
 #                 ]
 #             ]

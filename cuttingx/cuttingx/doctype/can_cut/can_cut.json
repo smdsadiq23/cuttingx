@@ -34,10 +34,13 @@
   "order_quantity",
   "can_cut_quantity",
   "can_cut_percent",
-  "remarks",
+  "requester_remarks",
   "approval_section",
+  "column_break_kmci",
   "profit_loss_value",
   "deviation_under",
+  "approver_remarks",
+  "manager_remarks",
   "approval_card_html",
   "section_break_jisc",
   "folding"
@@ -185,11 +188,6 @@
    "read_only": 1
   },
   {
-   "fieldname": "remarks",
-   "fieldtype": "Small Text",
-   "label": "Remarks"
-  },
-  {
    "fieldname": "fabric_issued",
    "fieldtype": "Float",
    "in_list_view": 1,
@@ -202,7 +200,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Status",
-   "options": "\nDraft\nPending for Approval\nApproved\nRejected",
+   "options": "\nDraft\nPending for Approval\nPending Manager Approval\nApproved\nRejected",
    "read_only": 1
   },
   {
@@ -281,12 +279,34 @@
    "fieldtype": "Link",
    "label": "Factory Business Unit",
    "options": "Factory Business Unit"
+  },
+  {
+   "fieldname": "requester_remarks",
+   "fieldtype": "Small Text",
+   "label": "Requester Remarks"
+  },
+  {
+   "fieldname": "approver_remarks",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Approver Remarks"
+  },
+  {
+   "fieldname": "manager_remarks",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Manager Remarks"
+  },
+  {
+   "fieldname": "column_break_kmci",
+   "fieldtype": "Column Break",
+   "hidden": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-24 12:32:54.698956",
+ "modified": "2025-12-04 17:19:44.984924",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
