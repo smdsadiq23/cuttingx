@@ -456,7 +456,7 @@ def generate_bundle_details(docname, is_yarn_flow: bool = False):
             fields=["bundle_id"]
         )
 
-        bundle_id_pattern = re.compile(rf"BDL-{re.escape(company_abbr)}-MFG-[A-Za-z0-9\-_]+-([A-Z]{{2}})-(\d{{5}})$")
+        bundle_id_pattern = re.compile(rf"BDL-{re.escape(company_abbr)}-MFG-[A-Za-z0-9\-_]+-([A-Z]{{2}})-(\d{{3}})$")
         for b in existing_bundles:
             match = bundle_id_pattern.match(b.bundle_id)
             if match:
