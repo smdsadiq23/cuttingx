@@ -520,56 +520,6 @@ IGNORED_OPERATIONS = {
     "Switch"
 }
 
-@frappe.whitelist()
-def get_operations_from_process_map(process_map_name):
-    """
-    Fetches operation labels from 'nodes' in Process Map,
-    excluding blacklisted operations.
-    """
-    if not process_map_name:
-        return []
-
-    try:
-        doc = frappe.get_doc("Process Map", process_map_name)
-    except frappe.DoesNotExistError:
-        frappe.log_error(
-            title="Process Map Not Found",
-            message=f"Process Map '{process_map_name}' does not exist."
-        )
-        return []
-
-    nodes = doc.get("nodes")
-    if not nodes:
-        return []
-
-    try:
-        if isinstance(nodes, str):
-            data = frappe.parse_json(nodes)
-        else:
-            data = nodes
-    except Exception as e:
-        frappe.log_error(
-            title="Process Map Parse Error",
-            message=f"Invalid JSON in 'nodes' of Process Map '{process_map_name}': {str(e)}"
-        )
-        return []
-
-    if not isinstance(data, list):
-        return []
-
-    operations = [
-        node.get("label")
-        for node in data
-        if (
-            isinstance(node, dict)
-            and node.get("type") == "operationProcess"
-            and node.get("label")
-            and node.get("label") not in IGNORED_OPERATIONS  # ← FILTER HERE
-        )
-    ]
-
-    return operations
-    
 
 # Fetch Operations based on Nodes and sequence based on Edges
 @frappe.whitelist()
