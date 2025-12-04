@@ -571,93 +571,122 @@ def get_operations_from_process_map(process_map_name):
     return operations
     
 
-# Single method to fetch both bundle details and unique components
+# Fetch Operations based on Nodes and sequence based on Edges
 @frappe.whitelist()
-def get_bundle_details_with_components(bundle_creation_name):
-    if not bundle_creation_name:
-        return {"bundle_details": [], "unique_components": []}
+def get_operations_from_process_map(process_map_name):
+    """
+    Fetches operation labels from 'nodes' in Process Map in their correct
+    sequential order based on edges, excluding blacklisted operations.
+    """
+    if not process_map_name:
+        return []
 
-    # Step 1: Fetch components from Bundle Creation in idx order
-    bundle_creation_components = frappe.db.sql("""
-        SELECT component_name
-        FROM `tabBundle Creation Components`
-        WHERE parent = %s
-        ORDER BY idx
-    """, bundle_creation_name, as_dict=True)
+    try:
+        doc = frappe.get_doc("Process Map", process_map_name)
+    except frappe.DoesNotExistError:
+        frappe.log_error(
+            title="Process Map Not Found",
+            message=f"Process Map '{process_map_name}' does not exist."
+        )
+        return []
 
-    # Maintain order and avoid duplicates while preserving first occurrence
-    seen = set()
-    unique_components = []
-    for row in bundle_creation_components:
-        comp = row.get("component_name")
-        if comp and comp not in seen:
-            unique_components.append(comp)
-            seen.add(comp)
+    # Parse nodes
+    nodes_data = doc.get("nodes")
+    if not nodes_data:
+        return []
 
-    if not unique_components:
-        return {"bundle_details": [], "unique_components": []}
+    try:
+        if isinstance(nodes_data, str):
+            nodes = frappe.parse_json(nodes_data)
+        else:
+            nodes = nodes_data
+    except Exception as e:
+        frappe.log_error(
+            title="Process Map Nodes Parse Error",
+            message=f"Invalid JSON in 'nodes' of Process Map '{process_map_name}': {str(e)}"
+        )
+        return []
 
-    allowed_components = set(unique_components)
+    if not isinstance(nodes, list):
+        return []
 
-    # Step 2: Fetch bundle details — now include pi.name as production_item_id
-    bundle_details = frappe.db.sql("""
-        SELECT 
-            pi.name AS production_item_id,  
-            pi.production_item_number, 
-            tbc.shade, 
-            tbc.size, 
-            tc.component_name AS component, 
-            tbc.bundle_quantity AS bundle_qty 
-        FROM `tabProduction Item` pi
-        INNER JOIN `tabTracking Order Bundle Configuration` tbc 
-            ON pi.bundle_configuration = tbc.name
-        INNER JOIN `tabTracking Order` tor 
-            ON tbc.parent = tor.name
-        INNER JOIN `tabTracking Component` tc 
-            ON tc.parent = tor.name AND tbc.component = tc.name
-        WHERE tor.reference_order_number = %s 
-          AND tbc.source = 'Activation' 
-        ORDER BY pi.bundle_configuration, pi.production_item_number
-    """, bundle_creation_name, as_dict=True)
+    # Parse edges
+    edges_data = doc.get("edges")
+    edges = []
+    
+    if edges_data:
+        try:
+            if isinstance(edges_data, str):
+                edges = frappe.parse_json(edges_data)
+            else:
+                edges = edges_data
+        except Exception as e:
+            frappe.log_error(
+                title="Process Map Edges Parse Error",
+                message=f"Invalid JSON in 'edges' of Process Map '{process_map_name}': {str(e)}"
+            )
+            # Continue without edges - will return unordered list
+            edges = []
 
-    if not bundle_details:
-        return {"bundle_details": [], "unique_components": unique_components}
-
-    frappe.log_error(
-        message=frappe.as_json(bundle_details, indent=2),
-        title="Bundle Details (Raw) - get_bundle_details_with_components"
-    )
-
-    # Step 3: Get existing production_item_id values (NOT production_item_number)
-    existing_item_ids = set(
-        frappe.db.sql_list("""
-            SELECT DISTINCT production_item_id 
-            FROM `tabCut Kit Plan Bundle Details`
-            WHERE production_item_id IS NOT NULL
-        """)
-    )
-
-    # Step 4: Filter bundle details:
-    # - Exclude already used production_item_id
-    # - Only keep rows where component is in allowed_components
-    filtered_bundle_details = [
-        row for row in bundle_details
-        if row.production_item_id not in existing_item_ids
-        and row.component in allowed_components
+    # Filter operation nodes only
+    operation_nodes = [
+        node for node in nodes
+        if (
+            isinstance(node, dict)
+            and node.get("type") == "operationProcess"
+            and node.get("label")
+            and node.get("label") not in IGNORED_OPERATIONS
+        )
     ]
 
-    # Optional: Sort by component order from Bundle Creation
-    component_order = {comp: i for i, comp in enumerate(unique_components)}
-    filtered_bundle_details.sort(
-        key=lambda x: component_order.get(x.component, 999999)
-    )
+    if not operation_nodes:
+        return []
 
-    frappe.log_error(
-        message=frappe.as_json(filtered_bundle_details, indent=2),
-        title="Filtered Bundle Details - get_bundle_details_with_components"
-    )
+    # If no edges, return nodes in their original order
+    if not edges or not isinstance(edges, list):
+        return [node.get("label") for node in operation_nodes]
 
-    return {
-        "bundle_details": filtered_bundle_details,
-        "unique_components": unique_components
+    # Build graph from edges: source -> target mapping
+    graph = {}
+    for edge in edges:
+        if isinstance(edge, dict) and edge.get("source") and edge.get("target"):
+            graph[edge["source"]] = edge["target"]
+
+    # Create a map of node_id -> node_label for operation nodes only
+    node_id_to_label = {
+        node["id"]: node["label"]
+        for node in operation_nodes
     }
+
+    # Find the starting node (node with no incoming edges)
+    all_targets = set(edge.get("target") for edge in edges if isinstance(edge, dict))
+    all_sources = set(edge.get("source") for edge in edges if isinstance(edge, dict))
+    
+    # Start node is in sources but not in targets (or is the first node if no clear start)
+    start_nodes = [
+        node["id"] for node in operation_nodes
+        if node["id"] not in all_targets
+    ]
+
+    # If we have a clear start node, use it; otherwise use first operation node
+    start_node = start_nodes[0] if start_nodes else (operation_nodes[0]["id"] if operation_nodes else None)
+
+    if not start_node:
+        return []
+
+    # Traverse the graph to build ordered sequence
+    sequence = []
+    visited = set()  # Prevent infinite loops
+    current = start_node
+
+    while current and current not in visited:
+        visited.add(current)
+        
+        # Add to sequence if it's an operation node
+        if current in node_id_to_label:
+            sequence.append(node_id_to_label[current])
+        
+        # Move to next node
+        current = graph.get(current)
+
+    return sequence
