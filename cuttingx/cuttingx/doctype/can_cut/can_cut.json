@@ -19,7 +19,6 @@
   "factory_business_unit",
   "merchant",
   "fabric_details_section",
-  "lay_length",
   "fabric_ordered",
   "fabric_issued",
   "fabric_balance",
@@ -28,10 +27,12 @@
   "file_fabric_width",
   "file_dia",
   "file_gsm",
+  "file_lay_length",
   "actual_consumption",
   "actual_fabric_width",
   "actual_dia",
   "actual_gsm",
+  "actual_lay_length",
   "order_and_cutting_calculation_section",
   "order_quantity",
   "can_cut_quantity",
@@ -312,17 +313,22 @@
    "options": "User"
   },
   {
-   "fieldname": "lay_length",
+   "fieldname": "file_lay_length",
    "fieldtype": "Float",
-   "label": "Lay Length",
+   "label": "File Lay Length",
    "non_negative": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "actual_lay_length",
+   "fieldtype": "Float",
+   "label": "Actual Lay Length"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-05 16:27:42.232876",
+ "modified": "2025-12-05 18:49:29.708852",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

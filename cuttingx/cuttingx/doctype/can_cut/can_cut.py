@@ -96,6 +96,10 @@ def get_auto_fill_data_from_work_order(work_order):
         return {}
     wo_doc = frappe.get_doc("Work Order", work_order)
     bom_no = wo_doc.bom_no
+    production_item_code = wo_doc.production_item # Use the production item code
+
+    if not production_item_code:
+        frappe.throw(_("Work Order {0} does not have a Production Item specified.").format(work_order))
     if not bom_no:
         frappe.throw(_("Work Order {0} has no BOM.").format(work_order))
     try:
@@ -112,7 +116,9 @@ def get_auto_fill_data_from_work_order(work_order):
             "fabric_ordered": 0,
             "file_consumption": 0,
             "file_gsm": 0,
-            "file_fabric_width": 0
+            "file_fabric_width": 0,
+            "file_dia": 0,
+            "file_lay_length": 0 # Add default value for lay length
         }
     wo_line_items = wo_doc.get("custom_work_order_line_items") or []
     matched_qtys = []
@@ -141,6 +147,7 @@ def get_auto_fill_data_from_work_order(work_order):
     file_gsm = 0
     file_fabric_width = 0
     file_dia = 0
+    file_lay_length = 0
     source_item_code = None
     if matched_qtys:
         for line in wo_line_items:
@@ -158,18 +165,28 @@ def get_auto_fill_data_from_work_order(work_order):
             fallback = next((item for item in fabric_items if item.item_code), None)
             if fallback:
                 source_item_code = fallback.item_code
+
+    # Fetch custom_lay_length from the production item
+    if production_item_code:
+        production_item_details = frappe.db.get_value("Item", production_item_code, ["custom_lay_length"], as_dict=True)
+        if production_item_details:
+            file_lay_length = flt(production_item_details.custom_lay_length or 0)
+
+    # Fetch other fields (GSM, Width, Dia) from the source_item_code (as before)
     if source_item_code:
-        item = frappe.db.get_value("Item", source_item_code, ["custom_gsm", "custom_width", "custom_dia"], as_dict=True)
-        if item:
-            file_gsm = flt(item.custom_gsm or 0)
-            file_fabric_width = flt(item.custom_width or 0)
-            file_dia = flt(item.custom_dia or 0)
-    return {
+        item_details = frappe.db.get_value("Item", source_item_code, ["custom_gsm", "custom_width", "custom_dia"], as_dict=True)
+        if item_details:
+            file_gsm = flt(item_details.custom_gsm or 0)
+            file_fabric_width = flt(item_details.custom_width or 0)
+            file_dia = flt(item_details.custom_dia or 0)
+
+    return {        
         "fabric_ordered": total_fabric,
         "file_consumption": file_consumption,
         "file_gsm": file_gsm,
         "file_fabric_width": file_fabric_width,
-        "file_dia": file_dia
+        "file_dia": file_dia,
+        "file_lay_length": file_lay_length,
     }
 
 

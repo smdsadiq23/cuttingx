@@ -261,13 +261,13 @@ frappe.ui.form.on('Can Cut', {
                                     method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.get_auto_fill_data_from_work_order',
                                     args: { work_order: frm.doc.work_order },
                                     callback: function(r) {
-                                        const data = r.message || {};
-                                        frm.set_value('lay_length', flt(data.lay_length || 0));
+                                        const data = r.message || {};                                        
                                         frm.set_value('fabric_ordered', flt(data.fabric_ordered || 0));
                                         frm.set_value('file_consumption', flt(data.file_consumption || 0));
                                         frm.set_value('file_gsm', flt(data.file_gsm || 0));
                                         // frm.set_value('file_fabric_width', flt(data.file_fabric_width || 0));
                                         frm.set_value('file_dia', flt(data.file_dia || 0));
+                                        frm.set_value('file_lay_length', flt(data.file_lay_length || 0));
                                         frm.trigger('recalculate');
                                     }
                                 });
@@ -350,41 +350,101 @@ function get_approval_card_html(frm) {
                 <b>Merchant:</b> ${frm.doc.merchant || '–'}<br>
                 <b>Requested By:</b> ${frm.doc.owner} &nbsp; | &nbsp;
                 <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}<br><br>                
+                <span style="color:#007bff;">
                 <b>Requester Remarks:</b> ${frm.doc.requester_remarks ? frappe.utils.escape_html(String(frm.doc.requester_remarks)) : '–'}<br>
                 ${frm.doc.status === 'Pending Manager Approval' ? `<b>Approver Remarks:</b> ${frm.doc.approver_remarks ? frappe.utils.escape_html(String(frm.doc.approver_remarks)) : '–'}<br>` : ''}
                 ${frm.doc.status === 'Approved' || frm.doc.status === 'Rejected' ? `<b>Approver Remarks:</b> ${frm.doc.approver_remarks ? frappe.utils.escape_html(String(frm.doc.approver_remarks)) : '–'}<br>` : ''}
                 ${frm.doc.status === 'Approved' || frm.doc.status === 'Rejected' ? `<b>Manager Remarks:</b> ${frm.doc.manager_remarks ? frappe.utils.escape_html(String(frm.doc.manager_remarks)) : '–'}<br>` : ''}                
+                </span>
             </div>
 
             <div style="margin: 15px 0; border-top: 1px solid #4c9658; padding-top: 15px; overflow-x: auto;">
                 <b>SUMMARY</b><br>
-                <table style="width: 100%; border-collapse: collapse; margin: 10px 0; table-layout: fixed; font-size: 0.85em;">
+                <table style="width: 60%; border-collapse: collapse; margin: 10px auto; table-layout: fixed; font-size: 1em;">
                     <thead>
                         <tr>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Order Fabric</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Issued Fabric</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Order Qty</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Can Cut Qty</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">File Consumption</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8; font-weight: bold;">Actual Consumption</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">File Dia</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Actual Dia</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">File GSM</th>
-                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Actual GSM</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: left; background: #f8f8f8; width: 25%;">Parameters</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">File Value</th>
+                            <th style="border: 1px solid #4c9658; padding: 6px; text-align: center; background: #f8f8f8;">Actual Value</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- Fabric -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.fabric_ordered)} kg</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.fabric_issued)} kg</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.order_quantity)} pcs</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.can_cut_quantity)} pcs</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.file_consumption)} kg/pcs</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.actual_consumption)} kg/pcs</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.file_dia)} inch</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.actual_dia)} inch</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.file_gsm)}</td>
-                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">${flt(frm.doc.actual_gsm)}</td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                                Fabric
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.fabric_ordered)} kg
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.fabric_issued)} kg
+                            </td>
+                        </tr>
+
+                        <!-- Order Qty -->
+                        <tr>
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                                Order Qty
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.order_quantity)} pcs
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.can_cut_quantity)} pcs
+                            </td>
+                        </tr>
+
+                        <!-- Consumption -->
+                        <tr>
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                                Consumption
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.file_consumption)} kg/pcs
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.actual_consumption)} kg/pcs
+                            </td>
+                        </tr>
+
+                        <!-- Dia -->
+                        <tr>
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                                Dia
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.file_dia)} inch
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.actual_dia)} inch
+                            </td>
+                        </tr>
+
+                        <!-- GSM -->
+                        <tr>
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                                GSM
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.file_gsm)}
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${flt(frm.doc.actual_gsm)}
+                            </td>
+                        </tr>
+
+                        <!-- Lay Length -->
+                        <tr>
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                                Lay Length
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${frm.doc.file_lay_length || ""} cm
+                            </td>
+                            <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
+                                ${frm.doc.actual_lay_length || ""} cm
+                            </td>
                         </tr>
                     </tbody>
                 </table>
