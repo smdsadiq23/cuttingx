@@ -122,15 +122,35 @@ frappe.ui.form.on('Can Cut', {
 
             // Inject card
             if (frm.fields_dict.approval_card_html) {
-                const html = get_approval_card_html(frm);
-                frm.set_df_property('approval_card_html', 'options', html);
-                frm.set_df_property('approval_card_html', 'hidden', false);
-                frm.refresh_field('approval_card_html');
+                // Fetch the merchant's full name
+                frappe.call({
+                    method: 'frappe.client.get_value',
+                    args: {
+                        doctype: 'User',
+                        filters: { 'name': frm.doc.owner }, // Using owner as merchant
+                        fieldname: 'full_name'
+                    },
+                    callback: (r) => {
+                        let merchantName = frm.doc.owner; // Default to username if full name not found
+                        if (r.message && r.message.full_name) {
+                            merchantName = r.message.full_name;
+                        }
+                        
+                        // Set the merchant name in the document for use in the HTML
+                        frm.doc.merchant = merchantName;
+                        
+                        // Now generate the HTML with the fetched name
+                        const html = get_approval_card_html(frm);
+                        frm.set_df_property('approval_card_html', 'options', html);
+                        frm.set_df_property('approval_card_html', 'hidden', false);
+                        frm.refresh_field('approval_card_html');
 
-                // Attach event listeners
-                setTimeout(() => {
-                    attach_approval_listeners(frm);
-                }, 100);
+                        // Attach event listeners
+                        setTimeout(() => {
+                            attach_approval_listeners(frm);
+                        }, 100);
+                    }
+                });
             }
         } else {
             if (frm.fields_dict.approval_section) {
@@ -242,6 +262,7 @@ frappe.ui.form.on('Can Cut', {
                                     args: { work_order: frm.doc.work_order },
                                     callback: function(r) {
                                         const data = r.message || {};
+                                        frm.set_value('lay_length', flt(data.lay_length || 0));
                                         frm.set_value('fabric_ordered', flt(data.fabric_ordered || 0));
                                         frm.set_value('file_consumption', flt(data.file_consumption || 0));
                                         frm.set_value('file_gsm', flt(data.file_gsm || 0));
@@ -326,6 +347,7 @@ function get_approval_card_html(frm) {
                 <b>Sales Order:</b> ${frm.doc.sales_order || '–'} &nbsp; | &nbsp;
                 <b>Work Order:</b> ${frm.doc.work_order || '–'} &nbsp; | &nbsp;
                 <b>Colour:</b> ${frm.doc.colour || '–'}<br>
+                <b>Merchant:</b> ${frm.doc.merchant || '–'}<br>
                 <b>Requested By:</b> ${frm.doc.owner} &nbsp; | &nbsp;
                 <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}<br><br>                
                 <b>Requester Remarks:</b> ${frm.doc.requester_remarks ? frappe.utils.escape_html(String(frm.doc.requester_remarks)) : '–'}<br>
