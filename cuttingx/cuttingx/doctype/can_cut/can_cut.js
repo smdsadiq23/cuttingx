@@ -358,7 +358,7 @@ function get_approval_card_html(frm) {
                 </span>
             </div>
 
-            <div style="margin: 15px 0; border-top: 1px solid #4c9658; padding-top: 15px; overflow-x: auto;">
+            <div style="margin: 15px 0; border-top: 1px solid #4c9658; padding-top: 15px; overflow-x: auto; text-align: center;">
                 <b>SUMMARY</b><br>
                 <table style="width: 60%; border-collapse: collapse; margin: 10px auto; table-layout: fixed; font-size: 1em;">
                     <thead>
@@ -371,7 +371,7 @@ function get_approval_card_html(frm) {
                     <tbody>
                         <!-- Fabric -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Fabric
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
@@ -384,7 +384,7 @@ function get_approval_card_html(frm) {
 
                         <!-- Order Qty -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Order Qty
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
@@ -397,7 +397,7 @@ function get_approval_card_html(frm) {
 
                         <!-- Consumption -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Consumption
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
@@ -410,7 +410,7 @@ function get_approval_card_html(frm) {
 
                         <!-- Dia -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Dia
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
@@ -423,7 +423,7 @@ function get_approval_card_html(frm) {
 
                         <!-- GSM -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 GSM
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
@@ -436,7 +436,7 @@ function get_approval_card_html(frm) {
 
                         <!-- Lay Length -->
                         <tr>
-                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%;">
+                            <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Lay Length
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
