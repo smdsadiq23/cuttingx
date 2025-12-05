@@ -485,33 +485,6 @@ def get_auto_fill_data(fg_item):
     }
 
 
-# @frappe.whitelist()
-# def filter_suppliers_by_order_method(doctype, txt, searchfield, start, page_len, filters):
-#     order_method = filters.get("order_method")
-#     if not order_method:
-#         return []
-
-#     suppliers = frappe.db.sql("""
-#         SELECT DISTINCT sfg.supplier, sup.supplier_name
-#         FROM `tabBOM Order Method Cost` omc
-#         INNER JOIN `tabSupplier FG Items` sfg ON omc.parent = sfg.name
-#         INNER JOIN `tabSupplier` sup ON sfg.supplier = sup.name
-#         WHERE 
-#             omc.omc_order_method = %s
-#             AND sfg.supplier IS NOT NULL
-#             AND (sup.name LIKE %s OR sup.supplier_name LIKE %s)
-#         LIMIT %s OFFSET %s
-#     """, (
-#         order_method,
-#         "%" + txt + "%",
-#         "%" + txt + "%",
-#         int(page_len),
-#         int(start)
-#     ))
-
-#     return [(row[1] or row[0], row[0]) for row in suppliers if row[0]]
-
-
 # Define operations to IGNORE (case-sensitive)
 IGNORED_OPERATIONS = {
     "Activation",
@@ -640,3 +613,95 @@ def get_operations_from_process_map(process_map_name):
         current = graph.get(current)
 
     return sequence
+
+
+# Single method to fetch both bundle details and unique components
+@frappe.whitelist()
+def get_bundle_details_with_components(bundle_creation_name):
+    if not bundle_creation_name:
+        return {"bundle_details": [], "unique_components": []}
+
+    # Step 1: Fetch components from Bundle Creation in idx order
+    bundle_creation_components = frappe.db.sql("""
+        SELECT component_name
+        FROM `tabBundle Creation Components`
+        WHERE parent = %s
+        ORDER BY idx
+    """, bundle_creation_name, as_dict=True)
+
+    # Maintain order and avoid duplicates while preserving first occurrence
+    seen = set()
+    unique_components = []
+    for row in bundle_creation_components:
+        comp = row.get("component_name")
+        if comp and comp not in seen:
+            unique_components.append(comp)
+            seen.add(comp)
+
+    if not unique_components:
+        return {"bundle_details": [], "unique_components": []}
+
+    allowed_components = set(unique_components)
+
+    # Step 2: Fetch bundle details — now include pi.name as production_item_id
+    bundle_details = frappe.db.sql("""
+        SELECT 
+            pi.name AS production_item_id,  
+            pi.production_item_number, 
+            tbc.shade, 
+            tbc.size, 
+            tc.component_name AS component, 
+            tbc.bundle_quantity AS bundle_qty 
+        FROM `tabProduction Item` pi
+        INNER JOIN `tabTracking Order Bundle Configuration` tbc 
+            ON pi.bundle_configuration = tbc.name
+        INNER JOIN `tabTracking Order` tor 
+            ON tbc.parent = tor.name
+        INNER JOIN `tabTracking Component` tc 
+            ON tc.parent = tor.name AND tbc.component = tc.name
+        WHERE tor.reference_order_number = %s 
+          AND tbc.source = 'Activation' 
+        ORDER BY pi.bundle_configuration, pi.production_item_number
+    """, bundle_creation_name, as_dict=True)
+
+    if not bundle_details:
+        return {"bundle_details": [], "unique_components": unique_components}
+
+    frappe.log_error(
+        message=frappe.as_json(bundle_details, indent=2),
+        title="Bundle Details (Raw) - get_bundle_details_with_components"
+    )
+
+    # Step 3: Get existing production_item_id values (NOT production_item_number)
+    existing_item_ids = set(
+        frappe.db.sql_list("""
+            SELECT DISTINCT production_item_id 
+            FROM `tabCut Kit Plan Bundle Details`
+            WHERE production_item_id IS NOT NULL
+        """)
+    )
+
+    # Step 4: Filter bundle details:
+    # - Exclude already used production_item_id
+    # - Only keep rows where component is in allowed_components
+    filtered_bundle_details = [
+        row for row in bundle_details
+        if row.production_item_id not in existing_item_ids
+        and row.component in allowed_components
+    ]
+
+    # Optional: Sort by component order from Bundle Creation
+    component_order = {comp: i for i, comp in enumerate(unique_components)}
+    filtered_bundle_details.sort(
+        key=lambda x: component_order.get(x.component, 999999)
+    )
+
+    frappe.log_error(
+        message=frappe.as_json(filtered_bundle_details, indent=2),
+        title="Filtered Bundle Details - get_bundle_details_with_components"
+    )
+
+    return {
+        "bundle_details": filtered_bundle_details,
+        "unique_components": unique_components
+    }
