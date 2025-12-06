@@ -209,7 +209,6 @@
   {
    "fieldname": "approval_section",
    "fieldtype": "Section Break",
-   "hidden": 1,
    "label": "Approval Section",
    "read_only": 1
   },
@@ -301,8 +300,7 @@
   },
   {
    "fieldname": "column_break_kmci",
-   "fieldtype": "Column Break",
-   "hidden": 1
+   "fieldtype": "Column Break"
   },
   {
    "fetch_from": "sales_order.custom_merchant",
@@ -327,7 +325,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-06 17:21:25.248301",
+ "modified": "2025-12-06 18:06:10.797599",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

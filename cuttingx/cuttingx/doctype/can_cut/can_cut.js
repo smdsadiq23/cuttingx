@@ -152,7 +152,45 @@ frappe.ui.form.on('Can Cut', {
                     }
                 });
             }
+        } else if (frm.doc.status === 'Approved' || frm.doc.status === 'Rejected') {
+            // ✅ Show approval card for completed statuses (read-only view for all users)
+            console.log('✅ Showing read-only approval section for status:', frm.doc.status);
+
+            if (frm.fields_dict.approval_section) {
+                frm.set_df_property('approval_section', 'hidden', false);
+                frm.refresh_field('approval_section');
+            }
+
+            // Don't hide other sections - show full form
+            // Users can see all fields in read-only mode
+
+            // Inject read-only card
+            if (frm.fields_dict.approval_card_html) {
+                frappe.call({
+                    method: 'frappe.client.get_value',
+                    args: {
+                        doctype: 'User',
+                        filters: { 'name': frm.doc.owner },
+                        fieldname: 'full_name'
+                    },
+                    callback: (r) => {
+                        let merchantName = frm.doc.owner;
+                        if (r.message && r.message.full_name) {
+                            merchantName = r.message.full_name;
+                        }
+                        
+                        frm.doc.merchant = merchantName;
+                        
+                        // Generate read-only card (no action buttons)
+                        const html = get_readonly_approval_card_html(frm);
+                        frm.set_df_property('approval_card_html', 'options', html);
+                        frm.set_df_property('approval_card_html', 'hidden', false);
+                        frm.refresh_field('approval_card_html');
+                    }
+                });
+            }
         } else {
+            // Hide approval section for other statuses
             if (frm.fields_dict.approval_section) {
                 frm.set_df_property('approval_section', 'hidden', true);
             }
