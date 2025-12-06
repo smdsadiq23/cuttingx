@@ -199,7 +199,6 @@
    "fieldtype": "Link",
    "label": "Business Unit",
    "options": "Company",
-   "read_only": 1,
    "reqd": 1
   },
   {
@@ -226,7 +225,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-21 12:46:04.731053",
+ "modified": "2025-12-06 11:40:48.447130",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cut Kit Plan",
