@@ -306,11 +306,12 @@ doc_events = {
 #                 "Can Cut User",
 #                 "Can Cut Approver",
 #                 "Can Cut Manager",
-#                 "Yarn Approver"
+#                 "Yarn Approver",
+#                 "Cut Completion Approver"
 #                 ]
 #             ]
 #         ]
-#     },
+#     },    
 #     {
 #         "doctype": "Custom DocPerm",
 #         "filters": [
@@ -320,7 +321,10 @@ doc_events = {
 #                 [
 #                 "Factory Manager",
 #                 "Can Cut User",
-#                 "Can Cut Approver"
+#                 "Can Cut Approver",
+#                 "Can Cut Manager",
+#                 "Yarn Approver",
+#                 "Cut Completion Approver"
 #                 ]
 #             ]
 #         ]
@@ -350,3 +354,4 @@ doc_events = {
 #         ]
 #     }
 # ]
+
