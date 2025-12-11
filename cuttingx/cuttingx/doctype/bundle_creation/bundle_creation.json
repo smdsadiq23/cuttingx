@@ -124,6 +124,7 @@
    "fieldtype": "Column Break"
   },
   {
+   "allow_on_submit": 1,
    "fieldname": "table_bundle_creation_components",
    "fieldtype": "Table",
    "label": "Components",
@@ -166,7 +167,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-11-26 11:15:29.398539",
+ "modified": "2025-12-11 13:51:27.908664",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Bundle Creation",

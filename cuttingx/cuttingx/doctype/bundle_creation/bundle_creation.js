@@ -361,21 +361,40 @@ function updateChildTableColumns(frm, table_fieldname, fields_to_toggle, should_
 
 // Child table: auto-cleanup bundle details when component removed
 frappe.ui.form.on("Bundle Creation Components", {
-	table_bundle_creation_components_remove: function (frm) {
-		const current_components = (frm.doc.table_bundle_creation_components || [])
-			.map((r) => r.component_name)
-			.filter(Boolean);
+  table_bundle_creation_components_remove: function (frm) {
+    const current_components = (frm.doc.table_bundle_creation_components || [])
+      .map((r) => r.component_name)
+      .filter(Boolean);
 
-		const before = frm.doc.table_bundle_details || [];
-		const after = before.filter((r) => current_components.includes(r.component));
+    const before = frm.doc.table_bundle_details || [];
+    const after = before.filter((r) => current_components.includes(r.component));
 
-		if (after.length !== before.length) {
-			frm.doc.table_bundle_details = after;
-			frm.refresh_field("table_bundle_details");
-			frappe.show_alert(__("Removed bundle details for deleted component(s)"));
-		}
-	},
+    if (after.length !== before.length) {
+      frm.doc.table_bundle_details = after;
+      frm.refresh_field("table_bundle_details");
+      frappe.show_alert(__("Removed bundle details for deleted component(s)"));
+    }
+  },
+
+  // Auto toggle "sticker" in bundle details when changed in components
+  sticker: function (frm, cdt, cdn) {
+    const row = locals[cdt][cdn];        // current row in Bundle Creation Components
+    const component_name = row.component_name;
+    const sticker_value = row.sticker;   // true/false
+
+    if (!component_name) return;
+
+    // Sync sticker to all matching rows in table_bundle_details
+    (frm.doc.table_bundle_details || []).forEach((d) => {
+      if (d.component === component_name) {
+        d.sticker = sticker_value;
+      }
+    });
+
+    frm.refresh_field("table_bundle_details");
+  }
 });
+
 
 // Inject "Fetch from Cut Docket" button
 function inject_fetch_button(frm) {
