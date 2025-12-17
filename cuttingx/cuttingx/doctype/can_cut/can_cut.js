@@ -120,36 +120,48 @@ frappe.ui.form.on('Can Cut', {
             // Hide all other sections
             hide_all_sections_except(frm, ['approval_section']);
 
+            if (frm.fields_dict.approver_remarks) {
+                frm.set_df_property('approver_remarks', 'hidden', true);
+                frm.refresh_field('approver_remarks');
+            }     
+            
+            if (frm.fields_dict.manager_remarks) {
+                frm.set_df_property('manager_remarks', 'hidden', true);
+                frm.refresh_field('manager_remarks');
+            }            
+
             // Inject card
             if (frm.fields_dict.approval_card_html) {
-                // Fetch the merchant's full name
-                frappe.call({
-                    method: 'frappe.client.get_value',
-                    args: {
-                        doctype: 'User',
-                        filters: { 'name': frm.doc.owner }, // Using owner as merchant
-                        fieldname: 'full_name'
-                    },
-                    callback: (r) => {
-                        let merchantName = frm.doc.owner; // Default to username if full name not found
-                        if (r.message && r.message.full_name) {
-                            merchantName = r.message.full_name;
-                        }
-                        
-                        // Set the merchant name in the document for use in the HTML
-                        frm.doc.merchant = merchantName;
-                        
-                        // Now generate the HTML with the fetched name
-                        const html = get_approval_card_html(frm);
-                        frm.set_df_property('approval_card_html', 'options', html);
-                        frm.set_df_property('approval_card_html', 'hidden', false);
-                        frm.refresh_field('approval_card_html');
+                // Fetch full names for Merchant (linked field) and Owner (Requested By)
+                let merchantPromise = Promise.resolve('');
+                let ownerPromise = Promise.resolve('');
 
-                        // Attach event listeners
-                        setTimeout(() => {
-                            attach_approval_listeners(frm);
-                        }, 100);
-                    }
+                if (frm.doc.merchant) {
+                    merchantPromise = frappe.call({
+                        method: 'frappe.client.get_value',
+                        args: { doctype: 'User', filters: { name: frm.doc.merchant }, fieldname: 'full_name' }
+                    }).then(r => (r.message && r.message.full_name) || '');
+                }
+
+                if (frm.doc.owner) {
+                    ownerPromise = frappe.call({
+                        method: 'frappe.client.get_value',
+                        args: { doctype: 'User', filters: { name: frm.doc.owner }, fieldname: 'full_name' }
+                    }).then(r => (r.message && r.message.full_name) || '');
+                }
+
+                Promise.all([merchantPromise, ownerPromise]).then(([merchantName, ownerName]) => {
+                    frm.doc.merchant_full_name = merchantName;
+                    frm.doc.requested_by_full_name = ownerName;
+
+                    const html = get_approval_card_html(frm);
+                    frm.set_df_property('approval_card_html', 'options', html);
+                    frm.set_df_property('approval_card_html', 'hidden', false);
+                    frm.refresh_field('approval_card_html');
+
+                    setTimeout(() => {
+                        attach_approval_listeners(frm);
+                    }, 100);
                 });
             }
         } else if (frm.doc.status === 'Approved' || frm.doc.status === 'Rejected') {
@@ -166,27 +178,31 @@ frappe.ui.form.on('Can Cut', {
 
             // Inject read-only card
             if (frm.fields_dict.approval_card_html) {
-                frappe.call({
-                    method: 'frappe.client.get_value',
-                    args: {
-                        doctype: 'User',
-                        filters: { 'name': frm.doc.owner },
-                        fieldname: 'full_name'
-                    },
-                    callback: (r) => {
-                        let merchantName = frm.doc.owner;
-                        if (r.message && r.message.full_name) {
-                            merchantName = r.message.full_name;
-                        }
-                        
-                        frm.doc.merchant = merchantName;
-                        
-                        // Generate read-only card (no action buttons)
-                        const html = get_readonly_approval_card_html(frm);
-                        frm.set_df_property('approval_card_html', 'options', html);
-                        frm.set_df_property('approval_card_html', 'hidden', false);
-                        frm.refresh_field('approval_card_html');
-                    }
+                let merchantPromise = Promise.resolve('');
+                let ownerPromise = Promise.resolve('');
+
+                if (frm.doc.merchant) {
+                    merchantPromise = frappe.call({
+                        method: 'frappe.client.get_value',
+                        args: { doctype: 'User', filters: { name: frm.doc.merchant }, fieldname: 'full_name' }
+                    }).then(r => (r.message && r.message.full_name) || '');
+                }
+
+                if (frm.doc.owner) {
+                    ownerPromise = frappe.call({
+                        method: 'frappe.client.get_value',
+                        args: { doctype: 'User', filters: { name: frm.doc.owner }, fieldname: 'full_name' }
+                    }).then(r => (r.message && r.message.full_name) || '');
+                }
+
+                Promise.all([merchantPromise, ownerPromise]).then(([merchantName, ownerName]) => {
+                    frm.doc.merchant_full_name = merchantName;
+                    frm.doc.requested_by_full_name = ownerName;
+
+                    const html = get_readonly_approval_card_html(frm);
+                    frm.set_df_property('approval_card_html', 'options', html);
+                    frm.set_df_property('approval_card_html', 'hidden', false);
+                    frm.refresh_field('approval_card_html');
                 });
             }
         } else {
@@ -385,8 +401,8 @@ function get_approval_card_html(frm) {
                 <b>Sales Order:</b> ${frm.doc.sales_order || '–'} &nbsp; | &nbsp;
                 <b>Work Order:</b> ${frm.doc.work_order || '–'} &nbsp; | &nbsp;
                 <b>Colour:</b> ${frm.doc.colour || '–'}<br>
-                <b>Merchant:</b> ${frm.doc.merchant || '–'}<br>
-                <b>Requested By:</b> ${frm.doc.owner} &nbsp; | &nbsp;
+                <b>Merchant:</b> ${frm.doc.merchant_full_name || '–'}<br>
+                <b>Requested By:</b> ${frm.doc.requested_by_full_name || '–'} &nbsp; | &nbsp;
                 <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}<br><br>                
                 <span style="color:#007bff;">
                 <b>Requester Remarks:</b> ${frm.doc.requester_remarks ? frappe.utils.escape_html(String(frm.doc.requester_remarks)) : '–'}<br>
