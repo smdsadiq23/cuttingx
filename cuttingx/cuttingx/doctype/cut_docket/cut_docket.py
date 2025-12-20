@@ -299,7 +299,7 @@ class CutDocket(Document):
         """
         from frappe.utils import get_url_to_form
 
-        roles_to_notify = ["Stock User", "Stock Manager"]
+        roles_to_notify = ["Fabric Issuer"]
 
         # Get users with any of the roles (returns user IDs like "Administrator")
         stock_users = frappe.get_all(
@@ -328,10 +328,10 @@ class CutDocket(Document):
 
         subject = f"✅ Cut Docket {self.name} Submitted"
         message = f"""
-            <p>The <b>Cut Docket {self.name}</b> has been <b>submitted</b>.</p>
+            <p>The <b>Cut Kanban {self.name}</b> has been <b>submitted</b>.</p>
             <p><b>Style:</b> {self.style or 'Not set'}</p>
             <p><b>Fabric Requirement:</b> {self.fabric_requirement_against_bom} m²</p>
-            <p><a href="{get_url_to_form('Cut Docket', self.name)}" target="_blank">View Cut Docket</a></p>
+            <p><a href="{get_url_to_form('Cut Docket', self.name)}" target="_blank">View Cut Kanban</a></p>
         """
 
         # ✅ Convert user IDs to actual email addresses for email delivery
