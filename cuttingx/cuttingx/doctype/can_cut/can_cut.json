@@ -9,6 +9,7 @@
   "basic_details_section",
   "status",
   "naming_series",
+  "cutting_kanban",
   "sales_order",
   "fob",
   "work_order",
@@ -327,12 +328,19 @@
    "fieldtype": "Float",
    "label": "Marker Efficiency",
    "reqd": 1
+  },
+  {
+   "fieldname": "cutting_kanban",
+   "fieldtype": "Link",
+   "label": "Cutting Kanban",
+   "options": "Cut Docket",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-23 14:43:23.367295",
+ "modified": "2025-12-23 16:36:56.079936",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

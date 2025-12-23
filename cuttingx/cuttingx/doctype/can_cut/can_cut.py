@@ -91,6 +91,38 @@ class CanCut(Document):
 
 
 @frappe.whitelist()
+def get_so_wo_from_cut_docket(cut_docket):
+    if not cut_docket:
+        return {"sales_orders": [], "work_orders_by_so": {}}
+
+    # ✅ Restrict who can call this (adjust roles as needed)
+    allowed_roles = {"Cutting User", "System Manager"}
+    if not set(frappe.get_roles(frappe.session.user)).intersection(allowed_roles):
+        frappe.throw(_("You do not have enough permissions to access this resource."))
+
+    rows = frappe.get_all(
+        "Cut Docket Item",
+        filters={"parent": cut_docket, "parenttype": "Cut Docket"},
+        fields=["sales_order", "ref_work_order"],
+        limit_page_length=1000,
+        ignore_permissions=True,
+    )
+
+    sales_orders = sorted({r.sales_order for r in rows if r.sales_order})
+    work_orders_by_so = {}
+
+    for r in rows:
+        # ✅ FIX: use ref_work_order (not work_order)
+        if r.sales_order and r.ref_work_order:
+            work_orders_by_so.setdefault(r.sales_order, set()).add(r.ref_work_order)
+
+    work_orders_by_so = {so: sorted(list(wos)) for so, wos in work_orders_by_so.items()}
+
+    return {"sales_orders": sales_orders, "work_orders_by_so": work_orders_by_so}
+
+
+
+@frappe.whitelist()
 def get_auto_fill_data_from_work_order(work_order):
     if not work_order:
         return {}
@@ -196,7 +228,7 @@ def approve(docname, approver_remarks=None, deviation_under=None):
     if doc.status != 'Pending for Approval':
         frappe.throw(_('Only "Pending for Approval" documents can be approved'))
     if not frappe.db.exists("Has Role", {"parent": frappe.session.user, "role": "Can Cut Approver"}):
-        frappe.throw(_("You don't have permission to approve this document"))
+        frappe.throw(_("Only a Can Cut Approver can approve this document."))
 
     if approver_remarks is not None:
         doc.approver_remarks = approver_remarks
@@ -204,20 +236,31 @@ def approve(docname, approver_remarks=None, deviation_under=None):
         doc.deviation_under = deviation_under
 
     can_cut_percent = flt(doc.can_cut_percent)
+
     if can_cut_percent >= 98:
         doc.status = 'Approved'
         doc.add_comment('Comment', text=f'Approved by {frappe.session.user}')
-    else:
-        doc.status = 'Pending Manager Approval'
-        doc.add_comment('Comment', text=f'Initial approval by {frappe.session.user}. Awaiting manager approval (Can Cut %: {can_cut_percent:.2f}%).')
 
-    doc.save(ignore_permissions=True)
+        # ✅ Final decision -> submit (docstatus = 1)
+        doc.save(ignore_permissions=True)
+        doc.flags.ignore_permissions = True
+        if doc.docstatus == 0:
+            doc.submit()
 
-    if can_cut_percent >= 98:
         action_by_name = frappe.db.get_value("User", frappe.session.user, "full_name")
         doc.notify_owner(action_by=action_by_name, status='Approved')
         frappe.msgprint(_('✅ Approved successfully.'), alert=True)
+
     else:
+        doc.status = 'Pending Manager Approval'
+        doc.add_comment(
+            'Comment',
+            text=f'Initial approval by {frappe.session.user}. Awaiting manager approval (Can Cut %: {can_cut_percent:.2f}%).'
+        )
+
+        # ✅ Not final -> DO NOT submit (keep docstatus = 0)
+        doc.save(ignore_permissions=True)
+
         notify_managers_for_final_approval(doc)
         frappe.msgprint(_('✅ Initial approval granted. Sent to Can Cut Manager for final review.'), alert=True)
 
@@ -237,7 +280,12 @@ def approve_by_manager(docname, manager_remarks=None, deviation_under=None):
 
     doc.status = 'Approved'
     doc.add_comment('Comment', text=f'Final approval by {frappe.session.user}')
+
+    # ✅ Final decision -> submit (docstatus = 1)
     doc.save(ignore_permissions=True)
+    doc.flags.ignore_permissions = True
+    if doc.docstatus == 0:
+        doc.submit()
 
     action_by_name = frappe.db.get_value("User", frappe.session.user, "full_name")
     doc.notify_owner(action_by=action_by_name, status='Approved')

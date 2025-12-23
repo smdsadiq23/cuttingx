@@ -7,12 +7,110 @@ window.can_cut_script = window.can_cut_script || {
 
 frappe.ui.form.on('Can Cut', {
     onload: function(frm) {
+        // ✅ If no Cutting Kanban selected -> show NOTHING in Sales Order
+        frm.set_query('sales_order', function() {
+            return frm.doc.cutting_kanban
+                ? {}
+                : { filters: { name: '0' } };
+        });
+
+        // ✅ If no Sales Order selected -> show NOTHING in Work Order
         frm.set_query('work_order', function() {
-            return {
-                filters: frm.doc.sales_order
-                    ? { 'sales_order': frm.doc.sales_order, 'docstatus': 1 }
-                    : { name: '0' }
-            };
+            return frm.doc.sales_order
+                ? { filters: frm.doc.sales_order ? { 'sales_order': frm.doc.sales_order, 'docstatus': 1 } : { name: '0' } }
+                : { filters: { name: '0' } };
+        });
+
+        frm.__cutting_kanban_cache = frm.__cutting_kanban_cache || {
+            loaded_for: null,
+            sales_orders: [],
+            work_orders_by_so: {}
+        };
+    },
+
+    // ✅ NEW: Cutting Kanban selection drives Sales Order + Work Order filtering
+    cutting_kanban: function(frm) {
+        frm.__cutting_kanban_cache = frm.__cutting_kanban_cache || {
+            loaded_for: null,
+            sales_orders: [],
+            work_orders_by_so: {}
+        };
+
+        // If cleared -> clear SO/WO and show nothing
+        if (!frm.doc.cutting_kanban) {
+            frm.__cutting_kanban_cache.loaded_for = null;
+            frm.__cutting_kanban_cache.sales_orders = [];
+            frm.__cutting_kanban_cache.work_orders_by_so = {};
+
+            frm.set_value('sales_order', '');
+            frm.set_value('work_order', '');
+
+            frm.set_query('sales_order', function() {
+                return { filters: { name: '0' } };
+            });
+
+            frm.set_query('work_order', function() {
+                return { filters: { name: '0' } };
+            });
+
+            return;
+        }
+
+        frappe.call({
+            method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.get_so_wo_from_cut_docket',
+            args: { cut_docket: frm.doc.cutting_kanban },
+            callback: function(r) {
+                if (r.exc) {
+                    frappe.msgprint(__('Unable to load Sales Order / Work Order from Cutting Kanban. Please check server logs.'));
+                    return;
+                }
+
+                const data = r.message || {};
+                const sales_orders = data.sales_orders || [];
+                const work_orders_by_so = data.work_orders_by_so || {};
+
+                frm.__cutting_kanban_cache.loaded_for = frm.doc.cutting_kanban;
+                frm.__cutting_kanban_cache.sales_orders = sales_orders;
+                frm.__cutting_kanban_cache.work_orders_by_so = work_orders_by_so;
+
+                // ✅ Sales Order filtered strictly by Cutting Kanban
+                frm.set_query('sales_order', function() {
+                    if (!frm.doc.cutting_kanban) return { filters: { name: '0' } };
+                    if (!sales_orders.length) return { filters: { name: '0' } };
+                    return {
+                        filters: {
+                            name: ['in', sales_orders],
+                            docstatus: 1
+                        }
+                    };
+                });
+
+                // If current SO isn't valid, clear
+                if (frm.doc.sales_order && !sales_orders.includes(frm.doc.sales_order)) {
+                    frm.set_value('sales_order', '');
+                    frm.set_value('work_order', '');
+                    frm.set_query('work_order', function() {
+                        return { filters: { name: '0' } };
+                    });
+                    return;
+                }
+
+                // ✅ Auto-select SO if only one
+                if (!frm.doc.sales_order && sales_orders.length === 1) {
+                    frm.set_value('sales_order', sales_orders[0]);
+                    // Work order will be handled by sales_order handler
+                } else {
+                    // if SO already present -> apply WO filter
+                    if (frm.doc.sales_order) {
+                        apply_work_order_filter_from_cutting_kanban(frm);
+                        auto_pick_single_work_order_safely(frm);
+                    } else {
+                        frm.set_query('work_order', function() {
+                            return { filters: { name: '0' } };
+                        });
+                    }
+                }
+            }
         });
     },
 
@@ -123,12 +221,12 @@ frappe.ui.form.on('Can Cut', {
             if (frm.fields_dict.approver_remarks) {
                 frm.set_df_property('approver_remarks', 'hidden', true);
                 frm.refresh_field('approver_remarks');
-            }     
-            
+            }
+
             if (frm.fields_dict.manager_remarks) {
                 frm.set_df_property('manager_remarks', 'hidden', true);
                 frm.refresh_field('manager_remarks');
-            }            
+            }
 
             // Inject card
             if (frm.fields_dict.approval_card_html) {
@@ -172,9 +270,6 @@ frappe.ui.form.on('Can Cut', {
                 frm.set_df_property('approval_section', 'hidden', false);
                 frm.refresh_field('approval_section');
             }
-
-            // Don't hide other sections - show full form
-            // Users can see all fields in read-only mode
 
             // Inject read-only card
             if (frm.fields_dict.approval_card_html) {
@@ -245,23 +340,38 @@ frappe.ui.form.on('Can Cut', {
     },
 
     sales_order: function(frm) {
+        // ✅ If no Sales Order -> show nothing in Work Order
         if (!frm.doc.sales_order) {
             frm.set_value('work_order', '');
             frm.set_value('fob', 0);
+
+            frm.set_query('work_order', function() {
+                return { filters: { name: '0' } };
+            });
             return;
         }
+
         frm.set_value('colour', '');
         frm.set_value('style', '');
-        frm.set_query('work_order', { filters: { 'sales_order': frm.doc.sales_order, 'docstatus': 1 } });
-        if (frm.doc.work_order) {
-            frm.set_value('work_order', '');
+
+        // ✅ If Cutting Kanban selected and cache loaded -> filter WOs by SO+WO combo
+        if (frm.doc.cutting_kanban && frm.__cutting_kanban_cache?.loaded_for === frm.doc.cutting_kanban) {
+            apply_work_order_filter_from_cutting_kanban(frm);
+            auto_pick_single_work_order_safely(frm);
+        } else {
+            // Original behavior (only if no cutting_kanban)
+            frm.set_query('work_order', { filters: { 'sales_order': frm.doc.sales_order, 'docstatus': 1 } });
+            if (frm.doc.work_order) {
+                frm.set_value('work_order', '');
+            }
         }
+
         frappe.call({
             method: 'frappe.client.get_value',
-            args: { 
-                doctype: 'Sales Order', 
+            args: {
+                doctype: 'Sales Order',
                 fieldname: ['custom_fob', 'custom_merchant'], // Fetch both FOB and Merchant
-                filters: { 'name': frm.doc.sales_order } 
+                filters: { 'name': frm.doc.sales_order }
             },
             callback: function(r) {
                 if (r.message) {
@@ -270,6 +380,7 @@ frappe.ui.form.on('Can Cut', {
                 }
             }
         });
+
         frappe.call({
             method: 'frappe.client.get',
             args: { doctype: 'Sales Order', name: frm.doc.sales_order, fields: ['items.item_code', 'items.custom_color'] },
@@ -322,7 +433,7 @@ frappe.ui.form.on('Can Cut', {
                                     method: 'cuttingx.cuttingx.doctype.can_cut.can_cut.get_auto_fill_data_from_work_order',
                                     args: { work_order: frm.doc.work_order },
                                     callback: function(r) {
-                                        const data = r.message || {};                                        
+                                        const data = r.message || {};
                                         frm.set_value('fabric_ordered', flt(data.fabric_ordered || 0));
                                         frm.set_value('file_consumption', flt(data.file_consumption || 0));
                                         frm.set_value('file_gsm', flt(data.file_gsm || 0));
@@ -374,6 +485,42 @@ frappe.ui.form.on('Can Cut', {
     }
 });
 
+function apply_work_order_filter_from_cutting_kanban(frm) {
+    const allowedWOs = (frm.__cutting_kanban_cache.work_orders_by_so?.[frm.doc.sales_order] || []);
+
+    if (!frm.doc.sales_order) {
+        frm.set_query('work_order', function() {
+            return { filters: { name: '0' } };
+        });
+        return;
+    }
+
+    frm.set_query('work_order', function() {
+        if (!allowedWOs.length) return { filters: { name: '0' } };
+        return {
+            filters: {
+                name: ['in', allowedWOs],
+                sales_order: frm.doc.sales_order,
+                docstatus: 1
+            }
+        };
+    });
+
+    if (frm.doc.work_order && !allowedWOs.includes(frm.doc.work_order)) {
+        frm.set_value('work_order', '');
+    }
+}
+
+function auto_pick_single_work_order_safely(frm) {
+    const allowedWOs = (frm.__cutting_kanban_cache.work_orders_by_so?.[frm.doc.sales_order] || []);
+    if (frm.doc.work_order || allowedWOs.length !== 1) return;
+
+    const wo = allowedWOs[0];
+    frappe.db.exists('Work Order', wo).then(exists => {
+        if (exists) frm.set_value('work_order', wo);
+    });
+}
+
 function flt(value, precision) {
     const val = parseFloat(value);
     if (isNaN(val)) return 0.0;
@@ -410,12 +557,12 @@ function get_approval_card_html(frm) {
                 <b>Colour:</b> ${frm.doc.colour || '–'}<br>
                 <b>Merchant:</b> ${frm.doc.merchant_full_name || '–'}<br>
                 <b>Requested By:</b> ${frm.doc.requested_by_full_name || '–'} &nbsp; | &nbsp;
-                <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}<br><br>                
+                <b>On:</b> ${frappe.datetime.str_to_user(frm.doc.creation)}<br><br>
                 <span style="color:#007bff;">
                 <b>Requester Remarks:</b> ${frm.doc.requester_remarks ? frappe.utils.escape_html(String(frm.doc.requester_remarks)) : '–'}<br>
                 ${frm.doc.status === 'Pending Manager Approval' ? `<b>Approver Remarks:</b> ${frm.doc.approver_remarks ? frappe.utils.escape_html(String(frm.doc.approver_remarks)) : '–'}<br>` : ''}
                 ${frm.doc.status === 'Approved' || frm.doc.status === 'Rejected' ? `<b>Approver Remarks:</b> ${frm.doc.approver_remarks ? frappe.utils.escape_html(String(frm.doc.approver_remarks)) : '–'}<br>` : ''}
-                ${frm.doc.status === 'Approved' || frm.doc.status === 'Rejected' ? `<b>Manager Remarks:</b> ${frm.doc.manager_remarks ? frappe.utils.escape_html(String(frm.doc.manager_remarks)) : '–'}<br>` : ''}                
+                ${frm.doc.status === 'Approved' || frm.doc.status === 'Rejected' ? `<b>Manager Remarks:</b> ${frm.doc.manager_remarks ? frappe.utils.escape_html(String(frm.doc.manager_remarks)) : '–'}<br>` : ''}
                 </span>
             </div>
 
@@ -430,7 +577,6 @@ function get_approval_card_html(frm) {
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Fabric -->
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Fabric
@@ -443,7 +589,6 @@ function get_approval_card_html(frm) {
                             </td>
                         </tr>
 
-                        <!-- Order Qty -->
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Order Qty
@@ -456,7 +601,6 @@ function get_approval_card_html(frm) {
                             </td>
                         </tr>
 
-                        <!-- Consumption -->
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Consumption
@@ -469,7 +613,6 @@ function get_approval_card_html(frm) {
                             </td>
                         </tr>
 
-                        <!-- Dia -->
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Dia
@@ -482,7 +625,6 @@ function get_approval_card_html(frm) {
                             </td>
                         </tr>
 
-                        <!-- GSM -->
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 GSM
@@ -495,7 +637,6 @@ function get_approval_card_html(frm) {
                             </td>
                         </tr>
 
-                        <!-- Lay Length -->
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
                                 Lay Length
@@ -570,7 +711,6 @@ function attach_approval_listeners(frm) {
         return true;
     }
 
-    // ✅ DYNAMIC: Call correct backend method based on status
     $card.find('.btn-approve').off('click').on('click', function() {
         if (!validateDeviation()) return;
 
