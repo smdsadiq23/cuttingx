@@ -258,9 +258,16 @@ frappe.ui.form.on('Can Cut', {
         }
         frappe.call({
             method: 'frappe.client.get_value',
-            args: { doctype: 'Sales Order', fieldname: 'custom_fob', filters: { 'name': frm.doc.sales_order } },
+            args: { 
+                doctype: 'Sales Order', 
+                fieldname: ['custom_fob', 'custom_merchant'], // Fetch both FOB and Merchant
+                filters: { 'name': frm.doc.sales_order } 
+            },
             callback: function(r) {
-                frm.set_value('fob', r.message?.custom_fob || 0);
+                if (r.message) {
+                    frm.set_value('fob', r.message.custom_fob || 0);
+                    frm.set_value('merchant', r.message.custom_merchant || ''); // ✅ Set merchant
+                }
             }
         });
         frappe.call({
