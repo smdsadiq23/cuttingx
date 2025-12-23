@@ -304,7 +304,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fetch_from": "sales_order.custom_merchant",
    "fieldname": "merchant",
    "fieldtype": "Link",
    "label": "Merchant",
@@ -333,7 +332,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-23 13:58:34.015644",
+ "modified": "2025-12-23 14:43:23.367295",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
