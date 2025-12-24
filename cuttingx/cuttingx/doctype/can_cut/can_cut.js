@@ -302,8 +302,13 @@ frappe.ui.form.on('Can Cut', {
             }
         } else {
             // Hide approval section for other statuses
-            if (frm.fields_dict.approval_section) {
-                frm.set_df_property('approval_section', 'hidden', true);
+            if (frm.fields_dict.approver_remarks) {
+                if ((is_approver && is_pending_manager) || (is_manager && is_pending_approver) ) {
+                    frm.set_df_property('approver_remarks', 'hidden', false);
+                } else {
+                    frm.set_df_property('approver_remarks', 'hidden', true);
+                }
+                frm.refresh_field('approver_remarks');
             }
         }
 
