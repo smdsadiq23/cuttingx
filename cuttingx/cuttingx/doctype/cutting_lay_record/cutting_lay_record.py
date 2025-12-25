@@ -2,8 +2,12 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
-from frappe.utils import cint  # Ensure this is imported
+from frappe.utils import cint, get_url_to_form
+
+REQUIRED_ROLE = "Can Cut Manager"
+THRESHOLD = 0.98
 
 
 class CuttingLayRecord(Document):
@@ -23,11 +27,12 @@ class CuttingLayRecord(Document):
 
         # Try to get Work Order from work_order_details (preferred)
         work_order = None
-        if cut_docket.work_order_details:
-            work_order = cut_docket.work_order_details[0].work_order
+        if getattr(cut_docket, "work_order_details", None):
+            if cut_docket.work_order_details:
+                work_order = cut_docket.work_order_details[0].work_order
 
         # Fallback: get from table_size_ratio_qty
-        if not work_order and cut_docket.table_size_ratio_qty:
+        if not work_order and getattr(cut_docket, "table_size_ratio_qty", None):
             for row in cut_docket.table_size_ratio_qty:
                 if row.ref_work_order:
                     work_order = row.ref_work_order
@@ -45,12 +50,101 @@ class CuttingLayRecord(Document):
         # Generate name: LR-{WO}-0001
         prefix = f"LR-{wo_clean}"
         self.name = frappe.model.naming.make_autoname(prefix + "-.####")
-        
+
+    # ---------------- Approval Logic ----------------
+
+    def _needs_manager_approval(self) -> bool:
+        total_piece = float(self.total_piece or 0)
+        actual_total_piece = float(self.actual_total_piece or 0)
+        if total_piece <= 0:
+            return False
+        return actual_total_piece < (THRESHOLD * total_piece)
+
+    def validate(self):
+        # Enforce Cut Kanban No is submitted
+        # NOTE: If cut_kanban_no links to a different doctype than "Cut Docket", update this doctype name.
+        if self.cut_kanban_no:
+            ds = frappe.db.get_value("Cut Docket", self.cut_kanban_no, "docstatus")
+            if ds != 1:
+                frappe.throw(_("Cut Kanban No must be a submitted Cut Docket (docstatus = 1)."))
+
+        # requester_remarks mandatory when below threshold in draft
+        if self.docstatus == 0 and self._needs_manager_approval():
+            if not (self.requester_remarks or "").strip():
+                frappe.throw(_("Requester Remarks is mandatory when Actual Total Piece is less than 98% of Total Piece."))
+
+    def before_submit(self):
+        if self._needs_manager_approval():
+            # Only Can Cut Manager can submit
+            if not _user_has_role(frappe.session.user, REQUIRED_ROLE):
+                frappe.throw(
+                    _("Only users with role '{0}' can submit when Actual Total Piece is below 98% of Total Piece.")
+                    .format(REQUIRED_ROLE)
+                )
+
+            # Approver remarks mandatory for approval submit
+            if not (self.approver_remarks or "").strip():
+                frappe.throw(_("Approver Remarks is mandatory for approval submission."))
+
+    def on_update(self):
+        """
+        Notify managers (email + in-app) when:
+        - document is draft
+        - needs approval
+        - requester_remarks becomes non-empty (first time)
+        """
+        if self.docstatus != 0:
+            return
+        if not self._needs_manager_approval():
+            return
+
+        before = self.get_doc_before_save()
+        before_req = (before.requester_remarks or "").strip() if before else ""
+        now_req = (self.requester_remarks or "").strip()
+
+        # Send only when requester_remarks becomes non-empty (avoid spamming)
+        if before_req == "" and now_req != "":
+            managers = _get_users_with_role(REQUIRED_ROLE)
+            if not managers:
+                return
+
+            subject = f"[Approval Required] Cutting Lay Record {self.name}"
+            link = get_url_to_form(self.doctype, self.name)
+
+            msg = _(
+                "Cutting Lay Record <b>{0}</b> requires approval.<br>"
+                "Actual Total Piece is below 98% of Total Piece.<br>"
+                "Link: <a href='{1}'>{1}</a><br><br>"
+                "<b>Requester Remarks:</b><br>{2}"
+            ).format(self.name, link, frappe.utils.escape_html(now_req))
+
+            _notify_users(managers, subject, msg, self)
+
+    def on_submit(self):
+        """
+        Notify document owner once submitted (email + in-app)
+        """
+        owner = self.owner
+        if not owner:
+            return
+
+        subject = f"[Submitted] Cutting Lay Record {self.name}"
+        link = get_url_to_form(self.doctype, self.name)
+        msg = _(
+            "Cutting Lay Record <b>{0}</b> has been submitted.<br>"
+            "Link: <a href='{1}'>{1}</a>"
+        ).format(self.name, link)
+
+        _notify_users([owner], subject, msg, self)
+
+
+# ---------------- Whitelisted Methods ----------------
 
 @frappe.whitelist()
 def get_cut_docket_details(cut_kanban_no):
     """
-    Returns: {
+    Returns:
+    {
         "ocn": "...",
         "style": "...",
         "colour": "..."
@@ -157,9 +251,7 @@ def get_next_cut_no(cut_kanban_no, ocn, style, colour):
             AND docstatus < 2
     """, (cut_kanban_no, ocn, style, colour), as_list=1)
 
-    # Handle case where no rows exist → MAX() returns [(None,)]
     current_max = max_cut_no[0][0] if max_cut_no and max_cut_no[0][0] is not None else 0
-
     return cint(current_max) + 1
 
 
@@ -173,18 +265,6 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
     """
     if not (sales_order and style and colour):
         return []
-
-    # # 1. Get item codes from Sales Order
-    # item_codes = frappe.db.sql_list("""
-    #     SELECT DISTINCT soi.item_code
-    #     FROM `tabSales Order Item` soi
-    #     WHERE soi.parent = %s
-    #       AND soi.custom_style = %s
-    #       AND soi.custom_color = %s
-    # """, (sales_order, style, colour))
-
-    # if not item_codes:
-    #     return []
 
     # 2. Get all relevant GRN Items (submitted GRNs only)
     grn_items = frappe.db.sql("""
@@ -227,11 +307,7 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
         GROUP BY grn, roll
     """, (tuple(grn_roll_pairs),), as_dict=1)
 
-    # Convert to dict: {(grn, roll): total_issued}
-    issued_map = {
-        (d["grn"], d["roll"]): d["total_issued"]
-        for d in issued_data
-    }
+    issued_map = {(d["grn"], d["roll"]): d["total_issued"] for d in issued_data}
 
     # 4. Get total USED quantity per grn_item_reference from Cutting Lay Records
     used_data = frappe.db.sql("""
@@ -246,11 +322,7 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
         GROUP BY lr.grn_item_reference
     """, (tuple(grn_item_refs),), as_dict=1)
 
-    # Convert to dict: {grn_item_reference: total_used}
-    used_map = {
-        d["grn_item_reference"]: d["total_used"]
-        for d in used_data
-    }
+    used_map = {d["grn_item_reference"]: d["total_used"] for d in used_data}
 
     # 5. Compute net quantity in Python
     result = []
@@ -263,15 +335,75 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
             result.append({
                 "grn_item_reference": item["grn_item_reference"],
                 "roll_no": item["roll_no"],
-                "roll_weight": net_qty,  # <-- net available quantity
+                "roll_weight": net_qty,
                 "width": item["width"],
                 "dia": item["dia"],
-                # Optional: include breakdown for debugging
-                # "original_received": item["received_quantity"],
-                # "issued_quantity": issued_qty,
-                # "used_in_lay": used_qty
             })
 
-    # Sort by creation (descending) — mimic original behavior
-    # Note: We lost gri.creation; if needed, add it to first query
     return sorted(result, key=lambda x: float(x["roll_no"]) if x["roll_no"] is not None else 0)
+
+
+# ---------------- Notification + Role Helpers ----------------
+
+def _user_has_role(user: str, role: str) -> bool:
+    """Frappe v15 compatible role check."""
+    try:
+        return role in (frappe.get_roles(user) or [])
+    except Exception:
+        return False
+
+
+def _get_users_with_role(role: str):
+    users = frappe.get_all(
+        "Has Role",
+        filters={"role": role, "parenttype": "User"},
+        pluck="parent"
+    ) or []
+
+    if not users:
+        return []
+
+    enabled_users = frappe.get_all(
+        "User",
+        filters={"name": ["in", users], "enabled": 1},
+        pluck="name"
+    ) or []
+
+    # unique preserve order
+    return list(dict.fromkeys(enabled_users))
+
+
+def _notify_users(usernames, subject, html_message, doc):
+    if not usernames:
+        return
+
+    # In-app notifications
+    for u in usernames:
+        try:
+            frappe.get_doc({
+                "doctype": "Notification Log",
+                "subject": subject,
+                "email_content": html_message,
+                "for_user": u,
+                "type": "Alert",
+                "document_type": doc.doctype,
+                "document_name": doc.name
+            }).insert(ignore_permissions=True)
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "CuttingLayRecord Notification Log Failed")
+
+    # Email notifications
+    emails = frappe.get_all("User", filters={"name": ["in", usernames]}, fields=["email"])
+    recipients = [d.email for d in emails if d.get("email")]
+
+    if recipients:
+        try:
+            frappe.sendmail(
+                recipients=recipients,
+                subject=subject,
+                message=html_message,
+                reference_doctype=doc.doctype,
+                reference_name=doc.name
+            )
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "CuttingLayRecord Email Failed")

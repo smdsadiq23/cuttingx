@@ -9,9 +9,14 @@
   "grn_item_reference",
   "roll_no",
   "roll_weight",
-  "width",
-  "dia",
-  "no_of_lays"
+  "no_of_lays",
+  "partial_lay_length",
+  "partial_lay_weight",
+  "calculated_total",
+  "actual_no_of_lays",
+  "actual_total",
+  "difference",
+  "remarks"
  ],
  "fields": [
   {
@@ -20,22 +25,16 @@
    "in_list_view": 1,
    "label": "Roll Weight",
    "precision": "2",
+   "read_only": 1,
    "reqd": 1
-  },
-  {
-   "fieldname": "dia",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Dia",
-   "precision": "2"
   },
   {
    "fieldname": "no_of_lays",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "No of Lays",
+   "label": "Calcualted No of Lays",
    "precision": "2",
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "grn_item_reference",
@@ -45,25 +44,67 @@
    "read_only": 1
   },
   {
-   "fieldname": "width",
-   "fieldtype": "Float",
-   "in_list_view": 1,
-   "label": "Width",
-   "precision": "2"
-  },
-  {
    "fieldname": "roll_no",
    "fieldtype": "Int",
    "in_list_view": 1,
    "label": "Roll No",
+   "read_only": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "partial_lay_length",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Partial Lay Length",
+   "read_only": 1
+  },
+  {
+   "fieldname": "partial_lay_weight",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Partial Lay Weight",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculated_total",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Calculated Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_no_of_lays",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Actual No of lays",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_total",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Actual Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "difference",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Difference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-15 13:12:31.927794",
+ "modified": "2025-12-25 10:42:40.847153",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Lay Roll Details",

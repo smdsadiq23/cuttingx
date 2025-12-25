@@ -8,29 +8,39 @@
   "section_break_4zxg",
   "amended_from",
   "cut_kanban_no",
+  "can_cut_no",
+  "actual_consumption",
   "ocn",
+  "work_order",
   "buyer",
   "style",
   "colour",
+  "table_lay_size_ratio",
   "column_break_ifvb",
   "date",
   "cut_no",
   "bit_length",
   "bit_weight",
+  "usable_end_bit",
+  "splice_allowance",
   "company",
   "strategic_business_unit",
   "factory_business_unit",
   "section_break_gkls",
-  "table_lay_size_ratio",
-  "column_break_wfxn",
   "table_lay_roll_details",
   "section_break_lqaq",
   "total_ratio_qty",
   "total_roll_weight",
   "total_no_of_lays",
+  "actual_total_no_of_lays",
+  "total_piece",
+  "actual_total_piece",
   "column_break_woid",
   "average_consumption",
-  "end_bit_quantity"
+  "end_bit_quantity",
+  "actual_end_bit_quanity",
+  "requester_remarks",
+  "approver_remarks"
  ],
  "fields": [
   {
@@ -144,18 +154,15 @@
   {
    "fieldname": "total_no_of_lays",
    "fieldtype": "Float",
-   "label": "Total No of Lays",
+   "label": "Total No of Lays (Calculated)",
    "read_only": 1
   },
   {
    "fieldname": "average_consumption",
    "fieldtype": "Float",
    "label": "Average Consumption",
+   "read_only": 1,
    "reqd": 1
-  },
-  {
-   "fieldname": "column_break_wfxn",
-   "fieldtype": "Column Break"
   },
   {
    "fieldname": "column_break_woid",
@@ -170,14 +177,16 @@
   {
    "fieldname": "end_bit_quantity",
    "fieldtype": "Float",
-   "label": "End Bit Quantity",
+   "label": "End Bit Quantity (Calculated)",
+   "read_only": 1,
    "reqd": 1
   },
   {
    "fieldname": "cut_kanban_no",
    "fieldtype": "Link",
    "label": "Cut Kanban No",
-   "options": "Cut Docket"
+   "options": "Cut Docket",
+   "reqd": 1
   },
   {
    "fetch_from": "cut_kanban_no.company",
@@ -198,13 +207,89 @@
    "fieldtype": "Link",
    "label": "Factory Business Unit",
    "options": "Factory Business Unit"
+  },
+  {
+   "fieldname": "work_order",
+   "fieldtype": "Link",
+   "label": "Work Order",
+   "options": "Work Order",
+   "reqd": 1
+  },
+  {
+   "fieldname": "usable_end_bit",
+   "fieldtype": "Float",
+   "label": "Usable End Bit",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "splice_allowance",
+   "fieldtype": "Float",
+   "label": "Splice Allowance",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "can_cut_no",
+   "fieldtype": "Link",
+   "label": "Can Cut No",
+   "options": "Can Cut",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_total_no_of_lays",
+   "fieldtype": "Float",
+   "label": "Total No of Lays (Actual)",
+   "non_negative": 1,
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "actual_end_bit_quanity",
+   "fieldtype": "Float",
+   "label": "End Bit Quanity (Actual)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fetch_from": "can_cut_no.actual_consumption",
+   "fieldname": "actual_consumption",
+   "fieldtype": "Float",
+   "label": "Can Cut Actual Consumption"
+  },
+  {
+   "fieldname": "actual_total_piece",
+   "fieldtype": "Float",
+   "label": "Total Piece (Actual)",
+   "non_negative": 1,
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "total_piece",
+   "fieldtype": "Float",
+   "label": "Total Piece (Calculated)",
+   "non_negative": 1,
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "approver_remarks",
+   "fieldtype": "Small Text",
+   "label": "Approver Remarks"
+  },
+  {
+   "fieldname": "requester_remarks",
+   "fieldtype": "Small Text",
+   "label": "Requester Remarks"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-06 11:40:58.249344",
+ "modified": "2025-12-25 19:00:24.099774",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",
