@@ -3,12 +3,12 @@
 
 frappe.ui.form.on('Cutting Lay Record', {
     onload: function(frm) {
-        // OCN (Sales Order): only submitted
-        // (Keep only if ocn is a Link to Sales Order)
+        // Cut Kanban No: only submitted
         frm.set_query('cut_kanban_no', function() {
             return { filters: { 'docstatus': 1 } };
         });
-        
+
+        // OCN (Sales Order): only submitted (keep only if ocn is Link to Sales Order)
         frm.set_query('ocn', function() {
             return { filters: { 'docstatus': 1 } };
         });
@@ -34,6 +34,7 @@ frappe.ui.form.on('Cutting Lay Record', {
 
     refresh: function(frm) {
         applyApprovalUI(frm);
+        update_chindi_weight(frm);
     },
 
     before_submit: function(frm) {
@@ -86,13 +87,15 @@ frappe.ui.form.on('Cutting Lay Record', {
             'actual_total_no_of_lays',
             'total_piece',
             'actual_total_piece',
-            'end_bit_quantity'
+            'end_bit_quantity',
+            'chindi_weight'
         ].forEach(field => frm.set_value(field, ''));
 
         // clear can_cut_no when cut_kanban_no changes
         frm.set_value('can_cut_no', '');
 
         applyApprovalUI(frm);
+        update_chindi_weight(frm);
 
         if (!frm.doc.cut_kanban_no) {
             // Clear linked fields if kanban is cleared
@@ -108,6 +111,8 @@ frappe.ui.form.on('Cutting Lay Record', {
         }).then(records => {
             if (records.length === 1) {
                 frm.set_value('can_cut_no', records[0].name);
+                // marker_efficiency will auto-fetch; still calculate chindi after fetch applies
+                setTimeout(() => update_chindi_weight(frm), 0);
             }
         });
 
@@ -128,6 +133,17 @@ frappe.ui.form.on('Cutting Lay Record', {
                 }
             }
         });
+    },
+
+    // NEW: when can_cut_no changes, marker_efficiency fetch changes => recalc chindi
+    can_cut_no: function(frm) {
+        // Wait one tick so fetch_from values are populated
+        setTimeout(() => update_chindi_weight(frm), 0);
+    },
+
+    // NEW: if user edits marker_efficiency manually (if allowed), recalc
+    marker_efficiency: function(frm) {
+        update_chindi_weight(frm);
     },
 
     ocn: function(frm) {
@@ -163,10 +179,12 @@ frappe.ui.form.on('Cutting Lay Record', {
             'actual_total_no_of_lays',
             'total_piece',
             'actual_total_piece',
-            'end_bit_quantity'
+            'end_bit_quantity',
+            'chindi_weight'
         ].forEach(field => frm.set_value(field, ''));
 
         applyApprovalUI(frm);
+        update_chindi_weight(frm);
 
         if (frm.doc.ocn && frm.doc.style && frm.doc.colour) {
             // 1. Auto-fill cut_no
@@ -231,6 +249,7 @@ frappe.ui.form.on('Cutting Lay Record', {
                         update_roll_totals(frm);
                         update_average_consumption(frm);
                         update_actual_totals(frm);
+                        update_chindi_weight(frm);
                         applyApprovalUI(frm);
                     }
                 }
@@ -273,6 +292,7 @@ frappe.ui.form.on('Lay Roll Details', {
     roll_weight: function(frm) {
         recalculateAllLayRows(frm);
         update_actual_totals(frm);
+        update_chindi_weight(frm);
         applyApprovalUI(frm);
     },
 
@@ -296,11 +316,13 @@ frappe.ui.form.on('Lay Roll Details', {
     lay_roll_details_remove: function(frm) {
         recalculateAllLayRows(frm);
         update_actual_totals(frm);
+        update_chindi_weight(frm);
         applyApprovalUI(frm);
     },
     lay_roll_details_add: function(frm) {
         recalculateAllLayRows(frm);
         update_actual_totals(frm);
+        update_chindi_weight(frm);
         applyApprovalUI(frm);
     }
 });
@@ -342,18 +364,15 @@ function applyApprovalUI(frm) {
     }
 
     if (is_draft && needs) {
-        // approval mode
         frm.set_df_property("requester_remarks", "reqd", 1);
 
         if (is_manager) {
-            // manager view
             frm.set_df_property("requester_remarks", "read_only", 1);
 
             frm.set_df_property("approver_remarks", "hidden", 0);
             frm.set_df_property("approver_remarks", "read_only", 0);
             frm.set_df_property("approver_remarks", "reqd", 1);
         } else {
-            // requester view
             frm.set_df_property("requester_remarks", "read_only", 0);
 
             frm.set_df_property("approver_remarks", "hidden", 1);
@@ -361,7 +380,6 @@ function applyApprovalUI(frm) {
             frm.set_df_property("approver_remarks", "read_only", 1);
         }
     } else {
-        // normal mode
         frm.set_df_property("requester_remarks", "reqd", 0);
         frm.set_df_property("requester_remarks", "read_only", 0);
 
@@ -371,6 +389,23 @@ function applyApprovalUI(frm) {
     }
 
     frm.refresh_fields(["requester_remarks", "approver_remarks"]);
+}
+
+/**
+ * NEW: chindi_weight = total_roll_weight - (total_roll_weight * marker_efficiency)
+ * Assumption: marker_efficiency is a fraction (0.85). If you store as percentage (85),
+ * then it auto-normalizes (85 -> 0.85).
+ */
+function update_chindi_weight(frm) {
+    const total_roll_weight = flt(frm.doc.total_roll_weight);
+    let eff = frm.doc.marker_efficiency;
+
+    // allow both 0.85 and 85 formats
+    eff = (eff === null || eff === undefined || eff === "") ? 0 : parseFloat(eff) || 0;
+    if (eff > 1) eff = eff / 100;
+
+    const chindi = total_roll_weight - (total_roll_weight * eff);
+    frm.set_value("chindi_weight", round3(chindi));
 }
 
 function getLayBreakdown(bit_length, bit_weight, roll_weight) {
@@ -424,6 +459,9 @@ function update_roll_totals(frm) {
     frm.set_value('total_roll_weight', total_weight);
     frm.set_value('total_no_of_lays', total_lays);
     update_average_consumption(frm);
+
+    // NEW: chindi depends on total_roll_weight
+    update_chindi_weight(frm);
 }
 
 function update_average_consumption(frm) {
@@ -448,9 +486,6 @@ function calculateActualFields(row, bit_weight) {
     row.difference = round3(row.actual_total - calculated_total);
 }
 
-/**
- * FIXED total_piece and actual_total_piece calculations
- */
 function update_actual_totals(frm) {
     const rows = frm.doc.table_lay_roll_details || [];
     let actual_total_no_of_lays = 0;
@@ -472,10 +507,6 @@ function update_actual_totals(frm) {
 
 /**
  * Virtual splice calculation (no physical roll_weight changes)
- * - partial_lay_length/weight shown as BASELINE (original roll_weight)
- * - no_of_lays + calculated_total from EFFECTIVE (virtual weights)
- * - end_bit_quantity: sum of effective partial weights for rows with effective partial_len < usable_end_bit,
- *   plus ALWAYS include last row effective partial_wt
  */
 function recalculateAllLayRows(frm) {
     const bit_length = parseFloat(frm.doc.bit_length) || 0;
@@ -531,7 +562,7 @@ function recalculateAllLayRows(frm) {
 
         const half_bit = 0.5 * bit_length;
 
-        // Scenario A: remainder < 50% => move remainder to next (minus splice loss)
+        // Scenario A
         if (eff.partial_len < half_bit) {
             effectiveWeights[i] = Math.max(0, effectiveWeights[i] - eff.partial_wt);
 
@@ -540,7 +571,7 @@ function recalculateAllLayRows(frm) {
             continue;
         }
 
-        // Scenario B: remainder >= 50% => pull from next to complete last lay (+ splice allowance)
+        // Scenario B
         const needed_len_from_next = (bit_length - eff.partial_len) + splice_allowance;
         const needed_wt_from_next = needed_len_from_next * weight_per_len;
 

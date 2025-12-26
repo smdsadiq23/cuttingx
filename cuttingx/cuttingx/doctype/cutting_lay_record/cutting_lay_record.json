@@ -10,6 +10,7 @@
   "cut_kanban_no",
   "can_cut_no",
   "actual_consumption",
+  "marker_efficiency",
   "ocn",
   "work_order",
   "buyer",
@@ -35,6 +36,7 @@
   "actual_total_no_of_lays",
   "total_piece",
   "actual_total_piece",
+  "chindi_weight",
   "column_break_woid",
   "average_consumption",
   "end_bit_quantity",
@@ -161,8 +163,7 @@
    "fieldname": "average_consumption",
    "fieldtype": "Float",
    "label": "Average Consumption",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "column_break_woid",
@@ -178,8 +179,7 @@
    "fieldname": "end_bit_quantity",
    "fieldtype": "Float",
    "label": "End Bit Quantity (Calculated)",
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "cut_kanban_no",
@@ -241,9 +241,7 @@
    "fieldname": "actual_total_no_of_lays",
    "fieldtype": "Float",
    "label": "Total No of Lays (Actual)",
-   "non_negative": 1,
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "actual_end_bit_quanity",
@@ -262,17 +260,13 @@
    "fieldname": "actual_total_piece",
    "fieldtype": "Float",
    "label": "Total Piece (Actual)",
-   "non_negative": 1,
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "total_piece",
    "fieldtype": "Float",
    "label": "Total Piece (Calculated)",
-   "non_negative": 1,
-   "read_only": 1,
-   "reqd": 1
+   "read_only": 1
   },
   {
    "fieldname": "approver_remarks",
@@ -283,13 +277,25 @@
    "fieldname": "requester_remarks",
    "fieldtype": "Small Text",
    "label": "Requester Remarks"
+  },
+  {
+   "fetch_from": "can_cut_no.marker_efficiency",
+   "fieldname": "marker_efficiency",
+   "fieldtype": "Float",
+   "label": "Marker Efficiency"
+  },
+  {
+   "fieldname": "chindi_weight",
+   "fieldtype": "Float",
+   "label": "Chindi Weight",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-25 19:00:24.099774",
+ "modified": "2025-12-26 09:10:47.693071",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",
