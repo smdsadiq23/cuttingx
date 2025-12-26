@@ -135,13 +135,13 @@ frappe.ui.form.on('Cutting Lay Record', {
         });
     },
 
-    // NEW: when can_cut_no changes, marker_efficiency fetch changes => recalc chindi
+    // when can_cut_no changes, marker_efficiency fetch changes => recalc chindi
     can_cut_no: function(frm) {
         // Wait one tick so fetch_from values are populated
         setTimeout(() => update_chindi_weight(frm), 0);
     },
 
-    // NEW: if user edits marker_efficiency manually (if allowed), recalc
+    // if user edits marker_efficiency manually (if allowed), recalc
     marker_efficiency: function(frm) {
         update_chindi_weight(frm);
     },
@@ -245,12 +245,7 @@ frappe.ui.form.on('Cutting Lay Record', {
                             row.roll_weight = grn.roll_weight;
                         });
 
-                        recalculateAllLayRows(frm);
-                        update_roll_totals(frm);
-                        update_average_consumption(frm);
-                        update_actual_totals(frm);
-                        update_chindi_weight(frm);
-                        applyApprovalUI(frm);
+                        recompute_all(frm);
                     }
                 }
             });
@@ -258,19 +253,19 @@ frappe.ui.form.on('Cutting Lay Record', {
     },
 
     bit_length: function(frm) {
-        recalculateAllLayRows(frm);
+        recompute_all(frm);
     },
 
     bit_weight: function(frm) {
-        recalculateAllLayRows(frm);
+        recompute_all(frm);
     },
 
     usable_end_bit: function(frm) {
-        recalculateAllLayRows(frm);
+        recompute_all(frm);
     },
 
     splice_allowance: function(frm) {
-        recalculateAllLayRows(frm);
+        recompute_all(frm);
     }
 });
 
@@ -290,20 +285,17 @@ frappe.ui.form.on('Lay Size Ratio', {
 // Child table: Lay Roll Details
 frappe.ui.form.on('Lay Roll Details', {
     roll_weight: function(frm) {
-        recalculateAllLayRows(frm);
-        update_actual_totals(frm);
-        update_chindi_weight(frm);
-        applyApprovalUI(frm);
+        recompute_all(frm);
     },
 
     actual_no_of_lays: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         calculateActualFields(row, frm.doc.bit_weight);
         frm.refresh_field("table_lay_roll_details");
-        update_actual_totals(frm);
-        applyApprovalUI(frm);
+        recompute_all(frm);
     },
 
+    // If actual_total is read-only, you can remove this handler
     actual_total: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         const calculated_total = parseFloat(row.calculated_total) || 0;
@@ -313,21 +305,27 @@ frappe.ui.form.on('Lay Roll Details', {
         applyApprovalUI(frm);
     },
 
-    lay_roll_details_remove: function(frm) {
-        recalculateAllLayRows(frm);
-        update_actual_totals(frm);
-        update_chindi_weight(frm);
-        applyApprovalUI(frm);
+    // ✅ FIX: correct Frappe child-table remove/add event names
+    table_lay_roll_details_remove: function(frm) {
+        recompute_all(frm);
     },
-    lay_roll_details_add: function(frm) {
-        recalculateAllLayRows(frm);
-        update_actual_totals(frm);
-        update_chindi_weight(frm);
-        applyApprovalUI(frm);
+    table_lay_roll_details_add: function(frm) {
+        recompute_all(frm);
     }
 });
 
 // ---------------- Utility Functions ----------------
+
+function recompute_all(frm) {
+    // One place to recompute everything (handles add/remove too)
+    recalculateAllLayRows(frm);
+
+    // Safety: ensure totals + chindi + UI are consistent even if recalculateAllLayRows early-returns
+    update_roll_totals(frm);
+    update_actual_totals(frm);
+    update_chindi_weight(frm);
+    applyApprovalUI(frm);
+}
 
 function round3(v) {
     return parseFloat((parseFloat(v) || 0).toFixed(3));
@@ -392,15 +390,13 @@ function applyApprovalUI(frm) {
 }
 
 /**
- * NEW: chindi_weight = total_roll_weight - (total_roll_weight * marker_efficiency)
- * Assumption: marker_efficiency is a fraction (0.85). If you store as percentage (85),
- * then it auto-normalizes (85 -> 0.85).
+ * chindi_weight = total_roll_weight - (total_roll_weight * marker_efficiency)
+ * Supports 0.85 or 85 formats.
  */
 function update_chindi_weight(frm) {
     const total_roll_weight = flt(frm.doc.total_roll_weight);
     let eff = frm.doc.marker_efficiency;
 
-    // allow both 0.85 and 85 formats
     eff = (eff === null || eff === undefined || eff === "") ? 0 : parseFloat(eff) || 0;
     if (eff > 1) eff = eff / 100;
 
@@ -440,9 +436,9 @@ function update_total_ratio_qty(frm) {
         });
     }
     frm.set_value('total_ratio_qty', total);
-    update_average_consumption(frm);
-    update_actual_totals(frm);
-    applyApprovalUI(frm);
+
+    // ratio affects total_piece + approval UI, so recompute all is safest
+    recompute_all(frm);
 }
 
 function update_roll_totals(frm) {
@@ -458,9 +454,8 @@ function update_roll_totals(frm) {
 
     frm.set_value('total_roll_weight', total_weight);
     frm.set_value('total_no_of_lays', total_lays);
-    update_average_consumption(frm);
 
-    // NEW: chindi depends on total_roll_weight
+    update_average_consumption(frm);
     update_chindi_weight(frm);
 }
 
@@ -519,10 +514,7 @@ function recalculateAllLayRows(frm) {
 
     if (!rows.length) {
         frm.refresh_field("table_lay_roll_details");
-        update_roll_totals(frm);
         frm.set_value('end_bit_quantity', 0);
-        update_actual_totals(frm);
-        applyApprovalUI(frm);
         return;
     }
 
@@ -535,10 +527,7 @@ function recalculateAllLayRows(frm) {
             calculateActualFields(r, bit_weight);
         });
         frm.refresh_field("table_lay_roll_details");
-        update_roll_totals(frm);
         frm.set_value('end_bit_quantity', 0);
-        update_actual_totals(frm);
-        applyApprovalUI(frm);
         return;
     }
 
@@ -607,9 +596,5 @@ function recalculateAllLayRows(frm) {
     });
 
     frm.set_value('end_bit_quantity', round3(end_bit_quantity));
-
     frm.refresh_field("table_lay_roll_details");
-    update_roll_totals(frm);
-    update_actual_totals(frm);
-    applyApprovalUI(frm);
 }
