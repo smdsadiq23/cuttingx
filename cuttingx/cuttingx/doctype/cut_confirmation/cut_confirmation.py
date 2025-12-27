@@ -185,20 +185,22 @@ def validate_total_confirmed_against_docket(doc):
 
         # 2. Total confirmed including current doc
         total_confirmed = confirmed_elsewhere + current_confirmed
-        max_allowed = planned * 1.2
 
-        if total_confirmed > max_allowed:
-            frappe.throw(
-                _("Total confirmed quantity for:<br>"
-                  "<b>WO:</b> {0}, <b>SO:</b> {1}, <b>Line Item:</b> {2}, <b>Size:</b> {3}<br>"
-                  "is <b>{4}</b> including previous Cut Confiramtions, which exceeds 120% of planned quantity ({5} × 1.2 = {6}).")
-                .format(
-                    key[0], key[1], key[2], key[3],
-                    flt(total_confirmed, 2),
-                    planned,
-                    flt(max_allowed, 2)
-                )
-            )
+         # --- BEGIN: 120% Validation (currently DISABLED) ---
+        # max_allowed = planned * 1.2
+
+        # if total_confirmed > max_allowed:
+        #     frappe.throw(
+        #         _("Total confirmed quantity for:<br>"
+        #           "<b>WO:</b> {0}, <b>SO:</b> {1}, <b>Line Item:</b> {2}, <b>Size:</b> {3}<br>"
+        #           "is <b>{4}</b> including previous Cut Confiramtions, which exceeds 120% of planned quantity ({5} × 1.2 = {6}).")
+        #         .format(
+        #             key[0], key[1], key[2], key[3],
+        #             flt(total_confirmed, 2),
+        #             planned,
+        #             flt(max_allowed, 2)
+        #         )
+        #     )
 
         # 3. ✅ Set accurate balance_to_confirm = planned − total_confirmed (including current doc)          
         balance = planned - total_confirmed
