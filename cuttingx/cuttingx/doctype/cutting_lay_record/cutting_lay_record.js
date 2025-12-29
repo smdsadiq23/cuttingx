@@ -30,11 +30,17 @@ frappe.ui.form.on('Cutting Lay Record', {
                     : { name: '0' }
             };
         });
+
+        // grid may not be rendered on onload; add on refresh too
+        setTimeout(() => add_recalculate_button(frm), 0);
     },
 
     refresh: function(frm) {
         applyApprovalUI(frm);
         update_chindi_weight(frm);
+
+        // refresh is safest place to add it
+        setTimeout(() => add_recalculate_button(frm), 0);
     },
 
     before_submit: function(frm) {
@@ -325,6 +331,9 @@ function recompute_all(frm) {
     update_actual_totals(frm);
     update_chindi_weight(frm);
     applyApprovalUI(frm);
+
+    // IMPORTANT: recalculateAllLayRows refreshes the grid -> our injected button can disappear
+    setTimeout(() => add_recalculate_button(frm), 0);
 }
 
 function round3(v) {
@@ -597,4 +606,35 @@ function recalculateAllLayRows(frm) {
 
     frm.set_value('end_bit_quantity', round3(end_bit_quantity));
     frm.refresh_field("table_lay_roll_details");
+}
+
+function add_recalculate_button(frm) {
+    const fieldname = "table_lay_roll_details";
+    const grid = frm.fields_dict[fieldname]?.grid;
+
+    if (!grid || !grid.wrapper) return;
+
+    const $wrapper = $(grid.wrapper);
+
+    // prevent duplicates
+    if ($wrapper.find(".btn-recalculate-lay").length) return;
+
+    const $btn = $(
+        `<button type="button" class="btn btn-xs btn-secondary btn-recalculate-lay">
+            ${__("Recalculate")}
+        </button>`
+    );
+
+    $btn.on("click", function () {
+        recompute_all(frm);
+        frappe.show_alert({ message: __("Recalculated"), indicator: "green" });
+    });
+
+    // Insert next to Add Row if present, else append to grid buttons area
+    const $addRow = $wrapper.find(".grid-add-row");
+    if ($addRow.length) {
+        $btn.insertAfter($addRow);
+    } else {
+        $wrapper.find(".grid-buttons").append($btn);
+    }
 }
