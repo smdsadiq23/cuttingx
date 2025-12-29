@@ -294,7 +294,7 @@ def get_eligible_lay_records(doctype, txt, searchfield, start, page_len, filters
         SELECT name
         FROM `tabCutting Lay Record`
         WHERE cut_kanban_no = %s
-          AND docstatus != 2
+          AND docstatus = 1
           AND name LIKE %s
         ORDER BY name
         LIMIT %s OFFSET %s
