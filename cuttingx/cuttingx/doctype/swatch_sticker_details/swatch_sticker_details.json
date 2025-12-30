@@ -1,0 +1,84 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2025-12-30 16:05:04.258959",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ssd_date",
+  "style",
+  "contenet",
+  "countsplygauge",
+  "colour",
+  "brand",
+  "knit_structure"
+ ],
+ "fields": [
+  {
+   "default": "Today",
+   "fieldname": "ssd_date",
+   "fieldtype": "Date",
+   "label": "Date"
+  },
+  {
+   "fieldname": "style",
+   "fieldtype": "Link",
+   "label": "Style",
+   "options": "Style Master"
+  },
+  {
+   "fieldname": "contenet",
+   "fieldtype": "Data",
+   "label": "Contenet"
+  },
+  {
+   "fieldname": "countsplygauge",
+   "fieldtype": "Data",
+   "label": "Counts/Ply/Gauge"
+  },
+  {
+   "fieldname": "colour",
+   "fieldtype": "Data",
+   "label": "Colour"
+  },
+  {
+   "fetch_from": "style.brand",
+   "fieldname": "brand",
+   "fieldtype": "Link",
+   "label": "Brand",
+   "options": "Brand"
+  },
+  {
+   "fieldname": "knit_structure",
+   "fieldtype": "Select",
+   "label": "Knit Structure",
+   "options": "\nFor Approval\nTuck Knit\nMass Knit\nTransfer Knit\nCable Knit\nRib Knit\nRack Knit\nZig Zag Knit\nSingle Jersey\nPointal Knit\nBirdseye Jacquard\nTubular Jacquard\nIntersia Jacquard\nLadder Back Jacquard\n2x2 Rib Knit\n1x1 Rib Knit\nBubble Knit\nTerry Knit\nDouble Tuck\nRib All Needle\nButt Knit"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-12-30 16:11:19.432359",
+ "modified_by": "Administrator",
+ "module": "CuttingX",
+ "name": "Swatch Sticker Details",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
