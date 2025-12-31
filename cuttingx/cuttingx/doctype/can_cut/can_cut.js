@@ -644,7 +644,7 @@ function get_approval_card_html(frm) {
 
                         <tr>
                             <td style="border: 1px solid #4c9658; padding: 6px; width: 25%; text-align: left;">
-                                Lay Length
+                                Lay Consumption in Cms
                             </td>
                             <td style="border: 1px solid #4c9658; padding: 6px; text-align: center;">
                                 ${frm.doc.file_lay_length || ""} cm

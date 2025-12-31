@@ -314,14 +314,14 @@
   {
    "fieldname": "file_lay_length",
    "fieldtype": "Float",
-   "label": "File Lay Length",
+   "label": "File Lay Consumption (Cm)",
    "non_negative": 1,
    "reqd": 1
   },
   {
    "fieldname": "actual_lay_length",
    "fieldtype": "Float",
-   "label": "Actual Lay Length"
+   "label": "Actual Lay Consumption (Cm)"
   },
   {
    "fieldname": "marker_efficiency",
@@ -340,7 +340,7 @@
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-24 18:49:56.089577",
+ "modified": "2025-12-31 13:00:31.447629",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
