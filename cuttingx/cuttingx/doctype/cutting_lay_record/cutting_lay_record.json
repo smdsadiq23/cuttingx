@@ -225,10 +225,13 @@
    "reqd": 1
   },
   {
+   "default": "6",
    "fieldname": "splice_allowance",
    "fieldtype": "Float",
+   "hidden": 1,
    "label": "Splice Allowance",
    "non_negative": 1,
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -303,7 +306,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-02 12:11:11.566479",
+ "modified": "2026-01-02 16:09:25.778373",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",
