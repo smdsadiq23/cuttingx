@@ -43,39 +43,39 @@ frappe.ui.form.on('Cutting Lay Record', {
         setTimeout(() => add_recalculate_button(frm), 0);
     },
 
-    before_submit: function(frm) {
-        const needs = needsManagerApproval(frm);
-        if (!needs) return;
+    // before_submit: function(frm) {
+    //     const needs = needsManagerApproval(frm);
+    //     if (!needs) return;
 
-        const is_manager = frappe.user_roles.includes("Can Cut Manager");
+    //     const is_manager = frappe.user_roles.includes("Can Cut Manager");
 
-        if (!frm.doc.requester_remarks) {
-            frappe.msgprint({
-                title: __("Requester Remarks Required"),
-                message: __("Please enter Requester Remarks before submitting for approval."),
-                indicator: "red"
-            });
-            return false;
-        }
+    //     if (!frm.doc.requester_remarks) {
+    //         frappe.msgprint({
+    //             title: __("Requester Remarks Required"),
+    //             message: __("Please enter Requester Remarks before submitting for approval."),
+    //             indicator: "red"
+    //         });
+    //         return false;
+    //     }
 
-        if (!is_manager) {
-            frappe.msgprint({
-                title: __("Approval Required"),
-                message: __("Actual Total Piece is less than 98% of Total Piece. Only Can Cut Manager can submit."),
-                indicator: "red"
-            });
-            return false;
-        }
+    //     if (!is_manager) {
+    //         frappe.msgprint({
+    //             title: __("Approval Required"),
+    //             message: __("Actual Total Piece is less than 98% of Total Piece. Only Can Cut Manager can submit."),
+    //             indicator: "red"
+    //         });
+    //         return false;
+    //     }
 
-        if (!frm.doc.approver_remarks) {
-            frappe.msgprint({
-                title: __("Approver Remarks Required"),
-                message: __("Please enter Approver Remarks before submitting."),
-                indicator: "red"
-            });
-            return false;
-        }
-    },
+    //     if (!frm.doc.approver_remarks) {
+    //         frappe.msgprint({
+    //             title: __("Approver Remarks Required"),
+    //             message: __("Please enter Approver Remarks before submitting."),
+    //             indicator: "red"
+    //         });
+    //         return false;
+    //     }
+    // },
 
     cut_kanban_no: function(frm) {
         // Clear all dependent data

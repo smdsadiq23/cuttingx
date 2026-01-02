@@ -51,9 +51,9 @@ class CuttingLayRecord(Document):
         prefix = f"LR-{wo_clean}"
         self.name = frappe.model.naming.make_autoname(prefix + "-.####")
 
-    # ---------------- Approval Logic ----------------
+    # ---------------- Threshold Logic ----------------
 
-    def _needs_manager_approval(self) -> bool:
+    def _below_threshold(self) -> bool:
         total_piece = float(self.total_piece or 0)
         actual_total_piece = float(self.actual_total_piece or 0)
         if total_piece <= 0:
@@ -68,74 +68,53 @@ class CuttingLayRecord(Document):
             if ds != 1:
                 frappe.throw(_("Cut Kanban No must be a submitted Cut Docket (docstatus = 1)."))
 
-        # requester_remarks mandatory when below threshold in draft
-        if self.docstatus == 0 and self._needs_manager_approval():
-            if not (self.requester_remarks or "").strip():
-                frappe.throw(_("Requester Remarks is mandatory when Actual Total Piece is less than 98% of Total Piece."))
-
-    def before_submit(self):
-        if self._needs_manager_approval():
-            # Only Can Cut Manager can submit
-            if not _user_has_role(frappe.session.user, REQUIRED_ROLE):
-                frappe.throw(
-                    _("Only users with role '{0}' can submit when Actual Total Piece is below 98% of Total Piece.")
-                    .format(REQUIRED_ROLE)
-                )
-
-            # Approver remarks mandatory for approval submit
-            if not (self.approver_remarks or "").strip():
-                frappe.throw(_("Approver Remarks is mandatory for approval submission."))
-
-    def on_update(self):
-        """
-        Notify managers (email + in-app) when:
-        - document is draft
-        - needs approval
-        - requester_remarks becomes non-empty (first time)
-        """
-        if self.docstatus != 0:
-            return
-        if not self._needs_manager_approval():
-            return
-
-        before = self.get_doc_before_save()
-        before_req = (before.requester_remarks or "").strip() if before else ""
-        now_req = (self.requester_remarks or "").strip()
-
-        # Send only when requester_remarks becomes non-empty (avoid spamming)
-        if before_req == "" and now_req != "":
-            managers = _get_users_with_role(REQUIRED_ROLE)
-            if not managers:
-                return
-
-            subject = f"[Approval Required] Cutting Lay Record {self.name}"
-            link = get_url_to_form(self.doctype, self.name)
-
-            msg = _(
-                "Cutting Lay Record <b>{0}</b> requires approval.<br>"
-                "Actual Total Piece is below 98% of Total Piece.<br>"
-                "Link: <a href='{1}'>{1}</a><br><br>"
-                "<b>Requester Remarks:</b><br>{2}"
-            ).format(self.name, link, frappe.utils.escape_html(now_req))
-
-            _notify_users(managers, subject, msg, self)
+        # ✅ Removed: requester_remarks mandatory enforcement
+        # ✅ Removed: approval restriction validation
 
     def on_submit(self):
         """
-        Notify document owner once submitted (email + in-app)
+        ✅ NEW BEHAVIOR:
+        - If below threshold, notify Can Cut Managers via bell + email (ONLY notification, no restriction)
+        - Also notify owner as before
         """
+        # 1) Notify managers if below threshold
+        if self._below_threshold():
+            managers = _get_users_with_role(REQUIRED_ROLE)
+            if managers:
+                subject = f"[FYI] Cutting Lay Record below {int(THRESHOLD * 100)}% - {self.name}"
+                link = get_url_to_form(self.doctype, self.name)
+
+                msg = _(
+                    "Cutting Lay Record <b>{0}</b> has been <b>submitted</b>, but "
+                    "Actual Total Piece is below <b>{1}%</b> of Total Piece.<br>"
+                    "Link: <a href='{2}'>{2}</a><br><br>"
+                    "<b>Total Piece:</b> {3}<br>"
+                    "<b>Actual Total Piece:</b> {4}<br>"
+                    "<b>Requester Remarks:</b><br>{5}<br><br>"
+                    "<b>Approver Remarks:</b><br>{6}"
+                ).format(
+                    self.name,
+                    int(THRESHOLD * 100),
+                    link,
+                    frappe.utils.escape_html(str(self.total_piece or "")),
+                    frappe.utils.escape_html(str(self.actual_total_piece or "")),
+                    frappe.utils.escape_html((self.requester_remarks or "").strip() or "-"),
+                    frappe.utils.escape_html((self.approver_remarks or "").strip() or "-"),
+                )
+
+                _notify_users(managers, subject, msg, self)
+
+        # 2) Notify document owner once submitted (email + in-app)
         owner = self.owner
-        if not owner:
-            return
+        if owner:
+            subject = f"[Submitted] Cutting Lay Record {self.name}"
+            link = get_url_to_form(self.doctype, self.name)
+            msg = _(
+                "Cutting Lay Record <b>{0}</b> has been submitted.<br>"
+                "Link: <a href='{1}'>{1}</a>"
+            ).format(self.name, link)
 
-        subject = f"[Submitted] Cutting Lay Record {self.name}"
-        link = get_url_to_form(self.doctype, self.name)
-        msg = _(
-            "Cutting Lay Record <b>{0}</b> has been submitted.<br>"
-            "Link: <a href='{1}'>{1}</a>"
-        ).format(self.name, link)
-
-        _notify_users([owner], subject, msg, self)
+            _notify_users([owner], subject, msg, self)
 
 
 # ---------------- Whitelisted Methods ----------------
@@ -343,15 +322,7 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
     return sorted(result, key=lambda x: float(x["roll_no"]) if x["roll_no"] is not None else 0)
 
 
-# ---------------- Notification + Role Helpers ----------------
-
-def _user_has_role(user: str, role: str) -> bool:
-    """Frappe v15 compatible role check."""
-    try:
-        return role in (frappe.get_roles(user) or [])
-    except Exception:
-        return False
-
+# ---------------- Notification Helpers ----------------
 
 def _get_users_with_role(role: str):
     users = frappe.get_all(

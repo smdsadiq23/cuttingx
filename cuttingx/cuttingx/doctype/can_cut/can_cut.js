@@ -688,6 +688,11 @@ function get_approval_card_html(frm) {
             <div style="margin: 15px 0; text-align: center;">
                 <button type="button" class="btn-reject" style="background-color: #d9534f; color: white; border: none; padding: 8px 16px; margin: 0 10px; border-radius: 4px; cursor: pointer;">Reject</button>
                 <button type="button" class="btn-approve" style="background-color: #5cb85c; color: white; border: none; padding: 8px 16px; margin: 0 10px; border-radius: 4px; cursor: pointer;">Approve</button>
+
+                <label style="display: inline-flex; align-items: center; font-size: 0.9em;">
+                    <input type="checkbox" class="with-replenishment" ${frm.doc.with_replenishment ? 'checked' : ''} style="margin-right: 8px;">
+                    With Replenishment
+                </label>
             </div>
         </div>
     `;

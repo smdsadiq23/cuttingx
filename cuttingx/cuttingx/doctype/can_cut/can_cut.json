@@ -46,6 +46,7 @@
   "deviation_under",
   "approver_remarks",
   "manager_remarks",
+  "with_replenishment",
   "approval_card_html",
   "section_break_jisc",
   "folding"
@@ -335,12 +336,19 @@
    "label": "Cutting Kanban",
    "options": "Cut Docket",
    "reqd": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "with_replenishment",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "With Replenishment"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-12-31 13:00:31.447629",
+ "modified": "2025-12-31 17:32:12.695831",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",
