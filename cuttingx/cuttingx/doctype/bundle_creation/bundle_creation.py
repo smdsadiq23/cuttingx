@@ -338,7 +338,7 @@ def get_no_of_plies_from_cut_confirmation(cut_confirmation_no):
     if not lay_record:
         return None
 
-    total_no_of_lays = frappe.db.get_value("Cutting Lay Record", lay_record, "total_no_of_lays")
+    total_no_of_lays = frappe.db.get_value("Cutting Lay Record", lay_record, "actual_total_no_of_lays")
     return flt(total_no_of_lays)
 
 

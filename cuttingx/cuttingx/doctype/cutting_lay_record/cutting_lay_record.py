@@ -6,7 +6,7 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import cint, get_url_to_form
 
-REQUIRED_ROLE = "Can Cut Manager"
+REQUIRED_ROLE = "Lay Record Approver"
 THRESHOLD = 0.98
 
 
