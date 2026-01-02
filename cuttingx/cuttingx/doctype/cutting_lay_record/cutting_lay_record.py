@@ -319,7 +319,29 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
                 "dia": item["dia"],
             })
 
-    return sorted(result, key=lambda x: float(x["roll_no"]) if x["roll_no"] is not None else 0)
+    # --- Safe sorting for roll_no (handles "1/33", "10", etc.) ---
+    def safe_roll_sort_key(item):
+        roll = item.get("roll_no")
+        if roll is None:
+            return (0, 0)
+
+        roll = str(roll).strip()
+
+        if '/' in roll:
+            parts = roll.split('/', 1)
+            try:
+                a = int(parts[0]) if parts[0].isdigit() else 0
+                b = int(parts[1]) if parts[1].isdigit() else 0
+                return (a, b)
+            except (ValueError, IndexError):
+                return (float('inf'), roll)
+
+        try:
+            return (int(roll), 0)
+        except ValueError:
+            return (float('inf'), roll)
+
+    return sorted(result, key=safe_roll_sort_key)
 
 
 # ---------------- Notification Helpers ----------------

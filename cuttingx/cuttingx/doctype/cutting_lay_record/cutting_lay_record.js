@@ -1,4 +1,4 @@
-// Copyright (c) 2025, Cognitonx Logic India Private limited and contributors
+// Copyright (c) 2025, Cognitonx Logic India Private limited
 // For license information, please see license.txt
 
 frappe.ui.form.on('Cutting Lay Record', {
@@ -504,12 +504,15 @@ function update_actual_totals(frm) {
     const total_ratio_qty = flt(frm.doc.total_ratio_qty);
     const total_no_of_lays = flt(frm.doc.total_no_of_lays);
 
-    frm.set_value('total_piece', round3(total_ratio_qty * total_no_of_lays));
-    frm.set_value('actual_total_piece', round3(total_ratio_qty * actual_total_no_of_lays));
+    const total_piece = round3(total_ratio_qty * total_no_of_lays);
+    const actual_total_piece = round3(total_ratio_qty * actual_total_no_of_lays);
+    
+    frm.set_value('total_piece', total_piece);
+    frm.set_value('actual_total_piece', actual_total_piece);
 
     let can_cut_accuracy = 0;
     if (total_piece > 0) {
-        can_cut_accuracy = (actual_total_no_of_lays / total_piece) * 100;
+        can_cut_accuracy = (actual_total_piece / total_piece) * 100;
     }
     frm.set_value('can_cut_accuracy', parseFloat(can_cut_accuracy.toFixed(2)));    
 
