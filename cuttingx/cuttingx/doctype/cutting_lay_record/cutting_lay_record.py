@@ -292,7 +292,7 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
     used_data = frappe.db.sql("""
         SELECT 
             lr.grn_item_reference,
-            SUM(lr.roll_weight) AS total_used
+            SUM(COALESCE(lr.actual_total, 0)) AS total_used
         FROM `tabLay Roll Details` lr
         INNER JOIN `tabCutting Lay Record` clr ON lr.parent = clr.name
         WHERE 
