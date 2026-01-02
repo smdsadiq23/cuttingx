@@ -9,7 +9,7 @@ readme = "README.md"
 dynamic = ["version"]
 dependencies = [
     # "frappe~=15.0.0" # Installed and managed by bench.
-    "labelx @ git+https://github.com/CognitionXLogic/labelx.git@main"
+    # "labelx @ git+https://github.com/CognitionXLogic/labelx.git@main"
 ]
 
 [build-system]
