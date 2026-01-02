@@ -94,7 +94,8 @@ frappe.ui.form.on('Cutting Lay Record', {
             'total_piece',
             'actual_total_piece',
             'end_bit_quantity',
-            'chindi_weight'
+            'chindi_weight',
+            'can_cut_accuracy'
         ].forEach(field => frm.set_value(field, ''));
 
         // clear can_cut_no when cut_kanban_no changes
@@ -505,6 +506,12 @@ function update_actual_totals(frm) {
 
     frm.set_value('total_piece', round3(total_ratio_qty * total_no_of_lays));
     frm.set_value('actual_total_piece', round3(total_ratio_qty * actual_total_no_of_lays));
+
+    let can_cut_accuracy = 0;
+    if (total_piece > 0) {
+        can_cut_accuracy = (actual_total_no_of_lays / total_piece) * 100;
+    }
+    frm.set_value('can_cut_accuracy', parseFloat(can_cut_accuracy.toFixed(2)));    
 
     applyApprovalUI(frm);
 }

@@ -41,6 +41,7 @@
   "average_consumption",
   "end_bit_quantity",
   "actual_end_bit_quanity",
+  "can_cut_accuracy",
   "requester_remarks",
   "approver_remarks"
  ],
@@ -290,13 +291,19 @@
    "fieldtype": "Float",
    "label": "Chindi Weight",
    "read_only": 1
+  },
+  {
+   "fieldname": "can_cut_accuracy",
+   "fieldtype": "Percent",
+   "label": "Can Cut Accuracy",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-12-29 14:51:59.402743",
+ "modified": "2026-01-02 12:11:11.566479",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",
