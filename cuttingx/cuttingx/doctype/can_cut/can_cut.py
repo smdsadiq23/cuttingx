@@ -44,8 +44,6 @@ class CanCut(Document):
         self.profit_loss_value = qty_diff * (fob_rate * 0.7)
 
     def notify_approvers(self):
-        from frappe.utils import get_url_to_form
-
         # Get the merchant user linked in the document
         merchant_user = self.merchant
         if not merchant_user:
@@ -74,8 +72,8 @@ class CanCut(Document):
             """
         )
 
-    # Optional: Send real-time notification to the merchant
-    frappe.publish_realtime("msgprint", message=f"📋 New Can Cut pending approval: {self.name}", user=merchant_user)
+        # Optional: Send real-time notification to the merchant
+        frappe.publish_realtime("msgprint", message=f"📋 New Can Cut pending approval: {self.name}", user=merchant_user)
 
     def notify_owner(self, action_by, status, reason=None):
         from frappe.utils import get_url_to_form
