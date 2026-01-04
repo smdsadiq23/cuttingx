@@ -43,36 +43,36 @@ class CanCut(Document):
         fob_rate = flt(self.fob)
         self.profit_loss_value = qty_diff * (fob_rate * 0.7)
 
-def notify_approvers(self):
-    from frappe.utils import get_url_to_form
+    def notify_approvers(self):
+        from frappe.utils import get_url_to_form
 
-    # Get the merchant user linked in the document
-    merchant_user = self.merchant
-    if not merchant_user:
-        frappe.log_error("Can Cut {self.name}: No merchant assigned for approval notification.")
-        return
+        # Get the merchant user linked in the document
+        merchant_user = self.merchant
+        if not merchant_user:
+            frappe.log_error("Can Cut {self.name}: No merchant assigned for approval notification.")
+            return
 
-    # Fetch the merchant's email
-    merchant_email = frappe.db.get_value("User", merchant_user, "email")
-    if not merchant_email:
-        frappe.log_error(f"Can Cut {self.name}: No email found for merchant user '{merchant_user}'.")
-        return
+        # Fetch the merchant's email
+        merchant_email = frappe.db.get_value("User", merchant_user, "email")
+        if not merchant_email:
+            frappe.log_error(f"Can Cut {self.name}: No email found for merchant user '{merchant_user}'.")
+            return
 
-    # Send email only to the merchant
-    frappe.sendmail(
-        recipients=[merchant_email],
-        subject=f"📋 Action Required: Can Cut Approval Pending — {self.name}",
-        message=f"""
-            <p>A new <b>Can Cut</b> request is pending your approval.</p>
-            <p><b>Request ID:</b> {self.name}<br>
-            <b>Style:</b> {self.style or '–'}<br>
-            <b>Sales Order:</b> {self.sales_order or '–'}<br>
-            <b>Requested By:</b> {self.owner}<br>
-            <b>Can Cut %:</b> {self.can_cut_percent:.2f}%</p>
-            <p><a href="{get_url_to_form('Can Cut', self.name)}" target="_blank">👉 Click to Review & Approve</a></p>
-            <p><i>Note: You're receiving this because you're assigned as the merchant for this request.</i></p>
-        """
-    )
+        # Send email only to the merchant
+        frappe.sendmail(
+            recipients=[merchant_email],
+            subject=f"📋 Action Required: Can Cut Approval Pending — {self.name}",
+            message=f"""
+                <p>A new <b>Can Cut</b> request is pending your approval.</p>
+                <p><b>Request ID:</b> {self.name}<br>
+                <b>Style:</b> {self.style or '–'}<br>
+                <b>Sales Order:</b> {self.sales_order or '–'}<br>
+                <b>Requested By:</b> {self.owner}<br>
+                <b>Can Cut %:</b> {self.can_cut_percent:.2f}%</p>
+                <p><a href="{get_url_to_form('Can Cut', self.name)}" target="_blank">👉 Click to Review & Approve</a></p>
+                <p><i>Note: You're receiving this because you're assigned as the merchant for this request.</i></p>
+            """
+        )
 
     # Optional: Send real-time notification to the merchant
     frappe.publish_realtime("msgprint", message=f"📋 New Can Cut pending approval: {self.name}", user=merchant_user)
