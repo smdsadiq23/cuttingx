@@ -191,9 +191,25 @@ frappe.ui.form.on('Can Cut', {
 
         // Make fields read-only only after save and not in Draft
         if (!frm.doc.__islocal && frm.doc.status && frm.doc.status !== 'Draft') {
+            const editableInPendingApproval = [
+                'actual_consumptions',
+                'actual_dia',
+                'actual_gsm',
+                'actual_lay_length'
+            ];
+
+            // Define which fields should remain editable in "Pending for Approval"
+            const editableFields = frm.doc.status === 'Pending for Approval'
+                ? ['actual_consumption', 'actual_dia', 'actual_gsm', 'actual_lay_length']
+                : [];
+
             Object.keys(frm.fields_dict).forEach(fieldname => {
-                frm.set_df_property(fieldname, 'read_only', 1);
+                const isEditable = editableFields.includes(fieldname);
+                frm.set_df_property(fieldname, 'read_only', !isEditable);
             });
+
+            // Still disable Save button unless it's a draft
+            // (approval workflows should use Approve/Reject buttons)
             frm.disable_save();
         }
 
