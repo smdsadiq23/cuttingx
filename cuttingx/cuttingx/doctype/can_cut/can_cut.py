@@ -135,7 +135,15 @@ class CanCut(Document):
                 style_group = "⚠️ Style Missing"
 
         # Format to 1 decimal place (e.g., 95.5) or round to int if preferred
-        can_cut_percent_str = f"{self.can_cut_percent:.1f}" if self.can_cut_percent else "0.0"            
+        can_cut_percent_str = f"{self.can_cut_percent:.1f}" if self.can_cut_percent else "0.0"   
+
+        # Sanitize remarks for WhatsApp
+        raw_remarks = self.requester_remarks or "–"
+        # Replace line breaks with spaces and clean up
+        sanitized_remarks = " ".join(raw_remarks.split()) if raw_remarks != "–" else "–"
+        # Ensure max length (WhatsApp limit is 1024 chars per parameter)
+        if sanitized_remarks != "–":
+            sanitized_remarks = sanitized_remarks[:1024].rstrip(" .")  # Remove trailing spaces/periods
 
         # Prepare NAMED body parameters to match your template
         body_params = [
@@ -157,7 +165,7 @@ class CanCut(Document):
             {"name": "can_cut_qty", "value": str(int(self.can_cut_quantity or 0))},
             {"name": "can_cut_percent", "value": can_cut_percent_str},
             {"name": "merchant", "value": self.merchant or "–"},
-            {"name": "remarks", "value": self.requester_remarks or "–"},
+            {"name": "remarks", "value": sanitized_remarks or "–"},
         ]
 
         # Send to each recipient
@@ -240,7 +248,6 @@ def get_so_wo_from_cut_docket(cut_docket):
     work_orders_by_so = {so: sorted(list(wos)) for so, wos in work_orders_by_so.items()}
 
     return {"sales_orders": sales_orders, "work_orders_by_so": work_orders_by_so}
-
 
 
 @frappe.whitelist()
