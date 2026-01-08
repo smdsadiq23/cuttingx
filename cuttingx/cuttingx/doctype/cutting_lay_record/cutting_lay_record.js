@@ -116,6 +116,7 @@ frappe.ui.form.on('Cutting Lay Record', {
             fields: ['name'],
             limit: 2
         }).then(records => {
+            console.log('Filtered Can Cut records:', records); // 👈 Add this line
             if (records.length === 1) {
                 frm.set_value('can_cut_no', records[0].name);
                 // marker_efficiency will auto-fetch; still calculate chindi after fetch applies
