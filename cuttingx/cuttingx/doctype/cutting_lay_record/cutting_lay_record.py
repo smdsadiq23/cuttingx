@@ -235,48 +235,88 @@ def get_next_cut_no(cut_kanban_no, ocn, style, colour):
 
 
 @frappe.whitelist()
-def get_grn_items_for_style_colour(sales_order, style, colour):
+def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     """
-    Return GRN Items with net available quantity after deducting:
-    - Quantity issued via Sample Fabric Issuance (by grn + roll)
-    - Quantity used in Cutting Lay Records (by grn_item_reference)
-    Uses separate queries + Python aggregation for clarity.
+    Return available GRN fabric rolls for a given OCN.
+    
+    Supports both:
+      - NEW: GRNs with fg_item → match by fg_item
+      - OLD: GRNs without fg_item → match by colour (legacy)
+      
+    Args:
+        ocn (str): Order Confirmation Number
+        fg_item (str, optional): Finished Goods item code (for new GRNs)
+        colour (str, optional): Fabric color (for old GRNs)
+        
+    Returns:
+        list: Available roll details with net quantity
     """
-    if not (sales_order and style and colour):
+    if not ocn:
         return []
 
-    # 2. Get all relevant GRN Items (submitted GRNs only)
-    grn_items = frappe.db.sql("""
-        SELECT 
-            gri.name AS grn_item_reference,
-            gri.parent AS grn,
-            gri.roll_no,
-            gri.received_quantity,
-            gri.fabric_width AS width,
-            gri.dia
-        FROM `tabGoods Receipt Item` gri
-        INNER JOIN `tabGoods Receipt Note` grn ON gri.parent = grn.name
-        WHERE 
-            grn.ocn = %s
-            AND grn.docstatus = 1
-            AND gri.color = %s
-            AND gri.roll_no IS NOT NULL
-            AND gri.received_quantity > 0
-    """, (sales_order, colour), as_dict=1)
+    # Step 1: Get all submitted GRNs for this OCN
+    all_grns = frappe.db.sql("""
+        SELECT name, fg_item 
+        FROM `tabGoods Receipt Note`
+        WHERE ocn = %s AND docstatus = 1
+    """, (ocn,), as_dict=1)
+
+    if not all_grns:
+        return []
+
+    grn_items = []
+
+    # --- Handle NEW GRNs (with fg_item) ---
+    if fg_item:
+        new_grn_names = [g.name for g in all_grns if g.fg_item == fg_item]
+        if new_grn_names:
+            items = frappe.db.sql("""
+                SELECT 
+                    gri.name AS grn_item_reference,
+                    gri.parent AS grn,
+                    gri.roll_no,
+                    gri.received_quantity,
+                    gri.fabric_width AS width,
+                    gri.dia
+                FROM `tabGoods Receipt Item` gri
+                WHERE 
+                    gri.parent IN %s
+                    AND gri.roll_no IS NOT NULL
+                    AND gri.received_quantity > 0
+            """, (tuple(new_grn_names),), as_dict=1)
+            grn_items.extend(items)
+
+    # --- Handle OLD GRNs (fg_item IS NULL or empty) ---
+    if colour:
+        old_grn_names = [
+            g.name for g in all_grns 
+            if not g.fg_item or g.fg_item.strip() == ''
+        ]
+        if old_grn_names:
+            items = frappe.db.sql("""
+                SELECT 
+                    gri.name AS grn_item_reference,
+                    gri.parent AS grn,
+                    gri.roll_no,
+                    gri.received_quantity,
+                    gri.fabric_width AS width,
+                    gri.dia
+                FROM `tabGoods Receipt Item` gri
+                WHERE 
+                    gri.parent IN %s
+                    AND gri.color = %s
+                    AND gri.roll_no IS NOT NULL
+                    AND gri.received_quantity > 0
+            """, (tuple(old_grn_names), colour), as_dict=1)
+            grn_items.extend(items)
 
     if not grn_items:
         return []
 
-    # Extract keys for lookups
-    grn_item_refs = [g["grn_item_reference"] for g in grn_items]
+    # --- Deduct Sample Fabric Issuance ---
     grn_roll_pairs = [(g["grn"], g["roll_no"]) for g in grn_items]
-
-    # 3. Get total ISSUED quantity per (grn, roll) from Sample Fabric Issuance
     issued_data = frappe.db.sql("""
-        SELECT 
-            grn, 
-            roll, 
-            SUM(issued_quantity) AS total_issued
+        SELECT grn, roll, SUM(issued_quantity) AS total_issued
         FROM `tabSample Fabric Issuance`
         WHERE 
             docstatus = 1
@@ -288,7 +328,8 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
 
     issued_map = {(d["grn"], d["roll"]): d["total_issued"] for d in issued_data}
 
-    # 4. Get total USED quantity per grn_item_reference from Cutting Lay Records
+    # --- Deduct Cutting Lay Usage (by grn_item_reference) ---
+    grn_item_refs = [g["grn_item_reference"] for g in grn_items]
     used_data = frappe.db.sql("""
         SELECT 
             lr.grn_item_reference,
@@ -303,7 +344,7 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
 
     used_map = {d["grn_item_reference"]: d["total_used"] for d in used_data}
 
-    # 5. Compute net quantity in Python
+    # --- Compute net available per roll ---
     result = []
     for item in grn_items:
         issued_qty = issued_map.get((item["grn"], item["roll_no"]), 0.0)
@@ -319,14 +360,9 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
                 "dia": item["dia"],
             })
 
-    # --- Safe sorting for roll_no (handles "1/33", "10", etc.) ---
+    # --- Sort rolls safely ---
     def safe_roll_sort_key(item):
-        roll = item.get("roll_no")
-        if roll is None:
-            return (0, 0)
-
-        roll = str(roll).strip()
-
+        roll = str(item.get("roll_no") or "").strip()
         if '/' in roll:
             parts = roll.split('/', 1)
             try:
@@ -335,14 +371,12 @@ def get_grn_items_for_style_colour(sales_order, style, colour):
                 return (a, b)
             except (ValueError, IndexError):
                 return (float('inf'), roll)
-
         try:
             return (int(roll), 0)
         except ValueError:
             return (float('inf'), roll)
 
     return sorted(result, key=safe_roll_sort_key)
-
 
 # ---------------- Notification Helpers ----------------
 

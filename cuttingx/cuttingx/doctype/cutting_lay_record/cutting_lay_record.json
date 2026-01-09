@@ -13,6 +13,7 @@
   "marker_efficiency",
   "ocn",
   "work_order",
+  "fg_code",
   "buyer",
   "style",
   "colour",
@@ -299,13 +300,22 @@
    "fieldtype": "Percent",
    "label": "Can Cut Accuracy",
    "read_only": 1
+  },
+  {
+   "fetch_from": "cut_kanban_no.style",
+   "fieldname": "fg_code",
+   "fieldtype": "Link",
+   "label": "FG Code",
+   "options": "Item",
+   "read_only": 1,
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-02 17:20:59.009340",
+ "modified": "2026-01-09 16:38:02.181933",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Cutting Lay Record",

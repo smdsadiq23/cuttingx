@@ -235,11 +235,11 @@ frappe.ui.form.on('Cutting Lay Record', {
             // 3. Populate Lay Roll Details
             let grn_counter = 0;
             frappe.call({
-                method: 'cuttingx.cuttingx.doctype.cutting_lay_record.cutting_lay_record.get_grn_items_for_style_colour',
+                method: 'cuttingx.cuttingx.doctype.cutting_lay_record.cutting_lay_record.get_grn_items_for_fg_or_colour',                
                 args: {
-                    sales_order: frm.doc.ocn,
-                    style: frm.doc.style,
-                    colour: frm.doc.colour
+                    ocn: frm.doc.ocn,
+                    fg_item: frm.doc.fg_code,      // or frm.doc.style if still using that field
+                    colour: frm.doc.colour         // optional: include for legacy support
                 },
                 callback: function(r) {
                     const grn_items = r.message || [];
@@ -251,9 +251,13 @@ frappe.ui.form.on('Cutting Lay Record', {
                             row.grn_item_reference = grn.grn_item_reference;
                             row.roll_no = grn.roll_no;
                             row.roll_weight = grn.roll_weight;
+                            // Optional: set width/dia if your child table has those fields
+                            if (row.width !== undefined) row.width = grn.width;
+                            if (row.dia !== undefined) row.dia = grn.dia;
                         });
 
                         recompute_all(frm);
+                        frm.refresh_field('table_lay_roll_details');
                     }
                 }
             });
