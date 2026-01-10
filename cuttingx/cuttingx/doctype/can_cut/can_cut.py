@@ -116,7 +116,7 @@ class CanCut(Document):
             frappe.throw(_("Document not saved yet. Cannot send WhatsApp."))
 
         # Fetch WhatsApp notification config
-        notif_name = "can_cut_approval"
+        notif_name = "can_cut_approval_v3"
         try:
             notif_doc = frappe.get_doc("Whatsapp Notification", notif_name)
         except frappe.DoesNotExistError:
@@ -179,8 +179,8 @@ class CanCut(Document):
             result = send_whatsapp_template(
                 to=recipient.whatsapp_number,
                 template_name=notif_doc.template_name,
-                body_params=body_params,  # Now using named parameters
-                button_params=[self.name]  # Just document name (template has base URL)
+                body_params=body_params,
+                button_params=[self.name]
             )
 
             if result["success"]:
