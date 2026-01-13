@@ -110,17 +110,24 @@ frappe.ui.form.on('Cutting Lay Record', {
             return;
         }
 
-        // Auto-select can_cut_no if only one match exists (status='Approved')
+        // Auto-select or notify based on number of matching Can Cut records
         frappe.db.get_list('Can Cut', {
             filters: { 'cutting_kanban': frm.doc.cut_kanban_no, 'status': 'Approved' },
             fields: ['name'],
             limit: 2
         }).then(records => {
-            console.log('Filtered Can Cut records:', records); // 👈 Add this line
+            console.log('Filtered Can Cut records:', records);
             if (records.length === 1) {
                 frm.set_value('can_cut_no', records[0].name);
-                // marker_efficiency will auto-fetch; still calculate chindi after fetch applies
                 setTimeout(() => update_chindi_weight(frm), 0);
+            } else if (records.length === 0) {
+                // ✅ NEW: Show message when no Can Cut found
+                frm.set_value('can_cut_no', '');
+                frappe.msgprint({
+                    title: __('No Approved Can Cut Found'),
+                    message: __('There is no approved "Can Cut" record linked to this Cut Kanban. Please ensure a Can Cut has been created and approved.'),
+                    indicator: 'orange'
+                });
             }
         });
 
