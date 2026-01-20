@@ -218,7 +218,7 @@ def build_operation_map_from_process_map(
         if not ops_present:
             continue
 
-        # stabilize adjacency lists
+        # Build edge index map for all operations (for stable sorting only)
         first_edge_index = {}
         for s, lst in adj.items():
             lst.sort(key=lambda it: it[1])
@@ -227,48 +227,84 @@ def build_operation_map_from_process_map(
         for op in ops_present:
             first_edge_index.setdefault(op, 10**9)
 
-        # Kahn topo sort with stable ordering
-        q = [op for op in ops_present if indeg.get(op, 0) == 0]
-        q.sort(key=lambda op: (first_edge_index.get(op, 10**9), str(op).lower()))
-        q = deque(q)
+        # Kahn's topological sort - CORRECTED VERSION
+        # Start with operations that have no incoming edges
+        q = deque([op for op in ops_present if indeg.get(op, 0) == 0])
+        
+        # Sort initial queue by edge index only (not alphabetically)
+        q = deque(sorted(list(q), key=lambda op: first_edge_index.get(op, 10**9)))
 
         topo = []
         while q:
             u = q.popleft()
             topo.append(u)
-            for v, _ei in adj.get(u, []):
+            
+            # Process neighbors in edge index order
+            neighbors = sorted(adj.get(u, []), key=lambda it: it[1])
+            
+            for v, _ei in neighbors:
                 indeg[v] -= 1
                 if indeg[v] == 0:
                     q.append(v)
-            q = deque(sorted(list(q), key=lambda op: (first_edge_index.get(op, 10**9), str(op).lower())))
+            
+            # Re-sort queue by edge index only (maintains flow order)
+            q = deque(sorted(list(q), key=lambda op: first_edge_index.get(op, 10**9)))
 
+        # If cycle detected, fallback to edge-order traversal
         if len(topo) < len(ops_present):
-            topo = sorted(list(ops_present), key=lambda op: str(op).lower())
+            # Start from operations with no incoming edges
+            start_ops = [op for op in ops_present if indeg.get(op, 0) == 0]
+            if not start_ops:
+                # If all have incoming edges (cycle), start with first by edge index
+                start_ops = [min(ops_present, key=lambda op: first_edge_index.get(op, 10**9))]
+            
+            # Do a simple graph traversal following edges
+            visited = set()
+            topo = []
+            queue = deque(sorted(start_ops, key=lambda op: first_edge_index.get(op, 10**9)))
+            
+            while queue:
+                op = queue.popleft()
+                if op in visited:
+                    continue
+                visited.add(op)
+                topo.append(op)
+                
+                # Add neighbors in edge order
+                for next_op, _ in sorted(adj.get(op, []), key=lambda it: it[1]):
+                    if next_op not in visited:
+                        queue.append(next_op)
+            
+            # Add any remaining unvisited operations
+            for op in sorted(ops_present - visited, key=lambda op: first_edge_index.get(op, 10**9)):
+                topo.append(op)
 
-        # build a quick edge lookup for this component
-        has_edge = set()
-        for s, t, comps, _ei in norm_edges:
-            if comp in comps:
-                has_edge.add((s, t))
-
-        seq_no = 0
+        # Build operation index for proper edge ordering
         topo_index = {op: i for i, op in enumerate(topo)}
-        edge_rows = []
-        for s, t in sorted(has_edge, key=lambda st: (topo_index.get(st[0], 10**9),
-                                                     topo_index.get(st[1], 10**9))):
-            seq_no += 1
-            edge_rows.append((s, t, seq_no))
 
-        # append to child table
-        for s, t, seq in edge_rows:
+        # Collect all edges for this component and sort by topological order
+        edge_list = []
+        for s, t, comps, edge_idx in norm_edges:
+            if comp in comps:
+                edge_list.append((s, t, edge_idx))
+
+        # Sort edges by: source's topo position, then target's topo position, then original edge index
+        edge_list.sort(key=lambda e: (
+            topo_index.get(e[0], 10**9),
+            topo_index.get(e[1], 10**9),
+            e[2]
+        ))
+
+        # Assign sequence numbers based on sorted edge order
+        for seq_no, (s, t, _) in enumerate(edge_list, start=1):
             row = doc.append(op_map_child_table, {})
             row.operation = s
             row.component = comp or ""
             row.next_operation = t
-            row.sequence_no = seq
+            row.sequence_no = seq_no
             row.configs = {}
 
-        # sinks for this component
+        # Identify sinks for this component
         sinks = [op for op in ops_present if outdeg.get(op, 0) == 0]
         for sk in sinks:
             global_sinks.add(sk)
@@ -276,7 +312,7 @@ def build_operation_map_from_process_map(
     # Only set last_operation if there's a unique sink
     if len(global_sinks) == 1:
         setattr(doc, last_operation_field, next(iter(global_sinks)))
-
+        
 
 def populate_physical_cell_first_and_last_operations(
     doc,
