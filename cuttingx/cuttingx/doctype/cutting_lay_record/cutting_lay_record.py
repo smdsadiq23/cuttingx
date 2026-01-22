@@ -237,16 +237,17 @@ def get_next_cut_no(cut_kanban_no, ocn, style, colour):
 @frappe.whitelist()
 def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     """
-    Return available GRN fabric rolls for a given OCN.
+    Return available GRN fabric rolls for a given OCN, FG item, and colour.
     
-    Supports both:
-      - NEW: GRNs with fg_item → match by fg_item
-      - OLD: GRNs without fg_item → match by colour (legacy)
+    Supports:
+      - NEW: GRNs with GRN OCN FG Mapping child table (multi-OCN, multi-FG, multi-colour support)
+      - LEGACY: GRNs with direct ocn + fg_item fields
+      - OLD: GRNs without fg_item → match by colour only
       
     Args:
         ocn (str): Order Confirmation Number
-        fg_item (str, optional): Finished Goods item code (for new GRNs)
-        colour (str, optional): Fabric color (for old GRNs)
+        fg_item (str, optional): Finished Goods item code
+        colour (str, optional): Fabric color
         
     Returns:
         list: Available roll details with net quantity
@@ -254,22 +255,37 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     if not ocn:
         return []
 
-    # Step 1: Get all submitted GRNs for this OCN
-    all_grns = frappe.db.sql("""
-        SELECT name, fg_item 
-        FROM `tabGoods Receipt Note`
-        WHERE ocn = %s AND docstatus = 1
-    """, (ocn,), as_dict=1)
-
-    if not all_grns:
-        return []
-
     grn_items = []
 
-    # --- Handle NEW GRNs (with fg_item) ---
-    if fg_item:
-        new_grn_names = [g.name for g in all_grns if g.fg_item == fg_item]
-        if new_grn_names:
+    # --- STRATEGY 1: GRNs with GRN OCN FG Mapping (NEW - supports multi-OCN, multi-FG, multi-colour) ---
+    if fg_item and colour:
+        # Find GRNs that have a mapping entry for this OCN + FG Item + Colour combination
+        mapped_grns = frappe.db.sql("""
+            SELECT DISTINCT parent 
+            FROM `tabGRN OCN FG Mapping`
+            WHERE 
+                ocn = %s
+                AND fg_item = %s
+                AND fg_item_colour = %s
+                AND parenttype = 'Goods Receipt Note'
+        """, (ocn, fg_item, colour), as_list=1)
+        
+        mapped_grn_names = [g[0] for g in mapped_grns if g[0]]
+        
+        if mapped_grn_names:
+            # Verify these GRNs are submitted
+            submitted_mapped_grns = frappe.db.sql("""
+                SELECT name 
+                FROM `tabGoods Receipt Note`
+                WHERE 
+                    name IN %s
+                    AND docstatus = 1
+            """, (tuple(mapped_grn_names),), as_list=1)
+            
+            mapped_grn_names = [g[0] for g in submitted_mapped_grns]
+        
+        if mapped_grn_names:
+            # Get rolls matching the colour from GRN items
             items = frappe.db.sql("""
                 SELECT 
                     gri.name AS grn_item_reference,
@@ -277,21 +293,75 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
                     gri.roll_no,
                     gri.received_quantity,
                     gri.fabric_width AS width,
-                    gri.dia
+                    gri.dia,
+                    gri.color
                 FROM `tabGoods Receipt Item` gri
                 WHERE 
                     gri.parent IN %s
+                    AND gri.color = %s
                     AND gri.roll_no IS NOT NULL
                     AND gri.received_quantity > 0
-            """, (tuple(new_grn_names),), as_dict=1)
+            """, (tuple(mapped_grn_names), colour), as_dict=1)
             grn_items.extend(items)
 
-    # --- Handle OLD GRNs (fg_item IS NULL or empty) ---
-    if colour:
-        old_grn_names = [
-            g.name for g in all_grns 
-            if not g.fg_item or g.fg_item.strip() == ''
-        ]
+    # --- STRATEGY 2: Direct OCN + FG Item + Colour match (LEGACY - single OCN, single FG) ---
+    if fg_item and colour and not grn_items:
+        # Only try this if mapping approach found nothing
+        legacy_grns = frappe.db.sql("""
+            SELECT name 
+            FROM `tabGoods Receipt Note`
+            WHERE 
+                ocn = %s
+                AND fg_item = %s
+                AND docstatus = 1
+        """, (ocn, fg_item), as_list=1)
+        
+        legacy_grn_names = [g[0] for g in legacy_grns]
+        
+        if legacy_grn_names:
+            items = frappe.db.sql("""
+                SELECT 
+                    gri.name AS grn_item_reference,
+                    gri.parent AS grn,
+                    gri.roll_no,
+                    gri.received_quantity,
+                    gri.fabric_width AS width,
+                    gri.dia,
+                    gri.color
+                FROM `tabGoods Receipt Item` gri
+                WHERE 
+                    gri.parent IN %s
+                    AND gri.color = %s
+                    AND gri.roll_no IS NOT NULL
+                    AND gri.received_quantity > 0
+            """, (tuple(legacy_grn_names), colour), as_dict=1)
+            grn_items.extend(items)
+
+    # --- STRATEGY 3: OLD GRNs (colour-based matching only) ---
+    if colour and not grn_items:
+        # Get GRNs for this OCN that DON'T have fg_item or mappings
+        old_grns = frappe.db.sql("""
+            SELECT name 
+            FROM `tabGoods Receipt Note`
+            WHERE 
+                ocn = %s
+                AND docstatus = 1
+                AND (fg_item IS NULL OR fg_item = '')
+        """, (ocn,), as_list=1)
+        
+        old_grn_names = [g[0] for g in old_grns]
+        
+        # Exclude GRNs that have GRN OCN FG Mapping entries (they use new system)
+        if old_grn_names:
+            grns_with_mapping = frappe.db.sql("""
+                SELECT DISTINCT parent 
+                FROM `tabGRN OCN FG Mapping`
+                WHERE parent IN %s
+            """, (tuple(old_grn_names),), as_list=1)
+            
+            mapped_grns = {g[0] for g in grns_with_mapping}
+            old_grn_names = [g for g in old_grn_names if g not in mapped_grns]
+        
         if old_grn_names:
             items = frappe.db.sql("""
                 SELECT 
@@ -300,7 +370,8 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
                     gri.roll_no,
                     gri.received_quantity,
                     gri.fabric_width AS width,
-                    gri.dia
+                    gri.dia,
+                    gri.color
                 FROM `tabGoods Receipt Item` gri
                 WHERE 
                     gri.parent IN %s
@@ -313,7 +384,7 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     if not grn_items:
         return []
 
-    # --- Deduct Sample Fabric Issuance ---
+    # --- Deduct Sample Fabric Issuance (by GRN + Roll) ---
     grn_roll_pairs = [(g["grn"], g["roll_no"]) for g in grn_items]
     issued_data = frappe.db.sql("""
         SELECT grn, roll, SUM(issued_quantity) AS total_issued
@@ -328,33 +399,49 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
 
     issued_map = {(d["grn"], d["roll"]): d["total_issued"] for d in issued_data}
 
-    # --- Deduct Cutting Lay Usage (by grn_item_reference) ---
-    grn_item_refs = [g["grn_item_reference"] for g in grn_items]
+    # --- Deduct Cutting Lay Usage (by GRN + Roll) ---
+    # CRITICAL: We group by (grn, roll_no) instead of grn_item_reference
+    # This ensures that usage is tracked per physical roll, regardless of which
+    # GRN item row or OCN/FG Item/Colour was used to reference it
+    
+    # First, get all GRN names from our items
+    grn_names = list(set([g["grn"] for g in grn_items]))
+    
     used_data = frappe.db.sql("""
         SELECT 
-            lr.grn_item_reference,
+            gri.parent AS grn,
+            gri.roll_no,
             SUM(COALESCE(lr.actual_total, 0)) AS total_used
         FROM `tabLay Roll Details` lr
         INNER JOIN `tabCutting Lay Record` clr ON lr.parent = clr.name
+        INNER JOIN `tabGoods Receipt Item` gri ON lr.grn_item_reference = gri.name
         WHERE 
             clr.docstatus < 2
-            AND lr.grn_item_reference IN %s
-        GROUP BY lr.grn_item_reference
-    """, (tuple(grn_item_refs),), as_dict=1)
+            AND gri.parent IN %s
+            AND gri.roll_no IS NOT NULL
+        GROUP BY gri.parent, gri.roll_no
+    """, (tuple(grn_names),), as_dict=1)
 
-    used_map = {d["grn_item_reference"]: d["total_used"] for d in used_data}
+    used_map = {(d["grn"], d["roll_no"]): d["total_used"] for d in used_data}
 
     # --- Compute net available per roll ---
-    result = []
+    # Group items by (grn, roll_no) to handle cases where same roll appears multiple times
+    roll_map = {}
     for item in grn_items:
-        issued_qty = issued_map.get((item["grn"], item["roll_no"]), 0.0)
-        used_qty = used_map.get(item["grn_item_reference"], 0.0)
+        key = (item["grn"], item["roll_no"])
+        if key not in roll_map:
+            roll_map[key] = item
+    
+    result = []
+    for (grn, roll_no), item in roll_map.items():
+        issued_qty = issued_map.get((grn, roll_no), 0.0)
+        used_qty = used_map.get((grn, roll_no), 0.0)
         net_qty = item["received_quantity"] - issued_qty - used_qty
 
         if net_qty > 0:
             result.append({
                 "grn_item_reference": item["grn_item_reference"],
-                "roll_no": item["roll_no"],
+                "roll_no": roll_no,
                 "roll_weight": net_qty,
                 "width": item["width"],
                 "dia": item["dia"],
@@ -377,6 +464,7 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
             return (float('inf'), roll)
 
     return sorted(result, key=safe_roll_sort_key)
+
 
 # ---------------- Notification Helpers ----------------
 
