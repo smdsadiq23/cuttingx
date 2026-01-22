@@ -238,28 +238,37 @@ def get_next_cut_no(cut_kanban_no, ocn, style, colour):
 def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     """
     Return available GRN fabric rolls for a given OCN, FG item, and colour.
-    
-    Supports:
-      - NEW: GRNs with GRN OCN FG Mapping child table (multi-OCN, multi-FG, multi-colour support)
-      - LEGACY: GRNs with direct ocn + fg_item fields
-      - OLD: GRNs without fg_item → match by colour only
-      
-    Args:
-        ocn (str): Order Confirmation Number
-        fg_item (str, optional): Finished Goods item code
-        colour (str, optional): Fabric color
-        
-    Returns:
-        list: Available roll details with net quantity
     """
     if not ocn:
+        frappe.log_error(f"No OCN provided", "get_grn_items_for_fg_or_colour")
         return []
 
+    # Create a unique log identifier
+    import time
+    log_id = int(time.time() * 1000)
+    
+    # Log input parameters
+    frappe.log_error(
+        title=f"GRN Items Search {log_id} - START",
+        message=f"""
+        INPUT PARAMETERS:
+        - OCN: {ocn}
+        - FG Item: {fg_item}
+        - Colour: {colour}
+        - Timestamp: {frappe.utils.now()}
+        """
+    )
+    
     grn_items = []
+    strategy_used = "None"
 
-    # --- STRATEGY 1: GRNs with GRN OCN FG Mapping (NEW - supports multi-OCN, multi-FG, multi-colour) ---
+    # --- STRATEGY 1: GRNs with GRN OCN FG Mapping ---
     if fg_item and colour:
-        # Find GRNs that have a mapping entry for this OCN + FG Item + Colour combination
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Strategy 1",
+            message=f"Checking GRN OCN FG Mapping for OCN={ocn}, FG={fg_item}, Colour={colour}"
+        )
+        
         mapped_grns = frappe.db.sql("""
             SELECT DISTINCT parent 
             FROM `tabGRN OCN FG Mapping`
@@ -270,9 +279,19 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
                 AND parenttype = 'Goods Receipt Note'
         """, (ocn, fg_item, colour), as_list=1)
         
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Strategy 1 Results",
+            message=f"Found {len(mapped_grns)} mapping entries"
+        )
+        
         mapped_grn_names = [g[0] for g in mapped_grns if g[0]]
         
         if mapped_grn_names:
+            frappe.log_error(
+                title=f"GRN Items Search {log_id} - Mapped GRNs",
+                message=f"Mapped GRNs: {', '.join(mapped_grn_names)}"
+            )
+            
             # Verify these GRNs are submitted
             submitted_mapped_grns = frappe.db.sql("""
                 SELECT name 
@@ -282,110 +301,214 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
                     AND docstatus = 1
             """, (tuple(mapped_grn_names),), as_list=1)
             
-            mapped_grn_names = [g[0] for g in submitted_mapped_grns]
-        
-        if mapped_grn_names:
-            # Get rolls matching the colour from GRN items
-            items = frappe.db.sql("""
-                SELECT 
-                    gri.name AS grn_item_reference,
-                    gri.parent AS grn,
-                    gri.roll_no,
-                    gri.received_quantity,
-                    gri.fabric_width AS width,
-                    gri.dia,
-                    gri.color
-                FROM `tabGoods Receipt Item` gri
-                WHERE 
-                    gri.parent IN %s
-                    AND gri.color = %s
-                    AND gri.roll_no IS NOT NULL
-                    AND gri.received_quantity > 0
-            """, (tuple(mapped_grn_names), colour), as_dict=1)
-            grn_items.extend(items)
+            submitted_names = [g[0] for g in submitted_mapped_grns]
+            frappe.log_error(
+                title=f"GRN Items Search {log_id} - Submitted GRNs",
+                message=f"Submitted GRNs: {', '.join(submitted_names) if submitted_names else 'None'}"
+            )
+            
+            if submitted_names:
+                items = frappe.db.sql("""
+                    SELECT 
+                        gri.name AS grn_item_reference,
+                        gri.parent AS grn,
+                        gri.roll_no,
+                        gri.received_quantity,
+                        gri.fabric_width AS width,
+                        gri.dia,
+                        gri.color
+                    FROM `tabGoods Receipt Item` gri
+                    WHERE 
+                        gri.parent IN %s
+                        AND gri.color = %s
+                        AND gri.roll_no IS NOT NULL
+                        AND gri.received_quantity > 0
+                """, (tuple(submitted_names), colour), as_dict=1)
+                
+                frappe.log_error(
+                    title=f"GRN Items Search {log_id} - Strategy 1 Rolls",
+                    message=f"Found {len(items)} rolls via Strategy 1"
+                )
+                
+                if items:
+                    grn_items.extend(items)
+                    strategy_used = "Strategy 1 (GRN OCN FG Mapping)"
+                    
+                    # Log each item found
+                    item_details = []
+                    for item in items:
+                        item_details.append(f"GRN={item['grn']}, Roll={item['roll_no']}, Qty={item['received_quantity']}, Color={item['color']}")
+                    
+                    frappe.log_error(
+                        title=f"GRN Items Search {log_id} - Strategy 1 Details",
+                        message="\n".join(item_details)
+                    )
 
-    # --- STRATEGY 2: Direct OCN + FG Item + Colour match (LEGACY - single OCN, single FG) ---
+    # --- STRATEGY 2: Direct OCN + FG Item match (LEGACY) ---
     if fg_item and colour and not grn_items:
-        # Only try this if mapping approach found nothing
-        legacy_grns = frappe.db.sql("""
-            SELECT name 
-            FROM `tabGoods Receipt Note`
-            WHERE 
-                ocn = %s
-                AND fg_item = %s
-                AND docstatus = 1
-        """, (ocn, fg_item), as_list=1)
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Strategy 2",
+            message="Checking direct fg_item field in Goods Receipt Note"
+        )
         
-        legacy_grn_names = [g[0] for g in legacy_grns]
+        # First check if 'fg_item' field exists in Goods Receipt Note
+        field_exists = frappe.db.sql("""
+            SHOW COLUMNS FROM `tabGoods Receipt Note` LIKE 'fg_item'
+        """)
         
-        if legacy_grn_names:
-            items = frappe.db.sql("""
-                SELECT 
-                    gri.name AS grn_item_reference,
-                    gri.parent AS grn,
-                    gri.roll_no,
-                    gri.received_quantity,
-                    gri.fabric_width AS width,
-                    gri.dia,
-                    gri.color
-                FROM `tabGoods Receipt Item` gri
+        if field_exists:
+            legacy_grns = frappe.db.sql("""
+                SELECT name 
+                FROM `tabGoods Receipt Note`
                 WHERE 
-                    gri.parent IN %s
-                    AND gri.color = %s
-                    AND gri.roll_no IS NOT NULL
-                    AND gri.received_quantity > 0
-            """, (tuple(legacy_grn_names), colour), as_dict=1)
-            grn_items.extend(items)
+                    ocn = %s
+                    AND fg_item = %s
+                    AND docstatus = 1
+            """, (ocn, fg_item), as_list=1)
+            
+            legacy_grn_names = [g[0] for g in legacy_grns]
+            frappe.log_error(
+                title=f"GRN Items Search {log_id} - Strategy 2 GRNs",
+                message=f"Found {len(legacy_grn_names)} GRNs with fg_item field: {', '.join(legacy_grn_names) if legacy_grn_names else 'None'}"
+            )
+            
+            if legacy_grn_names:
+                items = frappe.db.sql("""
+                    SELECT 
+                        gri.name AS grn_item_reference,
+                        gri.parent AS grn,
+                        gri.roll_no,
+                        gri.received_quantity,
+                        gri.fabric_width AS width,
+                        gri.dia,
+                        gri.color
+                    FROM `tabGoods Receipt Item` gri
+                    WHERE 
+                        gri.parent IN %s
+                        AND gri.color = %s
+                        AND gri.roll_no IS NOT NULL
+                        AND gri.received_quantity > 0
+                """, (tuple(legacy_grn_names), colour), as_dict=1)
+                
+                frappe.log_error(
+                    title=f"GRN Items Search {log_id} - Strategy 2 Rolls",
+                    message=f"Found {len(items)} rolls via Strategy 2"
+                )
+                
+                if items:
+                    grn_items.extend(items)
+                    strategy_used = "Strategy 2 (Direct fg_item field)"
+        else:
+            frappe.log_error(
+                title=f"GRN Items Search {log_id} - Strategy 2 Skipped",
+                message="'fg_item' field does NOT exist in Goods Receipt Note table"
+            )
 
-    # --- STRATEGY 3: OLD GRNs (colour-based matching only) ---
+    # --- STRATEGY 3: OLD GRNs (colour-based only) ---
     if colour and not grn_items:
-        # Get GRNs for this OCN that DON'T have fg_item or mappings
-        old_grns = frappe.db.sql("""
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Strategy 3",
+            message="Checking old GRNs (colour only)"
+        )
+        
+        # Get all GRNs for this OCN
+        all_grns = frappe.db.sql("""
             SELECT name 
             FROM `tabGoods Receipt Note`
             WHERE 
                 ocn = %s
                 AND docstatus = 1
-                AND (fg_item IS NULL OR fg_item = '')
-        """, (ocn,), as_list=1)
+        """, ocn, as_list=1)
         
-        old_grn_names = [g[0] for g in old_grns]
+        all_grn_names = [g[0] for g in all_grns]
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - All GRNs",
+            message=f"Found {len(all_grn_names)} total GRNs for OCN {ocn}: {', '.join(all_grn_names) if all_grn_names else 'None'}"
+        )
         
-        # Exclude GRNs that have GRN OCN FG Mapping entries (they use new system)
-        if old_grn_names:
+        if all_grn_names:
+            # Get GRNs with mapping (to exclude)
             grns_with_mapping = frappe.db.sql("""
                 SELECT DISTINCT parent 
                 FROM `tabGRN OCN FG Mapping`
                 WHERE parent IN %s
-            """, (tuple(old_grn_names),), as_list=1)
+            """, (tuple(all_grn_names),), as_list=1)
             
             mapped_grns = {g[0] for g in grns_with_mapping}
-            old_grn_names = [g for g in old_grn_names if g not in mapped_grns]
-        
-        if old_grn_names:
-            items = frappe.db.sql("""
-                SELECT 
-                    gri.name AS grn_item_reference,
-                    gri.parent AS grn,
-                    gri.roll_no,
-                    gri.received_quantity,
-                    gri.fabric_width AS width,
-                    gri.dia,
-                    gri.color
-                FROM `tabGoods Receipt Item` gri
-                WHERE 
-                    gri.parent IN %s
-                    AND gri.color = %s
-                    AND gri.roll_no IS NOT NULL
-                    AND gri.received_quantity > 0
-            """, (tuple(old_grn_names), colour), as_dict=1)
-            grn_items.extend(items)
+            
+            # Get GRNs with fg_item field (to exclude if field exists)
+            old_grn_names = []
+            for grn in all_grn_names:
+                if grn not in mapped_grns:
+                    # Also check if this GRN has fg_item field populated
+                    has_fg_item = frappe.db.sql("""
+                        SELECT 1 FROM `tabGoods Receipt Note`
+                        WHERE name = %s AND fg_item IS NOT NULL AND fg_item != ''
+                    """, grn)
+                    if not has_fg_item:
+                        old_grn_names.append(grn)
+            
+            frappe.log_error(
+                title=f"GRN Items Search {log_id} - Old GRNs",
+                message=f"Old GRNs (no mapping, no fg_item): {', '.join(old_grn_names) if old_grn_names else 'None'}"
+            )
+            
+            if old_grn_names:
+                items = frappe.db.sql("""
+                    SELECT 
+                        gri.name AS grn_item_reference,
+                        gri.parent AS grn,
+                        gri.roll_no,
+                        gri.received_quantity,
+                        gri.fabric_width AS width,
+                        gri.dia,
+                        gri.color
+                    FROM `tabGoods Receipt Item` gri
+                    WHERE 
+                        gri.parent IN %s
+                        AND gri.color = %s
+                        AND gri.roll_no IS NOT NULL
+                        AND gri.received_quantity > 0
+                """, (tuple(old_grn_names), colour), as_dict=1)
+                
+                frappe.log_error(
+                    title=f"GRN Items Search {log_id} - Strategy 3 Rolls",
+                    message=f"Found {len(items)} rolls via Strategy 3"
+                )
+                
+                if items:
+                    grn_items.extend(items)
+                    strategy_used = "Strategy 3 (Old colour-based)"
+                    
+                    # Log each item found
+                    item_details = []
+                    for item in items:
+                        item_details.append(f"GRN={item['grn']}, Roll={item['roll_no']}, Qty={item['received_quantity']}, Color={item['color']}")
+                    
+                    frappe.log_error(
+                        title=f"GRN Items Search {log_id} - Strategy 3 Details",
+                        message="\n".join(item_details)
+                    )
+
+    frappe.log_error(
+        title=f"GRN Items Search {log_id} - Initial Results",
+        message=f"""
+        Summary:
+        - Strategy used: {strategy_used}
+        - Total rolls found before deductions: {len(grn_items)}
+        """
+    )
 
     if not grn_items:
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - No Rolls Found",
+            message="No rolls found in any strategy"
+        )
         return []
 
-    # --- Deduct Sample Fabric Issuance (by GRN + Roll) ---
+    # --- Deduct Sample Fabric Issuance ---
     grn_roll_pairs = [(g["grn"], g["roll_no"]) for g in grn_items]
+    
     issued_data = frappe.db.sql("""
         SELECT grn, roll, SUM(issued_quantity) AS total_issued
         FROM `tabSample Fabric Issuance`
@@ -398,13 +521,24 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     """, (tuple(grn_roll_pairs),), as_dict=1)
 
     issued_map = {(d["grn"], d["roll"]): d["total_issued"] for d in issued_data}
-
-    # --- Deduct Cutting Lay Usage (by GRN + Roll) ---
-    # CRITICAL: We group by (grn, roll_no) instead of grn_item_reference
-    # This ensures that usage is tracked per physical roll, regardless of which
-    # GRN item row or OCN/FG Item/Colour was used to reference it
     
-    # First, get all GRN names from our items
+    # Log sample fabric issuance
+    if issued_data:
+        issuance_details = []
+        for issue in issued_data:
+            issuance_details.append(f"GRN={issue['grn']}, Roll={issue['roll']}, Issued={issue['total_issued']}")
+        
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Sample Fabric Issuance",
+            message=f"Found {len(issued_data)} issuance records:\n" + "\n".join(issuance_details)
+        )
+    else:
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Sample Fabric Issuance",
+            message="No sample fabric issuance found"
+        )
+
+    # --- Deduct Cutting Lay Usage ---
     grn_names = list(set([g["grn"] for g in grn_items]))
     
     used_data = frappe.db.sql("""
@@ -423,9 +557,24 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     """, (tuple(grn_names),), as_dict=1)
 
     used_map = {(d["grn"], d["roll_no"]): d["total_used"] for d in used_data}
+    
+    # Log cutting lay usage
+    if used_data:
+        usage_details = []
+        for usage in used_data:
+            usage_details.append(f"GRN={usage['grn']}, Roll={usage['roll_no']}, Used={usage['total_used']}")
+        
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Cutting Lay Usage",
+            message=f"Found {len(used_data)} usage records:\n" + "\n".join(usage_details)
+        )
+    else:
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Cutting Lay Usage",
+            message="No cutting lay usage found"
+        )
 
     # --- Compute net available per roll ---
-    # Group items by (grn, roll_no) to handle cases where same roll appears multiple times
     roll_map = {}
     for item in grn_items:
         key = (item["grn"], item["roll_no"])
@@ -433,10 +582,20 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
             roll_map[key] = item
     
     result = []
+    calculation_details = []
+    
     for (grn, roll_no), item in roll_map.items():
         issued_qty = issued_map.get((grn, roll_no), 0.0)
         used_qty = used_map.get((grn, roll_no), 0.0)
         net_qty = item["received_quantity"] - issued_qty - used_qty
+        
+        calculation_details.append(
+            f"Roll {roll_no} in GRN {grn}: "
+            f"Original={item['received_quantity']}, "
+            f"Issued={issued_qty}, "
+            f"Used={used_qty}, "
+            f"Net={net_qty}"
+        )
 
         if net_qty > 0:
             result.append({
@@ -446,8 +605,18 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
                 "width": item["width"],
                 "dia": item["dia"],
             })
+    
+    frappe.log_error(
+        title=f"GRN Items Search {log_id} - Calculations",
+        message="\n".join(calculation_details)
+    )
+    
+    frappe.log_error(
+        title=f"GRN Items Search {log_id} - Available Rolls",
+        message=f"Found {len(result)} available rolls after deductions"
+    )
 
-    # --- Sort rolls safely ---
+    # Sort rolls
     def safe_roll_sort_key(item):
         roll = str(item.get("roll_no") or "").strip()
         if '/' in roll:
@@ -463,7 +632,30 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
         except ValueError:
             return (float('inf'), roll)
 
-    return sorted(result, key=safe_roll_sort_key)
+    sorted_result = sorted(result, key=safe_roll_sort_key)
+    
+    # Log final result
+    if sorted_result:
+        final_details = []
+        for idx, roll in enumerate(sorted_result):
+            final_details.append(f"{idx+1}. Roll={roll['roll_no']}, Weight={roll['roll_weight']}")
+        
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Final Result",
+            message="\n".join(final_details)
+        )
+    else:
+        frappe.log_error(
+            title=f"GRN Items Search {log_id} - Final Result",
+            message="No available rolls found after deductions"
+        )
+    
+    frappe.log_error(
+        title=f"GRN Items Search {log_id} - COMPLETED",
+        message=f"Method completed. Returning {len(sorted_result)} rolls."
+    )
+    
+    return sorted_result
 
 
 # ---------------- Notification Helpers ----------------
