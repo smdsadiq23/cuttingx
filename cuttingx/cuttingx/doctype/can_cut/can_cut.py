@@ -109,7 +109,9 @@ class CanCut(Document):
     def send_whatsapp_notification(self):
         """
         Send WhatsApp approval notification using 'Can Cut Notification' config.
-        Sends only to the recipient whose linked user matches self.merchant.
+        Sends to:
+        - The recipient whose user matches self.merchant, AND
+        - All recipients with is_mandatory_recipient = 1.
         Called from on_update or manually.
         """
         if not self.name:
@@ -165,62 +167,92 @@ class CanCut(Document):
             {"name": "remarks", "value": sanitized_remarks or "–"},
         ]
 
-        # Find the WhatsApp recipient linked to self.merchant
-        target_recipient = None
-        for recipient in notif_doc.whatsapp_recipients:
-            # Assumes the child table has a 'user' field linking to Frappe User
-            if str(recipient.get("user")) == str(self.merchant) and recipient.whatsapp_number:
-                target_recipient = recipient
-                break
+        # Collect unique recipient numbers to avoid duplicates
+        recipients_to_notify = {}
 
-        if not target_recipient:
-            error_detail = f"Can Cut {self.name}: No WhatsApp number configured for merchant '{self.merchant}'."
-            frappe.log_error(title="Merchant WhatsApp Not Found", message=error_detail)
+        # 1. Add the merchant (if exists and has WhatsApp number)
+        for recipient in notif_doc.whatsapp_recipients:
+            if (
+                recipient.whatsapp_number
+                and str(recipient.get("user")) == str(self.merchant)
+            ):
+                recipients_to_notify[recipient.whatsapp_number] = {
+                    "number": recipient.whatsapp_number,
+                    "reason": "merchant"
+                }
+                break  # Only one merchant expected
+
+        # 2. Add all mandatory recipients
+        for recipient in notif_doc.whatsapp_recipients:
+            if (
+                recipient.whatsapp_number
+                and recipient.get("is_mandatory_recipient")
+            ):
+                # Avoid duplicate messages if merchant is also marked mandatory
+                recipients_to_notify[recipient.whatsapp_number] = {
+                    "number": recipient.whatsapp_number,
+                    "reason": "mandatory"
+                }
+
+        if not recipients_to_notify:
+            error_msg = f"Can Cut {self.name}: No valid WhatsApp recipients (merchant or mandatory)."
+            frappe.log_error(title="No WhatsApp Recipients", message=error_msg)
             if frappe.flags.in_api or frappe.flags.in_web_form:
                 frappe.msgprint(
-                    _("No WhatsApp number configured for merchant: {0}").format(self.merchant),
+                    _("No WhatsApp recipients configured (merchant or mandatory)."),
                     alert=True,
                     indicator="orange"
                 )
             return
 
-        # Send WhatsApp message
-        result = send_whatsapp_template(
-            to=target_recipient.whatsapp_number,
-            template_name=notif_doc.template_name,
-            body_params=body_params,
-            button_params=[self.name]
-        )
+        # Send to all collected recipients
+        success_count = 0
+        errors = []
 
-        if result["success"]:
-            frappe.logger().info(
-                f"WhatsApp sent for Can Cut {self.name} to merchant {self.merchant} "
-                f"({target_recipient.whatsapp_number}): {result['message_id']}"
+        for rec in recipients_to_notify.values():
+            result = send_whatsapp_template(
+                to=rec["number"],
+                template_name=notif_doc.template_name,
+                body_params=body_params,
+                button_params=[self.name]
             )
-            if frappe.flags.in_api or frappe.flags.in_web_form:
+
+            if result["success"]:
+                success_count += 1
+                frappe.logger().info(
+                    f"WhatsApp message sent for Can Cut {self.name} to {rec['reason']} "
+                    f"({rec['number']}): {result['message_id']}"
+                )
+            else:
+                error_detail = result.get("error", "Unknown error")
+                errors.append(f"{rec['number']} ({rec['reason']}): {error_detail}")
+                frappe.log_error(
+                    title="Can Cut WhatsApp Failed",
+                    message=(
+                        f"Doc: {self.name}\n"
+                        f"To: {rec['number']} [{rec['reason']}]\n"
+                        f"Error: {error_detail}\n"
+                        f"Template: {notif_doc.template_name}"
+                    )
+                )
+
+        # User feedback
+        if frappe.flags.in_api or frappe.flags.in_web_form:
+            total = len(recipients_to_notify)
+            if errors:
                 frappe.msgprint(
-                    _("✅ WhatsApp notification sent to merchant: {0}").format(self.merchant),
+                    _("WhatsApp sent to {0}/{1} recipient(s). Errors: {2}").format(
+                        success_count, total, "; ".join(errors)
+                    ),
+                    alert=True,
+                    indicator="orange"
+                )
+            else:
+                frappe.msgprint(
+                    _("✅ WhatsApp notification sent to {0} recipient(s) (merchant + mandatory).").format(total),
                     alert=True,
                     indicator="green"
                 )
-        else:
-            error_msg = result.get("error", "Unknown error")
-            frappe.log_error(
-                title="Can Cut WhatsApp Failed",
-                message=(
-                    f"Doc: {self.name}\n"
-                    f"Merchant: {self.merchant}\n"
-                    f"WhatsApp Number: {target_recipient.whatsapp_number}\n"
-                    f"Error: {error_msg}\n"
-                    f"Template: {notif_doc.template_name}"
-                )
-            )
-            if frappe.flags.in_api or frappe.flags.in_web_form:
-                frappe.msgprint(
-                    _("❌ Failed to send WhatsApp to merchant {0}: {1}").format(self.merchant, error_msg),
-                    alert=True,
-                    indicator="red"
-                )  
 
 
 @frappe.whitelist()
