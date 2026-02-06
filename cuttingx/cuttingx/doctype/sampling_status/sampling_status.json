@@ -5,30 +5,34 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "style_details",
   "section_break_makx",
-  "amended_from",
-  "style_no",
-  "column_break_otpl",
   "date",
-  "section_break_qjig",
   "machine_no",
+  "column_break_otpl",
+  "style_no",
   "gauge",
+  "column_break_ypjr",
   "order_name",
-  "file_name",
-  "column_break_myfx",
-  "description",
-  "notes",
+  "composition",
+  "column_break_adeh",
+  "season",
+  "count",
+  "column_break_cycw",
+  "op_name",
   "section_break_xbnl",
   "sampling_status_items",
+  "colour_and_ply",
+  "column_break_dubk",
+  "table_knitting_time",
+  "total_knitting_time",
   "section_break_cjnh",
   "table_sampling_status_consumption",
   "total_consumption_weight",
-  "column_break_dubk",
-  "table_sampling_status_panels",
-  "total_panel_weight",
-  "total_knitting_time",
+  "measurement",
   "section_break_amxb",
-  "table_yarn_consumption_shade"
+  "table_measurement_details",
+  "amended_from"
  ],
  "fields": [
   {
@@ -36,20 +40,11 @@
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Sampling Status",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  },
-  {
    "fieldname": "style_no",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Style No",
+   "options": "Style Master",
    "reqd": 1
   },
   {
@@ -57,15 +52,12 @@
    "fieldtype": "Column Break"
   },
   {
+   "default": "Today",
    "fieldname": "date",
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Date",
    "reqd": 1
-  },
-  {
-   "fieldname": "section_break_qjig",
-   "fieldtype": "Section Break"
   },
   {
    "fieldname": "machine_no",
@@ -76,35 +68,18 @@
   },
   {
    "fieldname": "gauge",
-   "fieldtype": "Data",
+   "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Gauge",
+   "options": "14 GG\n12 GG\n9 GG\n7 GG Big\n7 GG Small\n5 GG Big\n5 GG Small\n2.5 GG",
    "reqd": 1
   },
   {
+   "fetch_from": "style_no.brand",
    "fieldname": "order_name",
    "fieldtype": "Data",
-   "label": "Order Name",
+   "label": "Brand",
    "reqd": 1
-  },
-  {
-   "fieldname": "file_name",
-   "fieldtype": "Data",
-   "label": "File Name"
-  },
-  {
-   "fieldname": "column_break_myfx",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "description",
-   "fieldtype": "Small Text",
-   "label": "Description"
-  },
-  {
-   "fieldname": "notes",
-   "fieldtype": "Small Text",
-   "label": "Notes"
   },
   {
    "fieldname": "section_break_xbnl",
@@ -113,7 +88,7 @@
   {
    "fieldname": "sampling_status_items",
    "fieldtype": "Table",
-   "label": "Sampling Status Items",
+   "label": "Colour and Ply Details",
    "options": "Sampling Status Item"
   },
   {
@@ -131,45 +106,102 @@
    "options": "Sampling Status Consumption"
   },
   {
-   "fieldname": "table_sampling_status_panels",
-   "fieldtype": "Table",
-   "label": "Panels",
-   "options": "Sampling Status Panels"
-  },
-  {
    "fieldname": "total_consumption_weight",
    "fieldtype": "Float",
-   "label": "Total Consumption Weight",
-   "read_only": 1
-  },
-  {
-   "fieldname": "total_panel_weight",
-   "fieldtype": "Float",
-   "label": "Total Panel Weight",
+   "label": "Total Weight",
    "read_only": 1
   },
   {
    "fieldname": "total_knitting_time",
-   "fieldtype": "Data",
-   "label": "Total Knitting Time (mm:ss)",
-   "read_only": 1
+   "fieldtype": "Float",
+   "label": "Total Knitting Time (mm:ss)"
   },
   {
    "fieldname": "section_break_amxb",
    "fieldtype": "Section Break"
   },
   {
-   "fieldname": "table_yarn_consumption_shade",
+   "fieldname": "season",
+   "fieldtype": "Link",
+   "label": "Season",
+   "options": "Season Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "composition",
+   "fieldtype": "Link",
+   "label": "Composition",
+   "options": "Yarn Content Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "count",
+   "fieldtype": "Link",
+   "label": "Count",
+   "options": "Yarn Count Master",
+   "reqd": 1
+  },
+  {
+   "fieldname": "op_name",
+   "fieldtype": "Data",
+   "label": "Operator Name"
+  },
+  {
+   "fieldname": "table_knitting_time",
    "fieldtype": "Table",
-   "label": "Yarn Consumption Shade",
+   "label": "Knitting Time",
+   "options": "Sampling Status Panels"
+  },
+  {
+   "columns": 10,
+   "fieldname": "table_measurement_details",
+   "fieldtype": "Table",
+   "label": "Measurement Details",
    "options": "Yarn Consumption Shade"
+  },
+  {
+   "fieldname": "style_details",
+   "fieldtype": "Tab Break",
+   "label": "Style Details"
+  },
+  {
+   "fieldname": "column_break_ypjr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_adeh",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "column_break_cycw",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "colour_and_ply",
+   "fieldtype": "Tab Break",
+   "label": "Consumption and Knitting time"
+  },
+  {
+   "fieldname": "measurement",
+   "fieldtype": "Tab Break",
+   "label": "Measurement"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Sampling Status",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-17 11:55:44.737892",
+ "modified": "2026-01-30 11:29:17.882723",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Sampling Status",

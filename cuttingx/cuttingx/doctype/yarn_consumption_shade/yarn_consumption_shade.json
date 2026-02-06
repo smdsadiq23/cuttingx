@@ -7,38 +7,87 @@
  "engine": "InnoDB",
  "field_order": [
   "size",
-  "shade",
-  "value"
+  "front_length",
+  "back_length",
+  "sleeve_length",
+  "neck_height",
+  "bottom_height",
+  "cuff_height",
+  "placket_height",
+  "hood_length"
  ],
  "fields": [
   {
+   "columns": 1,
    "fieldname": "size",
-   "fieldtype": "Data",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "label": "Size",
+   "options": "Size Master",
    "reqd": 1
   },
   {
-   "fieldname": "shade",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Shade",
-   "reqd": 1
-  },
-  {
-   "fieldname": "value",
+   "columns": 1,
+   "fieldname": "front_length",
    "fieldtype": "Float",
    "in_list_view": 1,
-   "label": "Value",
-   "non_negative": 1,
-   "reqd": 1
+   "label": "Front Length"
+  },
+  {
+   "columns": 1,
+   "fieldname": "back_length",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Back Length"
+  },
+  {
+   "columns": 1,
+   "fieldname": "sleeve_length",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Sleeve Length"
+  },
+  {
+   "columns": 1,
+   "fieldname": "neck_height",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Neck Height"
+  },
+  {
+   "columns": 1,
+   "fieldname": "bottom_height",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Bottom Height"
+  },
+  {
+   "columns": 1,
+   "fieldname": "cuff_height",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Cuff Height"
+  },
+  {
+   "columns": 1,
+   "fieldname": "placket_height",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Placket Height"
+  },
+  {
+   "columns": 1,
+   "fieldname": "hood_length",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "Hood Length"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-10-17 11:16:30.235226",
+ "modified": "2026-01-30 11:10:04.270904",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Yarn Consumption Shade",
