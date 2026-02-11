@@ -25,6 +25,7 @@
   "colour_and_ply",
   "column_break_dubk",
   "table_knitting_time",
+  "total_panel_weight",
   "total_knitting_time",
   "section_break_cjnh",
   "table_sampling_status_consumption",
@@ -195,13 +196,18 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "total_panel_weight",
+   "fieldtype": "Float",
+   "label": "Total Panel Weight"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-01-30 11:29:17.882723",
+ "modified": "2026-02-11 16:12:19.113855",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Sampling Status",

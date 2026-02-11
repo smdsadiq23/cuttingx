@@ -29,7 +29,7 @@ class CanCut(Document):
                 name=self.name,
                 method="send_whatsapp_notification",
                 queue="short",
-                enqueue_after_commit=True  # ← THIS IS KEY
+                enqueue_after_commit=True
             )     
 
     def calculate_fabric_balance(self):
