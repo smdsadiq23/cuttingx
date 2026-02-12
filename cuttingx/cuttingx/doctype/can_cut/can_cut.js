@@ -153,6 +153,28 @@ frappe.ui.form.on('Can Cut', {
     refresh: function(frm) {
         if (!frm.doc || !frm.doc.name) return;
 
+        // ✅ Set custom status indicator FIRST
+        if (!frm.doc.__islocal) {
+            frm.page.clear_indicator();
+            
+            if (frm.doc.status === 'Pending for Approval') {
+                frm.page.set_indicator(__('Pending for Approval'), 'orange');
+            } else if (frm.doc.status === 'Pending Manager Approval') {
+                frm.page.set_indicator(__('Pending Manager Approval'), 'yellow');
+            } else if (frm.doc.status === 'Approved') {
+                frm.page.set_indicator(__('Approved'), 'green');
+            } else if (frm.doc.status === 'Rejected') {
+                frm.page.set_indicator(__('Rejected'), 'red');
+            } else if (frm.doc.docstatus === 0) {
+                frm.page.set_indicator(__('Draft'), 'gray');
+            } else if (frm.doc.docstatus === 1 && !frm.doc.status) {
+                // Fallback for submitted docs without custom status
+                frm.page.set_indicator(__('Submitted'), 'blue');
+            } else if (frm.doc.docstatus === 2) {
+                frm.page.set_indicator(__('Cancelled'), 'red');
+            }
+        }        
+
         const docKey = `Can Cut:${frm.doc.name}`;
 
         // Prevent duplicate execution for SAVED docs only

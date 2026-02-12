@@ -49,7 +49,8 @@
   "with_replenishment",
   "approval_card_html",
   "section_break_jisc",
-  "folding"
+  "folding",
+  "amended_from"
  ],
  "fields": [
   {
@@ -204,7 +205,7 @@
   {
    "fieldname": "status",
    "fieldtype": "Select",
-   "hidden": 1,
+   "in_list_view": 1,
    "label": "Status",
    "options": "\nDraft\nPending for Approval\nPending Manager Approval\nApproved\nRejected",
    "read_only": 1
@@ -343,12 +344,23 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "With Replenishment"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Can Cut",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
+ "is_submittable": 1,
  "links": [],
- "modified": "2026-01-07 17:42:01.901106",
+ "modified": "2026-02-12 21:31:00.421835",
  "modified_by": "Administrator",
  "module": "CuttingX",
  "name": "Can Cut",

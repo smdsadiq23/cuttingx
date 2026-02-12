@@ -405,16 +405,16 @@ def approve(docname, approver_remarks=None, deviation_under=None):
         doc.status = 'Approved'
         doc.add_comment('Comment', text=f'Approved by {frappe.session.user}')
 
-        # ✅ Final decision -> submit (docstatus = 1)
-        doc.save(ignore_permissions=True)
-        doc.flags.ignore_permissions = True
+        # # ✅ Final decision -> submit (docstatus = 1)
+        # doc.save(ignore_permissions=True)
+        # doc.flags.ignore_permissions = True
+        doc.save()
         if doc.docstatus == 0:
             doc.submit()
 
         action_by_name = frappe.db.get_value("User", frappe.session.user, "full_name")
         doc.notify_owner(action_by=action_by_name, status='Approved')
         frappe.msgprint(_('✅ Approved successfully.'), alert=True)
-
     else:
         doc.status = 'Pending Manager Approval'
         doc.add_comment(
@@ -423,7 +423,8 @@ def approve(docname, approver_remarks=None, deviation_under=None):
         )
 
         # ✅ Not final -> DO NOT submit (keep docstatus = 0)
-        doc.save(ignore_permissions=True)
+        # doc.save(ignore_permissions=True))
+        doc.save()
 
         notify_managers_for_final_approval(doc)
         frappe.msgprint(_('✅ Initial approval granted. Sent to Can Cut Manager for final review.'), alert=True)
@@ -445,9 +446,10 @@ def approve_by_manager(docname, manager_remarks=None, deviation_under=None):
     doc.status = 'Approved'
     doc.add_comment('Comment', text=f'Final approval by {frappe.session.user}')
 
-    # ✅ Final decision -> submit (docstatus = 1)
-    doc.save(ignore_permissions=True)
-    doc.flags.ignore_permissions = True
+    # # ✅ Final decision -> submit (docstatus = 1)
+    # doc.save(ignore_permissions=True)
+    # doc.flags.ignore_permissions = True
+    doc.save()
     if doc.docstatus == 0:
         doc.submit()
 
@@ -479,7 +481,8 @@ def reject(docname, reason, deviation_under=None):
     doc.status = 'Rejected'
     comment = f'Rejected by {frappe.session.user}. Reason: {reason}'
     doc.add_comment('Comment', text=comment)
-    doc.save(ignore_permissions=True)
+    # doc.save(ignore_permissions=True)
+    doc.save()
 
     action_by_name = frappe.db.get_value("User", frappe.session.user, "full_name")
     doc.notify_owner(action_by=action_by_name, status='Rejected', reason=reason)
