@@ -287,7 +287,7 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
                         gri.parent IN %s
                         AND gri.roll_no IS NOT NULL
                         AND gri.received_quantity > 0
-                """, (tuple(submitted_names), colour), as_dict=1)
+                """, (tuple(submitted_names)), as_dict=1)
                 
                 if items:
                     grn_items.extend(items)
