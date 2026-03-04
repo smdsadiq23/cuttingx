@@ -238,6 +238,7 @@ def get_next_cut_no(cut_kanban_no, ocn, style, colour):
 def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
     """
     Return available GRN fabric rolls for a given OCN, FG item, and colour.
+    Rolls with a net available quantity below 1.5 are excluded.
     """
     if not ocn:
         return []
@@ -443,13 +444,15 @@ def get_grn_items_for_fg_or_colour(ocn, fg_item=None, colour=None):
         if key not in roll_map:
             roll_map[key] = item
     
+    MIN_ROLL_WEIGHT = 1.5  # Rolls with net quantity below this are excluded
+
     result = []
     for (grn, roll_no), item in roll_map.items():
         issued_qty = issued_map.get((grn, roll_no), 0.0)
         used_qty = used_map.get((grn, roll_no), 0.0)
         net_qty = item["received_quantity"] - issued_qty - used_qty
 
-        if net_qty > 0:
+        if net_qty >= MIN_ROLL_WEIGHT:
             result.append({
                 "grn_item_reference": item["grn_item_reference"],
                 "roll_no": roll_no,
